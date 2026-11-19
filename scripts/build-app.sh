@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Construit « build/L’Atelier.app » à partir du Swift Package.
+#   scripts/build-app.sh            → release, signature ad hoc
+#   SIGN_IDENTITY="Developer ID Application: …" scripts/build-app.sh
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+CONFIG="${CONFIG:-release}"
+VERSION="$(cat VERSION)"
+BUILD="$(git rev-list --count HEAD 2>/dev/null || echo 0)"
+APP="build/L’Atelier.app"
+
+swift build -c "$CONFIG" --product LAtelier
+BIN="$(swift build -c "$CONFIG" --show-bin-path)/LAtelier"
+
+rm -rf "$APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp "$BIN" "$APP/Contents/MacOS/LAtelier"
+sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Support/Info.plist > "$APP/Contents/Info.plist"
+plutil -lint "$APP/Contents/Info.plist" >/dev/null
+
+codesign --force --options runtime --timestamp=none --sign "${SIGN_IDENTITY:--}" "$APP"
+echo "$APP"
