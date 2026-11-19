@@ -48,6 +48,8 @@ struct DevPage: View {
             }
         }
         .onAppear { if scan.stale && !scan.scanning && !model.projectRoots.isEmpty { model.scanDev() } }
+        // Après un nettoyage ou un changement de dossiers, on réanalyse.
+        .onChange(of: scan.stale) { _, stale in if stale && !scan.scanning && !model.projectRoots.isEmpty { model.scanDev() } }
         .onChange(of: scan.finishedAt) {
             // Captures et développement : LATELIER_AUTOPREVIEW=1 ouvre l'aperçu (n'exécute rien).
             if ProcessInfo.processInfo.environment["LATELIER_AUTOPREVIEW"] != nil {

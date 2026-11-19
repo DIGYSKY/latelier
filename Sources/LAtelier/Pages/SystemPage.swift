@@ -35,6 +35,8 @@ struct SystemPage: View {
             }
         }
         .onAppear { if scan.stale && !scan.scanning { model.scanSystem() } }
+        // Après un nettoyage lancé depuis cet écran, on réanalyse.
+        .onChange(of: scan.stale) { _, stale in if stale && !scan.scanning { model.scanSystem() } }
     }
 
     private func review(_ chosen: [CleanupItem]) {
