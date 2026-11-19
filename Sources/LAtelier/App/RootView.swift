@@ -39,6 +39,8 @@ struct PageContainer: View {
         case .inventaire: InventoryPage()
         case .runtimes: RuntimesPage()
         case .services: ServicesPage()
+        case .dependances: DependenciesPage()
+        case .securite: SecurityPage()
         default: PlaceholderPage(page: page)
         }
     }

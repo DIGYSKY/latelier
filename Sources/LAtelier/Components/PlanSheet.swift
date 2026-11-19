@@ -88,8 +88,8 @@ struct PlanSheet: View {
     private var stepList: some View {
         let rows: [(String, String?)] = plan.removesFiles
             ? plan.removals.sorted { $0.bytes > $1.bytes }.map { ($0.url.abbreviatingHome(), Format.bytes($0.bytes)) }
-            : plan.commands.map { ($0.displayString, nil) }
-        let extraCommands = plan.removesFiles ? plan.commands.map { ($0.displayString, String?.none) } : []
+            : plan.steps.filter(\.isCommandLike).map { ($0.displayString, nil) }
+        let extraCommands = plan.removesFiles ? plan.steps.filter(\.isCommandLike).map { ($0.displayString, String?.none) } : []
         let shown = Array(rows.prefix(6)) + extraCommands
         return VStack(spacing: 0) {
             ForEach(Array(shown.enumerated()), id: \.offset) { index, row in

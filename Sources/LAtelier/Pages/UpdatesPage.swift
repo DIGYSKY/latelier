@@ -152,11 +152,18 @@ private struct UpdateRow: View {
                 if let gap = package.gap { Tag.gap(gap) }
             }
             .frame(width: 76, alignment: .leading)
-            Text(flag ?? "")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Tag.orange.0)
-                .lineLimit(1)
-                .frame(width: 100, alignment: .leading)
+            Group {
+                if let worst = package.vulnerabilities.map(\.severity).max(), flag == nil {
+                    Tag(text: "Faille \(worst.label.lowercased())", foreground: worst.colors.ink, background: worst.colors.fill)
+                        .help(package.vulnerabilities.map { "\($0.displayID) : \($0.summary)" }.joined(separator: "\n"))
+                } else {
+                    Text(flag ?? "")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Tag.orange.0)
+                        .lineLimit(1)
+                }
+            }
+            .frame(width: 110, alignment: .leading)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 10)

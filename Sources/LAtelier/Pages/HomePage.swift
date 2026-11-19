@@ -16,18 +16,43 @@ struct HomePage: View {
                     sub: disk.map { "libres sur \(Format.bytes($0.total))" } ?? "espace inconnu",
                     page: .stockageVue
                 )
-                KpiTile(label: "Projets", symbol: "arrow.triangle.branch", color: .primary, value: "—", sub: "détection à l’étape 3", page: .depots)
-                KpiTile(label: "Sécurité", symbol: "lock.shield", color: Theme.red, value: "—", sub: "analyse à l’étape 5", page: .securite)
-                KpiTile(label: "Mises à jour", symbol: "cube.box", color: Theme.orange, value: "—", sub: "inventaire à l’étape 4", page: .majs)
+                KpiTile(label: "Projets", symbol: "arrow.triangle.branch", color: .primary,
+                        value: model.repos.finishedAt == nil ? "—" : "\(model.repos.repos.count)",
+                        sub: projectsSub, page: .depots)
+                KpiTile(label: "Sécurité", symbol: "lock.shield", color: Theme.red,
+                        value: serious.map { "\($0)" } ?? "—", sub: serious == nil ? "analyse en cours…" : "paquets à faille grave",
+                        page: .securite)
+                KpiTile(label: "Mises à jour", symbol: "cube.box", color: Theme.orange,
+                        value: model.packages.finishedAt == nil ? "—" : "\(model.packages.updates.count)",
+                        sub: updatesSub, page: .majs)
             }
 
             HStack(alignment: .top, spacing: 14) {
-                Card(title: "À traiter", trailing: "Rien en attente") {
-                    EmptyState(
-                        symbol: "checkmark.circle",
-                        title: "Rien à traiter pour l’instant",
-                        message: "Vulnérabilités, commits non poussés et espace récupérable apparaîtront ici."
-                    )
+                Card(title: "À traiter", trailing: todo.isEmpty ? "Rien en attente" : nil) {
+                    if todo.isEmpty {
+                        EmptyState(
+                            symbol: "checkmark.circle",
+                            title: "Rien à traiter pour l’instant",
+                            message: "Failles, secrets, commits non poussés et mises à jour apparaîtront ici."
+                        )
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(Array(todo.enumerated()), id: \.offset) { index, item in
+                                if index > 0 { Rectangle().fill(Theme.hairline).frame(height: 1) }
+                                Button { model.selection = item.page } label: {
+                                    HStack(spacing: 12) {
+                                        IconChip(symbol: item.symbol, color: item.color, size: 28)
+                                        Text(item.text).font(.system(size: 13, weight: .medium))
+                                        Spacer()
+                                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.muted)
+                                    }
+                                    .padding(.vertical, 9)
+                                    .contentShape(.rect)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
                 }
 
                 Card(title: "Dernières actions") {
@@ -49,6 +74,54 @@ struct HomePage: View {
             }
         }
         .task { disk = DiskSpace.current() }
+        .onAppear {
+            if model.repos.stale && !model.repos.scanning { model.scanRepos() }
+            if model.packages.stale && !model.packages.scanning { model.scanPackages() }
+            if model.analysis.stale && !model.analysis.loading { model.scanAnalysis() }
+        }
+    }
+
+    private var serious: Int? {
+        model.analysis.value?.vulnerablePackages.filter { $0.severity >= .high }.count
+    }
+
+    private var projectsSub: String {
+        guard model.repos.finishedAt != nil else { return "détection en cours…" }
+        let pending = model.repos.repos.filter { $0.state != .clean && $0.state != .noRemote && $0.state != .noUpstream }.count
+        return pending == 0 ? "dépôts git, tous à jour" : "dépôts git, \(pending) à traiter"
+    }
+
+    private var updatesSub: String {
+        guard model.packages.finishedAt != nil else { return "vérification en cours…" }
+        let major = model.packages.updates.filter { $0.gap == .major }.count
+        return major == 0 ? "paquets à mettre à jour" : "dont \(major) majeure\(major > 1 ? "s" : "")"
+    }
+
+    private var todo: [(symbol: String, color: Color, text: String, page: Page)] {
+        var items: [(symbol: String, color: Color, text: String, page: Page)] = []
+        if let analysis = model.analysis.value {
+            let critical = analysis.vulnerablePackages.filter { $0.severity == .critical }
+            if !critical.isEmpty {
+                let projects = Set(critical.map(\.projectName)).count
+                items.append(("exclamationmark.shield", Theme.red, "\(critical.count) paquets à faille critique dans \(projects) projet\(projects > 1 ? "s" : "")", .securite))
+            }
+            if !analysis.secrets.isEmpty {
+                items.append(("key", Theme.red, "\(analysis.secrets.count) secret\(analysis.secrets.count > 1 ? "s" : "") commité\(analysis.secrets.count > 1 ? "s" : "")", .securite))
+            }
+        }
+        let unpushed = model.repos.repos.filter { $0.ahead > 0 }.count
+        if unpushed > 0 {
+            items.append(("arrow.up.circle", Theme.accent, "\(unpushed) dépôt\(unpushed > 1 ? "s" : "") avec des commits non poussés", .modifications))
+        }
+        let modified = model.repos.repos.filter { !$0.changes.isEmpty }.count
+        if modified > 0 {
+            items.append(("pencil.circle", Theme.orange, "\(modified) dépôt\(modified > 1 ? "s" : "") avec des modifications non commitées", .modifications))
+        }
+        let updates = model.packages.updates.count
+        if updates > 0 {
+            items.append(("arrow.down.circle", Theme.orange, "\(updates) mise\(updates > 1 ? "s" : "") à jour de paquets", .majs))
+        }
+        return items
     }
 
     private var greeting: String {

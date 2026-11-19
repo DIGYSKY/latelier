@@ -113,7 +113,7 @@ private struct ServiceRow: View {
                         Button("Arrêter") { model.runService(.stop, service) }.buttonStyle(.small)
                     } else {
                         Button("Démarrer") { model.runService(.start, service) }
-                            .buttonStyle(PillButtonStyle(kind: .small, tint: Theme.accent))
+                            .buttonStyle(PillButtonStyle(kind: .smallFilled))
                     }
                 }
                 .disabled(service.runsAsRoot)

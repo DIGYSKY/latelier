@@ -171,7 +171,8 @@ extension View {
 
 /// Boutons capsule : principal (bleu plein), secondaire (verre blanc), petit (dans les listes).
 struct PillButtonStyle: ButtonStyle {
-    enum Kind { case primary, secondary, small }
+    /// `smallFilled` : taille des listes, mais plein comme le principal (« Mettre à jour vers… »).
+    enum Kind { case primary, secondary, small, smallFilled }
     var kind: Kind
     var tint: Color = Theme.accent
 
@@ -186,8 +187,8 @@ struct PillButtonStyle: ButtonStyle {
         @Environment(\.isEnabled) private var enabled
 
         var body: some View {
-            let primary = kind == .primary
-            let small = kind == .small
+            let primary = kind == .primary || kind == .smallFilled
+            let small = kind == .small || kind == .smallFilled
             configuration.label
                 .font(.system(size: small ? 13 : 14, weight: primary ? .semibold : .medium))
                 .labelStyle(PillLabelStyle())

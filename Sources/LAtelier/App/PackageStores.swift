@@ -100,6 +100,17 @@ extension AppModel {
         }
     }
 
+    /// Lit les manifestes de tous les projets, interroge les registres et OSV, cherche les secrets.
+    func scanAnalysis(force: Bool = false) {
+        let runner = runner
+        let known = repos.repos.map(\.url)
+        let roots = projectRoots
+        analysis.run {
+            let projects = known.isEmpty ? RepoScanner(roots: roots).repositories() : known
+            return await ProjectAnalyzer(runner: runner, projects: projects).analyze(force: force)
+        }
+    }
+
     func scanServices() {
         let runner = runner
         services.run {

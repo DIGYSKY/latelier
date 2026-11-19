@@ -22,12 +22,20 @@ public enum ActionStep: Sendable, Hashable {
     case command(CommandSpec)
     /// Corbeille par défaut (règle n° 2) ; `permanently` pour une suppression définitive.
     case remove(URL, bytes: Int64, permanently: Bool)
+    /// Ajoute une ligne à un fichier texte s'il ne la contient pas déjà (`.gitignore`).
+    case appendLine(String, to: URL)
 
     public var displayString: String {
         switch self {
         case .command(let spec): spec.displayString
         case .remove(let url, _, _): url.path
+        case .appendLine(let line, let file): "echo \(ShellQuote.quote(line)) >> \(ShellQuote.quote(file.path))"
         }
+    }
+
+    /// Étapes montrées comme des commandes dans l'aperçu (tout sauf les fichiers à retirer).
+    public var isCommandLike: Bool {
+        if case .remove = self { false } else { true }
     }
 }
 
@@ -175,6 +183,29 @@ public struct PlanExecutor: Sendable {
                     break stepLoop
                 }
                 completed += 1
+
+            case .appendLine(let line, let file):
+                if let log = removal.flush() { logs.append(log) }
+                let start = Date()
+                do {
+                    try safety.check(file)
+                    try Self.append(line, to: file)
+                    completed += 1
+                    onEvent(index, .exited(status: 0, uncaughtSignal: false))
+                    logs.append(CommandLog(command: step.displayString, exitStatus: 0, output: "", duration: Date().timeIntervalSince(start)))
+                } catch {
+                    let reason = Self.describe(error)
+                    onEvent(index, .stderr(reason))
+                    onEvent(index, .exited(status: 1, uncaughtSignal: false))
+                    logs.append(CommandLog(command: step.displayString, exitStatus: 1, output: reason, duration: Date().timeIntervalSince(start)))
+                    let message = "Impossible de modifier \(file.lastPathComponent) : \(reason)"
+                    if !plan.stopOnFailure {
+                        commandFailures.append(message)
+                        continue
+                    }
+                    outcome = completed == 0 ? .failure(message) : .partial("\(message) \(completed) étape(s) sur \(total) avaient été faites.")
+                    break stepLoop
+                }
             }
         }
         let removalFailures = removal.failures
@@ -228,6 +259,17 @@ public struct PlanExecutor: Sendable {
             duration: Date().timeIntervalSince(start)
         )
         return (log, status, launchError)
+    }
+
+    /// Ajoute `line` à la fin du fichier (créé s'il n'existe pas), sauf si elle y est déjà.
+    static func append(_ line: String, to file: URL) throws {
+        let existing = (try? String(contentsOf: file, encoding: .utf8)) ?? ""
+        let lines = existing.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }
+        guard !lines.contains(line) else { return }
+        var text = existing
+        if !text.isEmpty && !text.hasSuffix("\n") { text += "\n" }
+        text += line + "\n"
+        try text.write(to: file, atomically: true, encoding: .utf8)
     }
 
     static func describe(_ error: Error) -> String {

@@ -169,7 +169,10 @@ private struct InventoryRow: View {
 
     @ViewBuilder
     private var state: some View {
-        if package.lockReason != nil, package.source != .npm {
+        if let worst = package.vulnerabilities.map(\.severity).max() {
+            Tag(text: "Faille \(worst.label.lowercased())", foreground: worst.colors.ink, background: worst.colors.fill)
+                .help(package.vulnerabilities.map { "\($0.displayID) : \($0.summary)" }.joined(separator: "\n"))
+        } else if package.lockReason != nil, package.source != .npm {
             Tag(text: package.lockReason!, foreground: Tag.grey.0, background: Tag.grey.1)
         } else if package.hasUpdate {
             Tag(text: "Mise à jour", foreground: Tag.blue.0, background: Tag.blue.1)

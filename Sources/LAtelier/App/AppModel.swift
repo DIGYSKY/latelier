@@ -21,6 +21,8 @@ final class AppModel {
     let packages = PackageStore()
     let runtimes = Loadable<[RuntimeLanguage]>()
     let services = Loadable<[BrewService]>()
+    /// Dépendances, failles (OSV), secrets et hygiène de tous les projets.
+    let analysis = Loadable<ProjectAnalysis>()
     /// Services pour lesquels une commande est en cours.
     var serviceBusy: Set<String> = []
 
@@ -149,10 +151,14 @@ final class AppModel {
             systemScan.invalidate()
             devScan.invalidate()
         }
-        if entry.kind == .git { repos.invalidate() }
+        if entry.kind == .git {
+            repos.invalidate()
+            analysis.invalidate()
+        }
         if entry.kind == .paquet {
             packages.invalidate()
             runtimes.invalidate()
+            analysis.invalidate()
         }
         if entry.kind == .systeme { services.invalidate() }
         await reloadHistory()

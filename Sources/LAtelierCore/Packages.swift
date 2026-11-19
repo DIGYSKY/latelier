@@ -82,6 +82,8 @@ public struct Package: Sendable, Hashable, Identifiable {
     public var bytes: Int64?
     /// Raison pour laquelle on n'y touche pas (app ouverte, outil indispensable…).
     public var lockReason: String?
+    /// Failles connues (OSV) pour la version installée : npm et cargo seulement.
+    public var vulnerabilities: [Vulnerability] = []
 
     public init(
         source: PackageSource, identifier: String, name: String? = nil, version: String,
@@ -316,7 +318,28 @@ public struct PackageScanner: Sendable {
             if let problem = part.problem { result.problems.append(problem) }
         }
         result.packages = result.packages.map(lockIfOpen)
+        if checkRemote { await addVulnerabilities(&result) }
         return result
+    }
+
+    /// Une requête OSV pour les paquets npm -g et cargo (noms et versions seulement).
+    private func addVulnerabilities(_ result: inout Result) async {
+        let ecosystems: [PackageSource: Ecosystem] = [.npm: .npm, .cargo: .cargo]
+        let deps = result.packages.compactMap { package in
+            ecosystems[package.source].map { Dependency(ecosystem: $0, name: package.identifier, version: package.version, direct: true) }
+        }
+        guard !deps.isEmpty else { return }
+        do {
+            let found = try await OSVClient().vulnerabilities(of: deps)
+            result.packages = result.packages.map { package in
+                guard let ecosystem = ecosystems[package.source] else { return package }
+                var package = package
+                package.vulnerabilities = found[Dependency(ecosystem: ecosystem, name: package.identifier, version: package.version).versionKey] ?? []
+                return package
+            }
+        } catch {
+            result.problems.append(error.localizedDescription)
+        }
     }
 
     private struct Part: Sendable {

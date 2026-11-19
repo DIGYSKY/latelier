@@ -156,3 +156,88 @@ enum FrenchDate {
         date.formatted(.dateTime.month(.abbreviated).year().locale(Locale(identifier: "fr_FR")))
     }
 }
+
+/// Barre de pastilles générique (écosystèmes, gravités…) : même rendu que `SourceChips`.
+struct ChoiceChips<ID: Hashable>: View {
+    @Binding var selection: ID?
+    let items: [(id: ID?, label: String, count: Int?)]
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                let selected = selection == item.id
+                Button { selection = item.id } label: {
+                    HStack(spacing: 5) {
+                        Text(item.label)
+                        if let count = item.count { Text("\(count)").opacity(0.75) }
+                    }
+                    .font(.system(size: 13, weight: selected ? .semibold : .medium))
+                    .foregroundStyle(selected ? Color.white : Color.primary)
+                    .padding(.horizontal, 14)
+                    .frame(minHeight: 34)
+                    .background {
+                        if selected {
+                            Capsule().fill(Theme.accent).shadow(color: Theme.accent.opacity(0.3), radius: 4, y: 3)
+                        }
+                    }
+                    .contentShape(.capsule)
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(4)
+        .background(Theme.cardFill, in: .capsule)
+        .overlay(Capsule().strokeBorder(Theme.cardBorder))
+    }
+}
+
+/// Case à cocher en capsule de verre (« Seulement les obsolètes »).
+struct CapsuleToggle: View {
+    let label: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(label, isOn: $isOn)
+            .toggleStyle(.checkbox)
+            .font(.system(size: 13))
+            .padding(.horizontal, 14)
+            .frame(height: 40)
+            .background(Theme.raised.opacity(0.8), in: .capsule)
+            .overlay(Capsule().strokeBorder(Theme.cardBorder))
+    }
+}
+
+extension Severity {
+    /// Couleurs de l'étiquette (texte, fond) et du liseré.
+    var colors: (ink: Color, fill: Color) {
+        switch self {
+        case .critical: Tag.red
+        case .high: Tag.orange
+        case .moderate: (Color.adaptive(light: NSColor(hex: 0x5C4A00), dark: NSColor(hex: 0xFFE07A)), Color(hex: 0xFFCC00).opacity(0.25))
+        case .low, .unknown: Tag.grey
+        }
+    }
+
+    var tag: Tag { Tag(text: label, foreground: colors.ink, background: colors.fill) }
+}
+
+extension ProjectAnalysis {
+    /// Nom affiché de chaque projet : « web », ou « front/web » quand deux dépôts portent le même nom.
+    var projectNames: [URL: String] {
+        let projects = Set(manifests.map(\.project) + secrets.map(\.project))
+        let counts = Dictionary(grouping: projects, by: \.lastPathComponent).mapValues(\.count)
+        return Dictionary(uniqueKeysWithValues: projects.map { url in
+            let name = url.lastPathComponent
+            return (url, counts[name, default: 0] > 1 ? "\(url.deletingLastPathComponent().lastPathComponent)/\(name)" : name)
+        })
+    }
+}
+
+extension AppModel {
+    /// Ouvre un projet dans Projets › Dépôts.
+    func showRepository(_ url: URL) {
+        repos.selectedID = url.standardizedFileURL.path
+        selection = .depots
+    }
+}
