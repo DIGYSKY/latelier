@@ -49,12 +49,10 @@ public struct ToolLocator: Sendable {
     /// Valeur de `PATH` donnée aux processus lancés.
     public var pathVariable: String { searchPaths.joined(separator: ":") }
 
+    /// Node choisi par `nvm alias default`, sinon la version la plus récente.
     private static func latestNvmBin(home: String) -> [String] {
-        let root = "\(home)/.nvm/versions/node"
-        guard let versions = try? FileManager.default.contentsOfDirectory(atPath: root) else { return [] }
-        let latest = versions
-            .filter { $0.hasPrefix("v") }
-            .max { $0.compare($1, options: .numeric) == .orderedAscending }
-        return latest.map { ["\(root)/\($0)/bin"] } ?? []
+        let root = URL(fileURLWithPath: "\(home)/.nvm")
+        guard let version = Nvm.defaultVersion(root: root) ?? Nvm.installed(root: root).first else { return [] }
+        return [root.appending(path: "versions/node/v\(version)/bin").path]
     }
 }

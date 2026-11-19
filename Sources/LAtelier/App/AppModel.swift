@@ -18,6 +18,11 @@ final class AppModel {
     let systemScan = ScanStore()
     let devScan = ScanStore()
     let repos = RepoStore()
+    let packages = PackageStore()
+    let runtimes = Loadable<[RuntimeLanguage]>()
+    let services = Loadable<[BrewService]>()
+    /// Services pour lesquels une commande est en cours.
+    var serviceBusy: Set<String> = []
 
     let runner = CommandRunner()
     let historyStore: HistoryStore
@@ -145,6 +150,11 @@ final class AppModel {
             devScan.invalidate()
         }
         if entry.kind == .git { repos.invalidate() }
+        if entry.kind == .paquet {
+            packages.invalidate()
+            runtimes.invalidate()
+        }
+        if entry.kind == .systeme { services.invalidate() }
         await reloadHistory()
     }
 
