@@ -4,7 +4,7 @@ build:
 	swift build
 
 test:
-	swift test
+	scripts/test.sh
 
 app:
 	scripts/build-app.sh

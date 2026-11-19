@@ -93,7 +93,7 @@ import Testing
             Issue.record("attendu .partial, obtenu \(entry.outcome)")
             return
         }
-        #expect(message.contains("1 commande(s) sur 3"))
+        #expect(message.contains("1 étape(s) sur 3"))
     }
 
     @Test func firstFailureIsFailure() async {

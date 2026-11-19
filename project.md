@@ -398,4 +398,7 @@ Swift Package (pas de projet Xcode à maintenir) ; Xcode peut ouvrir `Package.sw
 - `Sources/LAtelier` : l’app SwiftUI (navigation, composants Liquid Glass, écrans).
 - Toute action qui modifie passe par `model.preview(plan)` : feuille d’aperçu → exécution → Historique.
 - Sans Xcode, la macro `@State` n’est pas disponible : on écrit `@ViewState` (alias du property wrapper).
+- `LATELIER_AUTOPREVIEW=1` (avec `LATELIER_PAGE=dev`) ouvre l’aperçu dès la fin de l’analyse, sans rien exécuter : pratique pour les captures.
+- Projets « en cours d’utilisation » : dossiers de travail des processus via `lsof -d cwd` (les shells sont ignorés). L’Enregistreur (étape 7) passera à `proc_pidinfo`.
+- Garde-fou de suppression (`SafetyGuard`) : uniquement dans le dossier personnel, jamais `~/Library`, `~/Documents`, `~/.ssh`, trousseaux…
 - Signature Developer ID : `SIGN_IDENTITY="Developer ID Application: …" make app`.

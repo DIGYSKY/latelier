@@ -30,6 +30,8 @@ struct PageContainer: View {
         case .accueil: HomePage()
         case .historique: HistoryPage()
         case .reglages: SettingsPage()
+        case .systeme: SystemPage()
+        case .dev: DevPage()
         default: PlaceholderPage(page: page)
         }
     }

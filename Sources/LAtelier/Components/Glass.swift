@@ -302,6 +302,6 @@ enum Format {
     }
 
     static func duration(_ seconds: TimeInterval) -> String {
-        seconds < 1 ? "\(Int(seconds * 1000)) ms" : String(format: "%.1f s", seconds)
+        seconds < 1 ? "\(Int(seconds * 1000)) ms" : seconds.formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "fr_FR"))) + " s"
     }
 }
