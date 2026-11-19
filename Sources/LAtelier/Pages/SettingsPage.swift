@@ -10,10 +10,10 @@ struct SettingsPage: View {
     var body: some View {
         PageScaffold(page: .reglages, subtitle: "Outils détectés et informations sur l’app.") {
             Button("Revérifier", systemImage: "arrow.clockwise") { Task { await probe() } }
-                .buttonStyle(.glass)
+                .buttonStyle(.secondary)
                 .disabled(probing)
         } content: {
-            GlassCard(title: "Outils de développement", symbol: "wrench.and.screwdriver") {
+            Card(title: "Outils de développement") {
                 Text("L’Atelier s’appuie sur ces outils. Ceux qui manquent désactivent seulement les fonctions qui en dépendent.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -43,7 +43,7 @@ struct SettingsPage: View {
                 }
             }
 
-            GlassCard(title: "À propos", symbol: "info.circle") {
+            Card(title: "À propos") {
                 LabeledContent("Version", value: Self.version)
                 LabeledContent("Identifiant", value: AppPaths.bundleIdentifier)
                 LabeledContent("Données") {
@@ -51,11 +51,11 @@ struct SettingsPage: View {
                         try? FileManager.default.createDirectory(at: AppPaths.supportDirectory, withIntermediateDirectories: true)
                         NSWorkspace.shared.activateFileViewerSelecting([AppPaths.supportDirectory])
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(.secondary)
                 }
             }
 
-            GlassCard(title: "À venir (étape 10)", symbol: "slider.horizontal.3") {
+            Card(title: "À venir (étape 10)") {
                 Text("Dossiers de projets, sources de paquets et de news, règles de nettoyage, notifications, mises à jour de l’app.")
                     .foregroundStyle(.secondary)
             }

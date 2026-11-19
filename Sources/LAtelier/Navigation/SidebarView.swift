@@ -1,69 +1,155 @@
 import SwiftUI
 
-/// Barre latérale en accordéon : une seule section ouverte à la fois,
-/// celle de l'écran affiché par défaut.
+/// Barre latérale de la maquette : accordéon (une section ouverte à la fois, par défaut
+/// celle de l'écran affiché), pastille blanche pour la page active, sous-pages en retrait.
 struct SidebarView: View {
     @Environment(AppModel.self) private var model
-    @ViewState private var expanded: SidebarGroup?
+    @ViewState private var open: SidebarGroup?
 
     var body: some View {
-        @Bindable var model = model
-        List(selection: $model.selection) {
-            row(.accueil)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 2) {
+                brand
+                PageRow(page: .accueil, level: 1)
 
-            ForEach(SidebarGroup.allCases) { group in
-                Section(isExpanded: binding(for: group)) {
-                    ForEach(group.entries, id: \.self) { entry in
-                        switch entry {
-                        case .page(let page):
-                            row(page)
-                        case .sub(let title, let pages):
-                            Text(title)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .padding(.top, 4)
-                                .selectionDisabled()
-                            ForEach(pages) { row($0).padding(.leading, 12) }
-                        }
+                ForEach(SidebarGroup.allCases) { group in
+                    GroupRow(group: group, open: open == group, inside: model.selection.group == group) {
+                        withAnimation(.snappy(duration: 0.25)) { open = open == group ? nil : group }
                     }
-                } header: {
-                    Label(group.title, systemImage: group.symbol)
-                        .font(.body)
-                        .foregroundStyle(.primary)
-                        .contentShape(.rect)
-                        .onTapGesture { toggle(group) }
+                    if open == group {
+                        ForEach(group.entries, id: \.self) { entry in
+                            switch entry {
+                            case .page(let page):
+                                PageRow(page: page, level: 2)
+                            case .sub(let title, let pages):
+                                SubLabel(title: title, symbol: "app")
+                                ForEach(pages) { PageRow(page: $0, level: 3) }
+                            }
+                        }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
                 }
-            }
 
-            Section {
-                row(.historique)
-                row(.reglages)
+                Rectangle().fill(Theme.hairline).frame(height: 1).padding(.horizontal, 12).padding(.vertical, 8)
+                PageRow(page: .historique, level: 1)
+                PageRow(page: .reglages, level: 1)
             }
+            .padding(.horizontal, 10)
+            .padding(.bottom, 14)
         }
-        .listStyle(.sidebar)
-        .onAppear { expanded = model.selection.group }
+        .scrollIndicators(.never)
+        .onAppear { open = model.selection.group }
         .onChange(of: model.selection) { _, page in
-            if let group = page.group { withAnimation(.snappy) { expanded = group } }
+            if let group = page.group, group != open {
+                withAnimation(.snappy(duration: 0.25)) { open = group }
+            }
         }
     }
 
-    private func row(_ page: Page) -> some View {
-        Label(page.title, systemImage: page.symbol).tag(page)
-    }
-
-    private func binding(for group: SidebarGroup) -> Binding<Bool> {
-        Binding(
-            get: { expanded == group },
-            set: { open in withAnimation(.snappy) { expanded = open ? group : (expanded == group ? nil : expanded) } }
-        )
-    }
-
-    /// Cliquer le titre ouvre la section et affiche sa première page.
-    private func toggle(_ group: SidebarGroup) {
-        if expanded == group {
-            withAnimation(.snappy) { expanded = nil }
-        } else {
-            model.selection = group.firstPage
+    private var brand: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "wrench.adjustable")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                .background(Theme.accent, in: .rect(cornerRadius: 9, style: .continuous))
+            Text("L’Atelier").font(.system(size: 16, weight: .bold)).tracking(-0.2)
         }
+        .padding(.horizontal, 8)
+        .padding(.top, 2)
+        .padding(.bottom, 14)
+    }
+}
+
+/// Une page. Niveau 1 : racine ; 2 : dans une section ; 3 : dans un sous-groupe.
+private struct PageRow: View {
+    @Environment(AppModel.self) private var model
+    let page: Page
+    let level: Int
+    @ViewState private var hovering = false
+
+    var body: some View {
+        let active = model.selection == page
+        Button {
+            model.selection = page
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: page.symbol)
+                    .font(.system(size: level == 1 ? 15 : 13))
+                    .foregroundStyle(active ? Theme.accent : Color.primary)
+                    .frame(width: 20)
+                Text(page.title)
+                    .font(.system(size: level == 1 ? 14 : 13, weight: active ? .semibold : .regular))
+                Spacer(minLength: 0)
+            }
+            .padding(.leading, level == 1 ? 12 : level == 2 ? 38 : 56)
+            .padding(.trailing, 12)
+            .frame(minHeight: level == 1 ? 36 : 32)
+            .contentShape(.rect)
+            .background { RowBackground(active: active, hovering: hovering) }
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .accessibilityAddTraits(active ? .isSelected : [])
+    }
+}
+
+/// Titre de section : ouvre ou ferme, chevron qui tourne.
+private struct GroupRow: View {
+    let group: SidebarGroup
+    let open: Bool
+    /// La page affichée est dans cette section.
+    let inside: Bool
+    let toggle: () -> Void
+    @ViewState private var hovering = false
+
+    var body: some View {
+        Button(action: toggle) {
+            HStack(spacing: 10) {
+                Image(systemName: group.symbol)
+                    .font(.system(size: 15))
+                    .foregroundStyle(inside ? Theme.accent : Color.primary)
+                    .frame(width: 20)
+                Text(group.title).font(.system(size: 14, weight: inside ? .semibold : .regular))
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Theme.muted)
+                    .rotationEffect(.degrees(open ? 90 : 0))
+            }
+            .padding(.horizontal, 12)
+            .frame(minHeight: 36)
+            .contentShape(.rect)
+            .background { RowBackground(active: inside && !open, hovering: hovering) }
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .accessibilityValue(open ? "ouvert" : "fermé")
+    }
+}
+
+private struct SubLabel: View {
+    let title: String
+    let symbol: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol).font(.system(size: 11, weight: .semibold))
+            Text(title).font(.system(size: 12, weight: .semibold))
+        }
+        .foregroundStyle(Theme.muted)
+        .padding(.leading, 40)
+        .frame(minHeight: 28)
+    }
+}
+
+private struct RowBackground: View {
+    let active: Bool
+    let hovering: Bool
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(active ? Theme.raised : (hovering ? Theme.raised.opacity(0.45) : .clear))
+            .shadow(color: active ? Theme.shadow.opacity(0.12) : .clear, radius: 4, y: 2)
     }
 }

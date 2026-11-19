@@ -11,7 +11,7 @@ struct HistoryPage: View {
     var body: some View {
         PageScaffold(page: .historique, subtitle: "Tout ce que L’Atelier a fait, avec les commandes et leur sortie.") {
             Button("Vider", systemImage: "trash") { confirmClear = true }
-                .buttonStyle(.glass)
+                .buttonStyle(.secondary)
                 .disabled(model.history.isEmpty)
         } content: {
             HStack(spacing: 12) {
@@ -37,7 +37,7 @@ struct HistoryPage: View {
                 Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
             }
 
-            GlassCard(padding: 8) {
+            Card(padding: 8) {
                 if filtered.isEmpty {
                     EmptyState(
                         symbol: "clock",
@@ -111,6 +111,8 @@ struct HistoryPage: View {
 struct HistoryRow: View {
     let entry: HistoryEntry
     let expanded: Bool
+    /// Version courte (Accueil) : sans résumé ni taille.
+    var compact = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -121,12 +123,12 @@ struct HistoryRow: View {
                     .background(entry.kind.tint.opacity(0.12), in: .rect(cornerRadius: 8))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.title).font(.body.weight(.medium))
-                    if !entry.summary.isEmpty {
+                    if !compact, !entry.summary.isEmpty {
                         Text(entry.summary).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
                 }
                 Spacer()
-                if let bytes = entry.bytesFreed {
+                if !compact, let bytes = entry.bytesFreed {
                     Text(Format.bytes(bytes)).font(.callout.monospacedDigit()).foregroundStyle(.secondary)
                 }
                 OutcomeBadge(outcome: entry.outcome)

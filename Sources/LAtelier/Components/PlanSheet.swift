@@ -52,7 +52,7 @@ struct PlanSheet: View {
                 .font(.title2)
                 .foregroundStyle(plan.kind.tint)
                 .frame(width: 40, height: 40)
-                .glassEffect(.regular.tint(plan.kind.tint.opacity(0.15)), in: .rect(cornerRadius: 10))
+                .background(plan.kind.tint.opacity(0.13), in: .rect(cornerRadius: 10, style: .continuous))
             VStack(alignment: .leading, spacing: 2) {
                 Text(plan.title).font(.title2.weight(.semibold))
                 if let bytes = plan.estimatedBytes {
@@ -103,22 +103,21 @@ struct PlanSheet: View {
             case .preview:
                 Button("Annuler", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                    .buttonStyle(.glass)
+                    .buttonStyle(.secondary)
                 Button(plan.risk == .danger ? "Exécuter quand même" : "Exécuter") {
                     run.start(plan, model: model)
                 }
                 .keyboardShortcut(.defaultAction)
-                .buttonStyle(.glassProminent)
-                .tint(plan.risk == .danger ? .red : .accentColor)
+                .buttonStyle(.primary(tint: plan.risk == .danger ? Theme.red : Theme.accent))
                 .disabled(plan.risk == .protected)
             case .running:
                 ProgressView().controlSize(.small)
                 Button("Arrêter", role: .destructive) { run.stop() }
-                    .buttonStyle(.glass)
+                    .buttonStyle(.secondary)
             case .finished:
                 Button("Fermer") { dismiss() }
                     .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.glassProminent)
+                    .buttonStyle(.primary)
             }
         }
     }

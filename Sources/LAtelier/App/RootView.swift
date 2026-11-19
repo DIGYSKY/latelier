@@ -13,6 +13,8 @@ struct RootView: View {
                 .id(model.selection)
         }
         .toolbar(removing: .title)
+        .background { Backdrop() }
+        .tint(Theme.accent)
         .sheet(item: $model.pendingPlan) { plan in
             PlanSheet(plan: plan)
         }
