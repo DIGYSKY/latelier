@@ -13,6 +13,7 @@ struct RootView: View {
                 .id(model.selection)
         }
         .toolbar(removing: .title)
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .background { Backdrop() }
         .tint(Theme.accent)
         .sheet(item: $model.pendingPlan) { plan in
@@ -32,6 +33,8 @@ struct PageContainer: View {
         case .reglages: SettingsPage()
         case .systeme: SystemPage()
         case .dev: DevPage()
+        case .depots: ReposPage()
+        case .modifications: ModificationsPage()
         default: PlaceholderPage(page: page)
         }
     }

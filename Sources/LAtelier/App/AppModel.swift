@@ -17,6 +17,7 @@ final class AppModel {
 
     let systemScan = ScanStore()
     let devScan = ScanStore()
+    let repos = RepoStore()
 
     let runner = CommandRunner()
     let historyStore: HistoryStore
@@ -76,12 +77,45 @@ final class AppModel {
         projectRoots.append(url)
         saveRoots()
         devScan.invalidate()
+        repos.invalidate()
     }
 
     func removeProjectRoot(_ url: URL) {
         projectRoots.removeAll { $0 == url }
         saveRoots()
         devScan.invalidate()
+        repos.invalidate()
+    }
+
+    // MARK: - Projets
+
+    func scanRepos() {
+        let roots = projectRoots
+        let git = GitClient(runner: runner)
+        repos.run { await RepoScanner(roots: roots).scan(git: git) }
+    }
+
+    /// Exécute sans aperçu une action sans risque (fetch), mais la note dans l'historique.
+    @discardableResult
+    func runQuietly(_ plan: ActionPlan) async -> HistoryEntry {
+        let entry = await PlanExecutor(runner: runner).execute(plan)
+        await record(entry)
+        return entry
+    }
+
+    func fetchAll() {
+        let targets = repos.repos.filter(\.hasRemote)
+        guard !targets.isEmpty, !repos.fetching else { return }
+        repos.fetching = true
+        Task {
+            let entry = await runQuietly(GitClient.fetchPlan(targets))
+            repos.fetching = false
+            repos.message = switch entry.outcome {
+            case .success: "Fetch terminé · \(targets.count) dépôt(s) à jour"
+            case .partial(let text), .failure(let text): text
+            case .cancelled: "Fetch annulé"
+            }
+        }
     }
 
     private func saveRoots() {
@@ -110,6 +144,7 @@ final class AppModel {
             systemScan.invalidate()
             devScan.invalidate()
         }
+        if entry.kind == .git { repos.invalidate() }
         await reloadHistory()
     }
 
@@ -164,4 +199,38 @@ final class ScanStore {
     }
 
     var items: [CleanupItem] { groups.flatMap(\.items) }
+}
+
+
+/// Dépôts git détectés et leur état.
+@Observable
+final class RepoStore {
+    private(set) var repos: [RepoStatus] = []
+    private(set) var scanning = false
+    private(set) var finishedAt: Date?
+    private(set) var stale = true
+    var selectedID: String?
+    var fetching = false
+    /// Dernier résultat d'une action rapide (fetch), affiché sous le titre.
+    var message: String?
+    private var task: Task<Void, Never>?
+
+    var selected: RepoStatus? { repos.first { $0.id == selectedID } ?? repos.first }
+
+    func run(_ work: @escaping @Sendable () async -> [RepoStatus]) {
+        task?.cancel()
+        scanning = true
+        task = Task {
+            let result = await work()
+            guard !Task.isCancelled else { return }
+            repos = result
+            finishedAt = .now
+            stale = false
+            scanning = false
+        }
+    }
+
+    func invalidate() {
+        stale = true
+    }
 }

@@ -44,10 +44,13 @@ public struct ActionPlan: Sendable, Identifiable {
     public var estimatedBytes: Int64?
     /// Ce qui a été volontairement laissé de côté (en cours d'utilisation…), affiché dans l'aperçu.
     public var skipped: [String]
+    /// Faux : une commande qui échoue n'arrête pas les suivantes (fetch de tous les dépôts).
+    public var stopOnFailure: Bool
 
     public init(
         id: UUID = UUID(), title: String, summary: String, kind: HistoryEntry.Kind, risk: Risk,
-        reversible: Bool, steps: [ActionStep], estimatedBytes: Int64? = nil, skipped: [String] = []
+        reversible: Bool, steps: [ActionStep], estimatedBytes: Int64? = nil, skipped: [String] = [],
+        stopOnFailure: Bool = true
     ) {
         self.id = id
         self.title = title
@@ -58,6 +61,7 @@ public struct ActionPlan: Sendable, Identifiable {
         self.steps = steps
         self.estimatedBytes = estimatedBytes
         self.skipped = skipped
+        self.stopOnFailure = stopOnFailure
     }
 
     public init(
@@ -118,6 +122,7 @@ public struct PlanExecutor: Sendable {
         var outcome = HistoryEntry.Outcome.success
         var stoppedEarly = false
         var completed = 0
+        var commandFailures: [String] = []
 
         var removal = RemovalLog(limit: outputLimit)
         var freed: Int64 = 0
@@ -156,6 +161,10 @@ public struct PlanExecutor: Sendable {
                     stoppedEarly = true
                     break stepLoop
                 }
+                if status != 0, !plan.stopOnFailure {
+                    commandFailures.append(launchError ?? "« \(spec.displayString) » a échoué (code \(status.map(String.init) ?? "?")).")
+                    continue
+                }
                 if status != 0 {
                     let reason = launchError
                         ?? status.map { "« \(spec.displayString) » a échoué (code \($0))." }
@@ -177,6 +186,9 @@ public struct PlanExecutor: Sendable {
                 outcome = completed == 0
                     ? .cancelled
                     : .partial("Arrêté par l’utilisateur après \(completed) étape(s) sur \(total).")
+            } else if !commandFailures.isEmpty {
+                let message = commandFailures.count == 1 ? commandFailures[0] : "\(commandFailures.count) commandes sur \(total) ont échoué, voir le détail."
+                outcome = completed == 0 ? .failure(message) : .partial(message)
             } else if removalFailures > 0 {
                 let message = "\(removalFailures) élément(s) n’ont pas pu être retirés, voir le détail."
                 outcome = removalSuccesses == 0 && plan.commands.isEmpty ? .failure(message) : .partial(message)
