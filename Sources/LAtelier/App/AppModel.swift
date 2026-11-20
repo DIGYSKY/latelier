@@ -32,6 +32,16 @@ final class AppModel {
     let historyStore: HistoryStore
     /// Gestionnaire des tâches (échantillonnage seulement quand un écran Performance est affiché).
     let performance: PerformanceMonitor
+    let preferences = ToolPreferences()
+    /// Commandes de projet en cours et derniers résultats.
+    @ObservationIgnored private(set) var commandCenter: CommandCenter!
+    @ObservationIgnored private(set) var recorder: RecorderService!
+    /// Couverture de tests par projet.
+    let coverage = Loadable<[CoverageEntry]>()
+    /// Demande « Ouvrir dans Claude » en attente (feuille).
+    var pendingClaude: ClaudeRequest?
+    /// Erreur d'ouverture d'un terminal ou d'un éditeur.
+    var launchError: String?
     private static let rootsKey = "projectRoots"
 
     init(historyStore: HistoryStore = HistoryStore()) {
@@ -43,6 +53,9 @@ final class AppModel {
         if let raw = ProcessInfo.processInfo.environment["LATELIER_PAGE"], let page = Page(rawValue: raw) {
             selection = page
         }
+        commandCenter = CommandCenter(runner: runner) { [weak self] entry in await self?.record(entry) }
+        recorder = RecorderService(preferences: preferences) { [weak self] in self?.knownProjects ?? [] }
+        recorder.start()
         Task { await reloadHistory() }
     }
 
@@ -153,6 +166,7 @@ final class AppModel {
             historyError = "Impossible d’enregistrer l’historique : \(error.localizedDescription)"
         }
         if entry.kind == .nettoyage {
+            recorder.reload()
             systemScan.invalidate()
             devScan.invalidate()
         }
@@ -170,6 +184,10 @@ final class AppModel {
             startup.invalidate()
         }
         if entry.kind == .processus { performance.refreshNow() }
+        if entry.kind == .commande {
+            coverage.invalidate()
+            commandCenter.reload()
+        }
         await reloadHistory()
     }
 

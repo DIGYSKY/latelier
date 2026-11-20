@@ -43,6 +43,8 @@ struct SettingsPage: View {
                 }
             }
 
+            ProjectToolsSettings()
+
             Card(title: "À propos") {
                 LabeledContent("Version", value: Self.version)
                 LabeledContent("Identifiant", value: AppPaths.bundleIdentifier)
@@ -74,5 +76,59 @@ struct SettingsPage: View {
         let short = info?["CFBundleShortVersionString"] as? String ?? "dev"
         let build = info?["CFBundleVersion"] as? String
         return build.map { "\(short) (\($0))" } ?? short
+    }
+}
+
+/// Ouvrir dans…, couverture et Enregistreur.
+private struct ProjectToolsSettings: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        @Bindable var preferences = model.preferences
+        Card(title: "Projets") {
+            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 12) {
+                GridRow {
+                    Text("Terminal")
+                    Picker("Terminal", selection: $preferences.terminal) {
+                        ForEach(TerminalApp.allCases, id: \.self) { app in
+                            Text(app.label + (app.installedURL == nil ? " (non installé)" : "")).tag(app)
+                        }
+                    }
+                    .labelsHidden().fixedSize()
+                    Text("Pour « Ouvrir dans Claude » et « Terminal ».").foregroundStyle(.secondary)
+                }
+                GridRow {
+                    Text("Éditeur")
+                    Picker("Éditeur", selection: $preferences.editor) {
+                        Text("App par défaut du Finder").tag(EditorApp?.none)
+                        ForEach(EditorApp.installed, id: \.self) { Text($0.label).tag(EditorApp?.some($0)) }
+                    }
+                    .labelsHidden().fixedSize()
+                    Text("Pour « Ouvrir dans l’éditeur ».").foregroundStyle(.secondary)
+                }
+                GridRow {
+                    Text("Claude Code")
+                    Text(model.runner.locator.locate("claude")?.path ?? "non trouvé : npm install -g @anthropic-ai/claude-code")
+                        .font(.caption.monospaced()).foregroundStyle(.secondary)
+                        .gridCellColumns(2)
+                }
+                GridRow {
+                    Text("Seuil de couverture")
+                    Picker("Seuil de couverture", selection: $preferences.coverageThreshold) {
+                        ForEach([60, 70, 80, 90], id: \.self) { Text("\($0) %").tag($0) }
+                    }
+                    .labelsHidden().fixedSize()
+                    Text("Sous ce seuil, le projet est signalé.").foregroundStyle(.secondary)
+                }
+                GridRow {
+                    Text("Enregistreur")
+                    Picker("Enregistreur", selection: $preferences.recorderPolicy) {
+                        ForEach(RecorderPolicy.allCases, id: \.self) { Text($0.label).tag($0) }
+                    }
+                    .labelsHidden().fixedSize()
+                    Text("Quand un processus de dev démarre dans un projet.").foregroundStyle(.secondary)
+                }
+            }
+        }
     }
 }

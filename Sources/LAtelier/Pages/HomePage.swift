@@ -121,6 +121,11 @@ struct HomePage: View {
         if updates > 0 {
             items.append(("arrow.down.circle", Theme.orange, "\(updates) mise\(updates > 1 ? "s" : "") à jour de paquets", .majs))
         }
+        let threshold = Double(model.preferences.coverageThreshold)
+        let below = (model.coverage.value ?? []).filter { ($0.report?.lines ?? 100) < threshold }.count
+        if below > 0 {
+            items.append(("checkmark.seal", Theme.orange, "\(below) projet\(below > 1 ? "s" : "") sous le seuil de couverture (\(Int(threshold)) %)", .couverture))
+        }
         return items
     }
 

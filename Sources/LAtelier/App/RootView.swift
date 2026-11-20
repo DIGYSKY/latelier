@@ -19,6 +19,14 @@ struct RootView: View {
         .sheet(item: $model.pendingPlan) { plan in
             PlanSheet(plan: plan)
         }
+        .sheet(item: $model.pendingClaude) { request in
+            ClaudeSheet(request: request)
+        }
+        .alert("Ouverture impossible", isPresented: Binding(get: { model.launchError != nil }, set: { if !$0 { model.launchError = nil } })) {
+            Button("OK") { model.launchError = nil }
+        } message: {
+            Text(model.launchError ?? "")
+        }
     }
 }
 
@@ -45,6 +53,9 @@ struct PageContainer: View {
         case .processus: ProcessesPage()
         case .reseau: NetworkPage()
         case .demarrage: StartupPage()
+        case .commandes: CommandsPage()
+        case .couverture: CoveragePage()
+        case .enregistreur: RecorderPage()
         default: PlaceholderPage(page: page)
         }
     }

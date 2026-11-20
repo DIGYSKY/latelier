@@ -330,6 +330,17 @@ private struct VulnerabilityRow: View {
                 .buttonStyle(.plain)
                 .accessibilityValue(open ? "déplié" : "replié")
                 action
+                if let project = package.project {
+                    Button("Corriger avec Claude", systemImage: "sparkles") {
+                        model.askClaude(project, prompt: ClaudePrompts.fixVulnerability(
+                            package: package.dependency.name, version: package.dependency.version, fixed: package.fixedVersion,
+                            ids: package.findings.map(\.vulnerability.displayID), manifest: package.file
+                        ), context: "Faille dans \(package.dependency.name)")
+                    }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.small)
+                    .help("Corriger avec Claude : la consigne est montrée avant l’ouverture")
+                }
             }
             if open { details }
         }

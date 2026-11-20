@@ -151,3 +151,36 @@ extension AppModel {
         if repos.stale && !repos.scanning { scanRepos() }
     }
 }
+
+/// Couverture d'un projet : comment la mesurer, dernier rapport, tendance.
+struct CoverageEntry: Identifiable, Sendable {
+    var project: URL
+    var setup: CoverageSetup
+    var report: CoverageReport?
+    var trend: Double?
+    var id: URL { project }
+}
+
+extension AppModel {
+    func scanCoverage() {
+        let projects = knownProjects
+        coverage.run {
+            let store = JSONStore<CoverageHistory>(name: "coverage-history.json", fallback: CoverageHistory())
+            var history = await store.load()
+            var changed = false
+            var entries: [CoverageEntry] = []
+            for project in projects {
+                guard let setup = CoverageDetector.setup(for: project) else { continue }
+                let report = CoverageDetector.read(project: project, setup: setup)
+                if let report, history.record(report, project: project) { changed = true }
+                entries.append(CoverageEntry(project: project, setup: setup, report: report, trend: history.trend(project: project)))
+            }
+            if changed { try? await store.save(history) }
+            // Avec rapport d'abord, puis par nom.
+            return entries.sorted { a, b in
+                if (a.report == nil) != (b.report == nil) { return a.report != nil }
+                return a.project.lastPathComponent.localizedStandardCompare(b.project.lastPathComponent) == .orderedAscending
+            }
+        }
+    }
+}

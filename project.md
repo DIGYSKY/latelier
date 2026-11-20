@@ -403,5 +403,10 @@ Swift Package (pas de projet Xcode à maintenir) ; Xcode peut ouvrir `Package.sw
 - Performance : l’échantillonnage (1 s, `nettop` toutes les 5 s) ne tourne que si un écran Performance est affiché et la fenêtre visible ;
   `LATELIER_ALWAYS_SAMPLE=1` le force (captures avec la fenêtre sur un autre bureau). Hors binaires Apple, le noyau ne donne
   que les 32 bits bas des compteurs réseau : débits calculés modulo 2³², totaux lus avec `netstat -ib`.
+- Ouvrir dans Claude / Terminal : un script `.command` (dans `~/Library/Caches/local.latelier/launch/`, 20 derniers gardés)
+  fait `cd` dans le projet puis lance `claude '<consigne>'` ; Ghostty le reçoit via `-e`, Warp reçoit le dossier et la commande copiée.
+- Commandes : arrêter une commande tue tout son arbre de processus (`npm run dev` → node → vite). Derniers résultats, épingles et
+  suggestions ignorées dans `commands.json` ; historique de couverture dans `coverage-history.json` ; sessions de l’Enregistreur
+  dans `recordings/` (Application Support). Les jetons passés en argument (`--token …`) sont masqués.
 - Garde-fou de suppression (`SafetyGuard`) : uniquement dans le dossier personnel, jamais `~/Library`, `~/Documents`, `~/.ssh`, trousseaux…
 - Signature Developer ID : `SIGN_IDENTITY="Developer ID Application: …" make app`.

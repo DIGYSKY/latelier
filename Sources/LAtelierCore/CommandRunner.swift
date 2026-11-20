@@ -71,7 +71,11 @@ public struct CommandRunner: Sendable {
             process.terminationHandler = { _ in group.leave() }
 
             continuation.onTermination = { reason in
-                if case .cancelled = reason, box.process.isRunning { box.process.terminate() }
+                guard case .cancelled = reason, box.process.isRunning else { return }
+                // `npm run dev` lance node, qui lance vite… : on arrête tout l'arbre, enfants d'abord.
+                let root = box.process.processIdentifier
+                for child in ProcessTree.descendants(of: root).reversed() { kill(child, SIGTERM) }
+                box.process.terminate()
             }
 
             do {

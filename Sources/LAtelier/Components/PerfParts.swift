@@ -244,8 +244,12 @@ extension AppModel {
         preview(plan)
     }
 
-    /// Nom court d'un projet à partir de son dossier.
-    func projectName(_ url: URL) -> String { url.lastPathComponent }
+    /// Nom court d'un projet : « web », ou « front/web » si deux projets portent le même nom.
+    func projectName(_ url: URL) -> String {
+        let name = url.lastPathComponent
+        let twins = knownProjects.filter { $0.lastPathComponent == name }.count
+        return twins > 1 ? "\(url.deletingLastPathComponent().lastPathComponent)/\(name)" : name
+    }
 }
 
 extension RunningProcess {

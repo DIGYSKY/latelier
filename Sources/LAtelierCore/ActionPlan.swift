@@ -26,12 +26,16 @@ public enum ActionStep: Sendable, Hashable {
     case appendLine(String, to: URL)
     /// Quitte un processus (`force` : SIGKILL). Vérifie avant que c'est toujours le même (PID réutilisé).
     case signal(ProcessTarget, force: Bool)
+    /// Réécrit un fichier texte, seulement s'il n'a pas changé depuis l'aperçu.
+    case editFile(FileEdit)
 
     public var displayString: String {
         switch self {
         case .command(let spec): spec.displayString
         case .remove(let url, _, _): url.path
         case .appendLine(let line, let file): "echo \(ShellQuote.quote(line)) >> \(ShellQuote.quote(file.path))"
+        case .editFile(let edit):
+            "modifier \(edit.file.lastPathComponent) : " + edit.added.map { "+ \($0)" }.joined(separator: "  ")
         case .signal(let target, let force):
             target.isApp && !force
                 ? "quitter « \(target.name) » (PID \(target.pid))"
@@ -213,6 +217,32 @@ public struct PlanExecutor: Sendable {
                     break stepLoop
                 }
 
+            case .editFile(let edit):
+                if let log = removal.flush() { logs.append(log) }
+                let start = Date()
+                do {
+                    try safety.check(edit.file)
+                    let current = try String(contentsOf: edit.file, encoding: .utf8)
+                    guard current == edit.before else { throw EditConflict(file: edit.file.lastPathComponent) }
+                    try edit.after.write(to: edit.file, atomically: true, encoding: .utf8)
+                    completed += 1
+                    let output = edit.added.map { "+ \($0)" }.joined(separator: "\n")
+                    onEvent(index, .stdout(output))
+                    onEvent(index, .exited(status: 0, uncaughtSignal: false))
+                    logs.append(CommandLog(command: step.displayString, exitStatus: 0, output: output, duration: Date().timeIntervalSince(start)))
+                } catch {
+                    let reason = Self.describe(error)
+                    onEvent(index, .stderr(reason))
+                    onEvent(index, .exited(status: 1, uncaughtSignal: false))
+                    logs.append(CommandLog(command: step.displayString, exitStatus: 1, output: reason, duration: Date().timeIntervalSince(start)))
+                    if !plan.stopOnFailure {
+                        commandFailures.append(reason)
+                        continue
+                    }
+                    outcome = completed == 0 ? .failure(reason) : .partial("\(reason) \(completed) étape(s) sur \(total) avaient été faites.")
+                    break stepLoop
+                }
+
             case .signal(let target, let force):
                 if let log = removal.flush() { logs.append(log) }
                 let start = Date()
@@ -303,6 +333,7 @@ public struct PlanExecutor: Sendable {
     static func describe(_ error: Error) -> String {
         if let refusal = error as? SafetyGuard.Refusal { return refusal.localizedDescription }
         if let failure = error as? ProcessTerminator.Failure { return failure.localizedDescription }
+        if let conflict = error as? EditConflict { return conflict.localizedDescription }
         let ns = error as NSError
         if let underlying = ns.userInfo[NSUnderlyingErrorKey] as? NSError,
            underlying.domain == NSPOSIXErrorDomain {
@@ -371,4 +402,10 @@ struct OutputTail {
         if result.hasSuffix("\n") { result.removeLast() }
         return (truncated || buffer.utf8.count > limit ? "…\n" : "") + result
     }
+}
+
+/// Le fichier a été modifié entre l'aperçu et l'exécution : on n'écrase rien.
+struct EditConflict: Error, LocalizedError {
+    let file: String
+    var errorDescription: String? { "« \(file) » a changé depuis l’aperçu : rien n’a été modifié. Rouvrez la suggestion." }
 }

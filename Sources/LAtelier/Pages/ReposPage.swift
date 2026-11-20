@@ -281,9 +281,7 @@ private struct RepoDetail: View {
                     .textSelection(.enabled)
             }
             HStack(spacing: 6) {
-                Button("Terminal", systemImage: "terminal") { openTerminal() }.buttonStyle(.small)
-                Button("Finder", systemImage: "folder") { NSWorkspace.shared.activateFileViewerSelecting([repo.url]) }
-                    .buttonStyle(.small)
+                OpenInMenu(project: repo.url)
                 Rectangle().fill(Theme.hairline).frame(width: 1, height: 22).padding(.horizontal, 4)
                 Button(fetching ? "Fetch…" : "Fetch") { fetch() }
                     .buttonStyle(.small)
@@ -361,14 +359,6 @@ private struct RepoDetail: View {
             fetching = false
             if case .failure(let text) = entry.outcome { model.repos.message = text }
         }
-    }
-
-    /// Ouvre iTerm s'il est installé, sinon Terminal.
-    private func openTerminal() {
-        let workspace = NSWorkspace.shared
-        guard let app = workspace.urlForApplication(withBundleIdentifier: "com.googlecode.iterm2")
-            ?? workspace.urlForApplication(withBundleIdentifier: "com.apple.Terminal") else { return }
-        workspace.open([repo.url], withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
     }
 }
 

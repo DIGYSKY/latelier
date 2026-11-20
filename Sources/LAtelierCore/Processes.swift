@@ -195,7 +195,7 @@ public struct ProcessSampler: Sendable {
         return BSD(ppid: Int32(info.pbi_ppid), uid: info.pbi_uid, name: name.isEmpty ? comm : name, started: info.pbi_start_tvsec)
     }
 
-    struct Task { var time: UInt64; var footprint: Int64; var threads: Int; var wakeups: UInt64; var path: String? }
+    struct Task { var time: UInt64; var footprint: Int64; var threads: Int; var wakeups: UInt64; var path: String?; var diskRead: UInt64 = 0; var diskWritten: UInt64 = 0 }
 
     static func taskInfo(_ pid: Int32) -> Task? {
         var info = proc_taskinfo()
@@ -212,7 +212,9 @@ public struct ProcessSampler: Sendable {
             footprint: ok ? Int64(usage.ri_phys_footprint) : Int64(info.pti_resident_size),
             threads: Int(info.pti_threadnum),
             wakeups: ok ? usage.ri_pkg_idle_wkups &+ usage.ri_interrupt_wkups : 0,
-            path: length > 0 ? String(nulTerminated: buffer) : nil
+            path: length > 0 ? String(nulTerminated: buffer) : nil,
+            diskRead: ok ? usage.ri_diskio_bytesread : 0,
+            diskWritten: ok ? usage.ri_diskio_byteswritten : 0
         )
     }
 
@@ -528,5 +530,48 @@ public enum ProcessTerminator {
             try? await Task.sleep(for: .milliseconds(150))
         }
         throw Failure.stillRunning(target.name)
+    }
+}
+
+public enum ProcessTree {
+    /// Descendants d'un processus (en largeur : enfants, puis petits-enfants…).
+    public static func descendants(of root: Int32) -> [Int32] {
+        var children: [Int32: [Int32]] = [:]
+        for pid in ProcessSampler.allPIDs() {
+            if let info = ProcessSampler.bsdInfo(pid) { children[info.ppid, default: []].append(pid) }
+        }
+        var result: [Int32] = []
+        var queue = children[root] ?? []
+        while !queue.isEmpty {
+            let pid = queue.removeFirst()
+            guard pid != root, !result.contains(pid) else { continue }
+            result.append(pid)
+            queue += children[pid] ?? []
+        }
+        return result
+    }
+
+    /// Ligne de commande complète (`KERN_PROCARGS2`), processus de l'utilisateur seulement.
+    public static func arguments(of pid: Int32) -> [String]? {
+        var mib: [Int32] = [CTL_KERN, KERN_PROCARGS2, pid]
+        var size = 0
+        guard sysctl(&mib, 3, nil, &size, nil, 0) == 0, size > 0 else { return nil }
+        var buffer = [UInt8](repeating: 0, count: size)
+        guard sysctl(&mib, 3, &buffer, &size, nil, 0) == 0, size > MemoryLayout<Int32>.size else { return nil }
+        let argc = buffer.withUnsafeBytes { $0.loadUnaligned(as: Int32.self) }
+        var index = MemoryLayout<Int32>.size
+        // Chemin de l'exécutable, puis des zéros de remplissage.
+        while index < size, buffer[index] != 0 { index += 1 }
+        while index < size, buffer[index] == 0 { index += 1 }
+        var args: [String] = []
+        var start = index
+        while index < size, args.count < Int(argc) {
+            if buffer[index] == 0 {
+                args.append(String(decoding: buffer[start..<index], as: UTF8.self))
+                start = index + 1
+            }
+            index += 1
+        }
+        return args
     }
 }
