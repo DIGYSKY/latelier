@@ -60,18 +60,18 @@ struct StorageOverviewPage: View {
 
     static func info(_ id: DiskCategory.ID) -> (name: String, color: Color, description: String, page: Page, action: String) {
         switch id {
-        case .macos: ("macOS", Color(hex: 0x5C5C66), "Le système lui-même, sur un volume scellé en lecture seule. Jamais modifiable.", .explorateur, "Explorer")
-        case .sysdata: ("Données système", Color(hex: 0x9A9AA3), "Swap, caches, journaux et données des apps dans ~/Library (hors Xcode, compté dans Développeur, et hors données protégées des autres apps).", .systeme, "Nettoyer le système")
-        case .apps: ("Applications", Color(hex: 0x0A6CDB), "Apps de /Applications et ~/Applications.", .desinstalleur, "Ouvrir le désinstalleur")
-        case .dev: ("Développeur", Color(hex: 0x6E4BD8), "Xcode, toolchains, caches de paquets, Homebrew et vos projets (artefacts compris).", .dev, "Voir les artefacts")
-        case .docs: ("Documents", Color(hex: 0xE8890C), "Documents et Bureau, hors iCloud.", .sonar, "Explorer au sonar")
-        case .images: ("Images", Color(hex: 0xD6336C), "~/Pictures, hors Photothèque (non parcourue).", .sonar, "Explorer au sonar")
-        case .videos: ("Vidéos", Color(hex: 0xB42318), "Films et enregistrements d’écran de ~/Movies.", .sonar, "Explorer au sonar")
-        case .music: ("Musique", Color(hex: 0x1E8A45), "~/Music, hors bibliothèque Musique.", .sonar, "Explorer au sonar")
-        case .downloads: ("Téléchargements", Color(hex: 0x00879E), "Installeurs, images disque et archives oubliés.", .sonar, "Trier au sonar")
-        case .users: ("Autres utilisateurs", Color(hex: 0x8A6D3B), "Autres comptes du Mac : lecture seule sans droits administrateur.", .explorateur, "Explorer")
-        case .trash: ("Corbeille", Color(hex: 0x3A3A40), "~/.Trash", .systeme, "Vider la corbeille")
-        case .other: ("Autres", Color(hex: 0xC9B88A), "Tout ce qui n’est pas classé : instantanés locaux, conteneurs des apps, dossiers non mesurés, machines virtuelles…", .explorateur, "Explorer")
+        case .macos: ("macOS", Color(hex: 0x5C5C66), String(localized: "Le système lui-même, sur un volume scellé en lecture seule. Jamais modifiable."), .explorateur, String(localized: "Explorer"))
+        case .sysdata: (String(localized: "Données système"), Color(hex: 0x9A9AA3), String(localized: "Swap, caches, journaux et données des apps dans ~/Library (hors Xcode, compté dans Développeur, et hors données protégées des autres apps)."), .systeme, String(localized: "Nettoyer le système"))
+        case .apps: (String(localized: "Applications"), Color(hex: 0x0A6CDB), String(localized: "Apps de /Applications et ~/Applications."), .desinstalleur, String(localized: "Ouvrir le désinstalleur"))
+        case .dev: (String(localized: "Développeur"), Color(hex: 0x6E4BD8), String(localized: "Xcode, toolchains, caches de paquets, Homebrew et vos projets (artefacts compris)."), .dev, String(localized: "Voir les artefacts"))
+        case .docs: (String(localized: "Documents"), Color(hex: 0xE8890C), String(localized: "Documents et Bureau, hors iCloud."), .sonar, String(localized: "Explorer au sonar"))
+        case .images: (String(localized: "Images"), Color(hex: 0xD6336C), String(localized: "~/Pictures, hors Photothèque (non parcourue)."), .sonar, String(localized: "Explorer au sonar"))
+        case .videos: (String(localized: "Vidéos"), Color(hex: 0xB42318), String(localized: "Films et enregistrements d’écran de ~/Movies."), .sonar, String(localized: "Explorer au sonar"))
+        case .music: (String(localized: "Musique"), Color(hex: 0x1E8A45), String(localized: "~/Music, hors bibliothèque Musique."), .sonar, String(localized: "Explorer au sonar"))
+        case .downloads: (String(localized: "Téléchargements"), Color(hex: 0x00879E), String(localized: "Installeurs, images disque et archives oubliés."), .sonar, String(localized: "Trier au sonar"))
+        case .users: (String(localized: "Autres utilisateurs"), Color(hex: 0x8A6D3B), String(localized: "Autres comptes du Mac : lecture seule sans droits administrateur."), .explorateur, String(localized: "Explorer"))
+        case .trash: (String(localized: "Corbeille"), Color(hex: 0x3A3A40), "~/.Trash", .systeme, String(localized: "Vider la corbeille"))
+        case .other: (String(localized: "Autres"), Color(hex: 0xC9B88A), String(localized: "Tout ce qui n’est pas classé : instantanés locaux, conteneurs des apps, dossiers non mesurés, machines virtuelles…"), .explorateur, String(localized: "Explorer"))
         }
     }
 

@@ -9,18 +9,18 @@ extension Format {
     static func rate(_ bytesPerSecond: Double) -> String {
         let ko = bytesPerSecond / 1000
         if ko < 1 { return bytesPerSecond < 1 ? String(localized: "0 Ko/s") : String(localized: "< 1 Ko/s") }
-        if ko < 1000 { return "\(Int(ko.rounded())) Ko/s" }
+        if ko < 1000 { return String(localized: "\(Int(ko.rounded())) Ko/s") }
         let mo = ko / 1000
-        if mo < 1000 { return decimal(mo, decimals: mo < 100 ? 1 : 0) + " Mo/s" }
-        return decimal(mo / 1000) + " Go/s"
+        if mo < 1000 { return String(localized: "\(decimal(mo, decimals: mo < 100 ? 1 : 0)) Mo/s") }
+        return String(localized: "\(decimal(mo / 1000)) Go/s")
     }
 
     /// Volume arrondi pour les tuiles (« 60 Go », « 3,2 Go », « 840 Mo »).
     static func total(_ bytes: UInt64) -> String {
         let gb = Double(bytes) / 1e9
-        if gb >= 10 { return "\(Int(gb.rounded())) Go" }
-        if gb >= 1 { return decimal(gb) + " Go" }
-        return "\(Int((Double(bytes) / 1e6).rounded())) Mo"
+        if gb >= 10 { return String(localized: "\(Int(gb.rounded())) Go") }
+        if gb >= 1 { return String(localized: "\(decimal(gb)) Go") }
+        return String(localized: "\(Int((Double(bytes) / 1e6).rounded())) Mo")
     }
 
     static func percent(_ value: Double, decimals: Int = 0) -> String {
@@ -34,8 +34,8 @@ extension Format {
     /// Mémoire en Go avec une décimale (« 18,4 Go »), en Mo en dessous de 1 Go.
     static func memory(_ bytes: Int64) -> String {
         let gb = Double(bytes) / 1_073_741_824
-        if gb >= 1 { return decimal(gb) + " Go" }
-        return "\(bytes >> 20) Mo"
+        if gb >= 1 { return String(localized: "\(decimal(gb)) Go") }
+        return String(localized: "\(bytes >> 20) Mo")
     }
 }
 
@@ -268,7 +268,7 @@ extension RunningProcess {
     }
 
     var userLabel: String {
-        if isMine { return "vous" }
+        if isMine { return String(localized: "vous") }
         if uid == 0 { return "root" }
         return uid < 500 ? String(localized: "système") : (getpwuid(uid).map { String(cString: $0.pointee.pw_name) } ?? "\(uid)")
     }

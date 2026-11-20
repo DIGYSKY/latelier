@@ -300,14 +300,14 @@ struct StateLabel: View {
 
     private var describe: (String, Color) {
         switch repo.state {
-        case .conflict: (repo.operationInProgress?.capitalizedFirst ?? "Conflit", Theme.red)
+        case .conflict: (repo.operationInProgress?.capitalizedFirst ?? String(localized: "Conflit"), Theme.red)
         case .modified: ("\(repo.changes.count) modifié\(repo.changes.count > 1 ? "s" : "")", Theme.orange)
         case .diverged: ("↑\(repo.ahead) ↓\(repo.behind) divergé", Theme.red)
         case .ahead: ("↑\(repo.ahead) à pousser", Theme.orange)
         case .behind: ("↓\(repo.behind) en retard", Tag.blue.0)
-        case .noRemote: ("Sans remote", Theme.orange)
-        case .noUpstream: ("Branche non publiée", Theme.orange)
-        case .clean: ("À jour", Tag.green.0)
+        case .noRemote: (String(localized: "Sans remote"), Theme.orange)
+        case .noUpstream: (String(localized: "Branche non publiée"), Theme.orange)
+        case .clean: (String(localized: "À jour"), Tag.green.0)
         }
     }
 }
