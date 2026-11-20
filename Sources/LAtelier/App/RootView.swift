@@ -56,6 +56,8 @@ struct PageContainer: View {
         case .commandes: CommandsPage()
         case .couverture: CoveragePage()
         case .enregistreur: RecorderPage()
+        case .pourVous, .cyber, .langages, .favoris: NewsPage(page: page)
+        case .sources: NewsSourcesPage()
         default: PlaceholderPage(page: page)
         }
     }

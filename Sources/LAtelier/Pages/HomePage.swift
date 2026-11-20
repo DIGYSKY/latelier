@@ -121,6 +121,10 @@ struct HomePage: View {
         if updates > 0 {
             items.append(("arrow.down.circle", Theme.orange, "\(updates) mise\(updates > 1 ? "s" : "") à jour de paquets", .majs))
         }
+        let concerning = model.news.visibleItems.filter { model.news.confirmed($0) && $0.isSevere && !model.news.isRead($0) }.count
+        if concerning > 0 {
+            items.append(("newspaper", Theme.red, "\(concerning) avis de sécurité vous concerne\(concerning > 1 ? "nt" : "")", .pourVous))
+        }
         let threshold = Double(model.preferences.coverageThreshold)
         let below = (model.coverage.value ?? []).filter { ($0.report?.lines ?? 100) < threshold }.count
         if below > 0 {

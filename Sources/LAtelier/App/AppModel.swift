@@ -38,6 +38,8 @@ final class AppModel {
     @ObservationIgnored private(set) var recorder: RecorderService!
     /// Couverture de tests par projet.
     let coverage = Loadable<[CoverageEntry]>()
+    /// Actualités, avis de sécurité et croisement avec la machine.
+    @ObservationIgnored private(set) var news: NewsStore!
     /// Demande « Ouvrir dans Claude » en attente (feuille).
     var pendingClaude: ClaudeRequest?
     /// Erreur d'ouverture d'un terminal ou d'un éditeur.
@@ -56,6 +58,8 @@ final class AppModel {
         commandCenter = CommandCenter(runner: runner) { [weak self] entry in await self?.record(entry) }
         recorder = RecorderService(preferences: preferences) { [weak self] in self?.knownProjects ?? [] }
         recorder.start()
+        news = NewsStore(preferences: preferences)
+        news.start { [weak self] in await self?.newsInventory() ?? ([], []) }
         Task { await reloadHistory() }
     }
 
@@ -173,6 +177,9 @@ final class AppModel {
         if entry.kind == .git {
             repos.invalidate()
             analysis.invalidate()
+        }
+        if entry.kind == .paquet || entry.kind == .git {
+            Task { await reloadNewsInventory() }
         }
         if entry.kind == .paquet {
             packages.invalidate()

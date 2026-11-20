@@ -13,14 +13,14 @@ struct SidebarView: View {
                 PageRow(page: .accueil, level: 1)
 
                 ForEach(SidebarGroup.allCases) { group in
-                    GroupRow(group: group, open: open == group, inside: model.selection.group == group) {
+                    GroupRow(group: group, open: open == group, inside: model.selection.group == group, badge: badge(group)) {
                         withAnimation(.snappy(duration: 0.25)) { open = open == group ? nil : group }
                     }
                     if open == group {
                         ForEach(group.entries, id: \.self) { entry in
                             switch entry {
                             case .page(let page):
-                                PageRow(page: page, level: 2)
+                                PageRow(page: page, level: 2, badge: page == .pourVous ? badge(.news) : nil)
                             case .sub(let title, let pages):
                                 SubLabel(title: title, symbol: "app")
                                 ForEach(pages) { PageRow(page: $0, level: 3) }
@@ -46,6 +46,24 @@ struct SidebarView: View {
         }
     }
 
+    /// Pastille d'une section : news non lues, failles graves, mises à jour (seulement si déjà connues).
+    private func badge(_ group: SidebarGroup) -> Badge? {
+        switch group {
+        case .news:
+            let unread = model.news.unreadForYou
+            return unread > 0 ? Badge(text: "\(unread)", color: Theme.accent) : nil
+        case .projets:
+            guard let analysis = model.analysis.value else { return nil }
+            let serious = analysis.vulnerablePackages.filter { $0.severity >= .high }.count
+            return serious > 0 ? Badge(text: "\(serious)", color: Theme.red) : nil
+        case .paquets:
+            let updates = model.packages.updates.count
+            return updates > 0 ? Badge(text: "\(updates)", color: Theme.orange) : nil
+        case .stockage, .performance:
+            return nil
+        }
+    }
+
     private var brand: some View {
         HStack(spacing: 10) {
             Image(systemName: "wrench.adjustable")
@@ -62,10 +80,30 @@ struct SidebarView: View {
 }
 
 /// Une page. Niveau 1 : racine ; 2 : dans une section ; 3 : dans un sous-groupe.
+struct Badge {
+    var text: String
+    var color: Color
+}
+
+private struct BadgeView: View {
+    let badge: Badge
+
+    var body: some View {
+        Text(badge.text)
+            .font(.system(size: 11, weight: .bold))
+            .monospacedDigit()
+            .foregroundStyle(.white)
+            .padding(.horizontal, 7)
+            .frame(minWidth: 20, minHeight: 18)
+            .background(badge.color, in: .capsule)
+    }
+}
+
 private struct PageRow: View {
     @Environment(AppModel.self) private var model
     let page: Page
     let level: Int
+    var badge: Badge?
     @ViewState private var hovering = false
 
     var body: some View {
@@ -81,6 +119,7 @@ private struct PageRow: View {
                 Text(page.title)
                     .font(.system(size: level == 1 ? 14 : 13, weight: active ? .semibold : .regular))
                 Spacer(minLength: 0)
+                if let badge { BadgeView(badge: badge) }
             }
             .padding(.leading, level == 1 ? 12 : level == 2 ? 38 : 56)
             .padding(.trailing, 12)
@@ -100,6 +139,7 @@ private struct GroupRow: View {
     let open: Bool
     /// La page affichée est dans cette section.
     let inside: Bool
+    var badge: Badge?
     let toggle: () -> Void
     @ViewState private var hovering = false
 
@@ -112,6 +152,7 @@ private struct GroupRow: View {
                     .frame(width: 20)
                 Text(group.title).font(.system(size: 14, weight: inside ? .semibold : .regular))
                 Spacer(minLength: 0)
+                if let badge, !open { BadgeView(badge: badge) }
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Theme.muted)

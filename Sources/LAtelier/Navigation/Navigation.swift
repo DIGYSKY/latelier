@@ -145,6 +145,7 @@ enum Page: String, CaseIterable, Identifiable {
         switch self {
         case .appsNettoyage, .desinstalleur: "Applications · \(title)"
         case .stockageVue, .perfVue: "\(group!.title) · \(title)"
+        case .pourVous: "News · pour vous"
         default: title
         }
     }

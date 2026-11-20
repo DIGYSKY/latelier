@@ -410,3 +410,10 @@ Swift Package (pas de projet Xcode à maintenir) ; Xcode peut ouvrir `Package.sw
   dans `recordings/` (Application Support). Les jetons passés en argument (`--token …`) sont masqués.
 - Garde-fou de suppression (`SafetyGuard`) : uniquement dans le dossier personnel, jamais `~/Library`, `~/Documents`, `~/.ssh`, trousseaux…
 - Signature Developer ID : `SIGN_IDENTITY="Developer ID Application: …" make app`.
+
+### Notes de développement — News (étape 8)
+- 21 sources intégrées (`NewsCatalog`) : GitHub Advisories (API sans compte, liste générale + une requête par écosystème utilisé), CISA KEV (ajouts des 45 derniers jours), CERT-FR, Node.js sécurité, blogs officiels des langages, Hacker News / Lobsters (désactivés par défaut).
+- Une source de langage n'est active d'office que si son sujet est suivi ; sujets déduits des manifestes (local) et des paquets.
+- Croisement : avis GitHub → version vérifiée dans l'intervalle (« Vous concerne ») ; CERT-FR / KEV → nom de paquet cité (« Peut vous concerner »).
+- État dans `~/Library/Application Support/local.latelier/news.json` (60 jours, favoris gardés). Première lecture : l'arriéré de plus de 3 jours est marqué lu, rien n'est notifié.
+- Notification macOS seulement pour une faille critique confirmée, apparue après la lecture précédente.

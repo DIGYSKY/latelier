@@ -28,6 +28,14 @@ final class ToolPreferences {
     var neverRecord: Set<String> {
         didSet { defaults.set(Array(neverRecord), forKey: "neverRecord") }
     }
+    /// Fréquence de lecture des news, en heures.
+    var newsIntervalHours: Int {
+        didSet { defaults.set(newsIntervalHours, forKey: "newsIntervalHours") }
+    }
+    /// Notification macOS pour une faille critique qui touche la machine.
+    var newsNotifications: Bool {
+        didSet { defaults.set(newsNotifications, forKey: "newsNotifications") }
+    }
 
     init() {
         terminal = TerminalApp(rawValue: defaults.string(forKey: "terminal") ?? "")
@@ -38,6 +46,9 @@ final class ToolPreferences {
         recorderPolicy = RecorderPolicy(rawValue: defaults.string(forKey: "recorderPolicy") ?? "") ?? .ask
         alwaysRecord = Set(defaults.stringArray(forKey: "alwaysRecord") ?? [])
         neverRecord = Set(defaults.stringArray(forKey: "neverRecord") ?? [])
+        let hours = defaults.integer(forKey: "newsIntervalHours")
+        newsIntervalHours = hours == 0 ? 3 : hours
+        newsNotifications = defaults.object(forKey: "newsNotifications") as? Bool ?? true
     }
 }
 

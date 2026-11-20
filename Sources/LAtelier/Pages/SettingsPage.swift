@@ -44,6 +44,7 @@ struct SettingsPage: View {
             }
 
             ProjectToolsSettings()
+            NewsSettings()
 
             Card(title: "À propos") {
                 LabeledContent("Version", value: Self.version)
@@ -127,6 +128,31 @@ private struct ProjectToolsSettings: View {
                     }
                     .labelsHidden().fixedSize()
                     Text("Quand un processus de dev démarre dans un projet.").foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+}
+
+private struct NewsSettings: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        @Bindable var preferences = model.preferences
+        Card(title: "News") {
+            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 12) {
+                GridRow {
+                    Text("Lecture des sources")
+                    Picker("Lecture des sources", selection: $preferences.newsIntervalHours) {
+                        ForEach([1, 3, 6, 12, 24], id: \.self) { Text($0 == 1 ? "toutes les heures" : "toutes les \($0) h").tag($0) }
+                    }
+                    .labelsHidden().fixedSize()
+                    Text("Tant que l’app est ouverte. Le bouton ↻ relit tout de suite.").foregroundStyle(.secondary)
+                }
+                GridRow {
+                    Text("Notifications")
+                    Toggle("Faille critique qui vous concerne", isOn: $preferences.newsNotifications)
+                    Text("Seulement quand la version installée est dans l’intervalle touché.").foregroundStyle(.secondary)
                 }
             }
         }
