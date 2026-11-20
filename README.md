@@ -1,97 +1,102 @@
 <div align="center">
 
-<img src="docs/images/icon.png" width="128" height="128" alt="Icône de L’Atelier">
+<img src="docs/images/icon.png" width="128" height="128" alt="L’Atelier icon">
 
 # L’Atelier
 
-**La boîte à outils macOS des développeurs : une machine propre, à jour et sûre.**
+<sub>**English** · [Français](README_fr.md)</sub>
 
-Stockage, projets git, paquets, serveurs SSH, performances et veille sécurité,<br>
-réunis dans une app native en Liquid Glass, qui ne fait jamais rien sans vous montrer quoi, combien et avec quel risque.
+**The macOS toolbox for developers: a clean, up-to-date and safe machine.**
+
+Storage, git projects, packages, SSH servers, performance and security watch,<br>
+in one native Liquid Glass app that never does anything without showing you what, how much, and how risky.
 
 [![macOS 26+](https://img.shields.io/badge/macOS-26%2B-000000?logo=apple&logoColor=white)](#installation)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](Package.swift)
-[![SwiftUI](https://img.shields.io/badge/SwiftUI-natif-0A6CDB)](Sources/LAtelier)
-[![Sans télémétrie](https://img.shields.io/badge/t%C3%A9l%C3%A9m%C3%A9trie-aucune-1E8A45)](#confidentialité)
-[![Dernière version](https://img.shields.io/github/v/release/DIGYSKY/latelier?label=version&color=6E4BD8)](https://github.com/DIGYSKY/latelier/releases/latest)
+[![SwiftUI](https://img.shields.io/badge/SwiftUI-native-0A6CDB)](Sources/LAtelier)
+[![No telemetry](https://img.shields.io/badge/telemetry-none-1E8A45)](#privacy)
+[![License GPL v3](https://img.shields.io/badge/license-GPL%20v3-blue)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/DIGYSKY/latelier?label=version&color=6E4BD8)](https://github.com/DIGYSKY/latelier/releases/latest)
 
-[Installation](#installation) · [Fonctionnalités](#fonctionnalités) · [Sécurité](#les-règles-de-sécurité) · [Mises à jour](#mises-à-jour) · [Compiler](#compiler-depuis-les-sources)
+[Installation](#installation) · [Features](#features) · [Safety](#safety-rules) · [Updates](#updates) · [Building](#building-from-source)
 
 <br>
 
-<img src="docs/screenshots/moniteur.png" width="900" alt="L’Atelier : le moniteur de performances">
+<img src="docs/screenshots/moniteur.png" width="900" alt="L’Atelier: the performance monitor">
 
 </div>
 
 ---
 
-## Pourquoi L’Atelier ?
+## Why L’Atelier?
 
-Une machine de développeur s’encrasse vite : des `node_modules` oubliés, des images Docker
-orphelines, des caches de paquets de plusieurs gigaoctets, des dépendances vulnérables dans
-d’anciens projets, des mises à jour en retard. Il faut une dizaine d’outils et autant de commandes
-pour s’en rendre compte.
+A developer’s machine gets cluttered fast: forgotten `node_modules`, orphaned Docker images,
+gigabytes of package caches, vulnerable dependencies in old projects, overdue updates. Noticing
+it all takes a dozen tools and as many commands.
 
-L’Atelier rassemble tout cela dans **une seule app native**, pensée autour d’un principe :
+L’Atelier brings it together in **one native app**, built around a single principle:
 
-> **Aucune action sans que vous ayez vu quoi, combien, et si c’est sans risque.**
+> **No action until you have seen what, how much, and whether it is safe.**
 
-Chaque suppression, mise à jour ou commande passe par un **aperçu**. Ce qui part va **à la corbeille**
-par défaut, et tout est consigné dans un **historique** consultable.
+Every deletion, update or command goes through a **preview**. What is removed goes **to the Trash**
+by default, and everything is recorded in a searchable **history**.
 
-## Fonctionnalités
+> *L’Atelier* is French for “the workshop”. The app is available in English and French.
+
+## Features
 
 <table>
 <tr>
 <td width="50%" valign="top">
 
-### 🗄️ Stockage
-- **Vue d’ensemble** du disque entier, catégorie par catégorie, jusqu’au détail de « Autres ».
-- **Développement** : `node_modules`, `target`, `.build`, `DerivedData`… des projets inactifs.
-- **Caches** de paquets (npm, pnpm, Homebrew, pip, Cargo, Gradle…), vidés par la commande officielle de chaque outil.
-- **Docker** : images, conteneurs, volumes et cache de build, image par image.
-- **Applications** : restes d’apps désinstallées, désinstalleur complet.
-- **Sonar** : les plus gros fichiers et les doublons, sur un radar.
-- **Explorateur** : où passe l’espace, dossier par dossier.
+### 🗄️ Storage
+- **Overview** of the whole disk, category by category, down to what “Other” really is.
+- **Development**: `node_modules`, `target`, `.build`, `DerivedData`… of inactive projects.
+- Package **caches** (npm, pnpm, Homebrew, pip, Cargo, Gradle…), cleared with each tool’s official command.
+- **Docker**: images, containers, volumes and build cache, image by image.
+- **Applications**: leftovers of deleted apps, and a complete uninstaller.
+- **Sonar**: the largest files and duplicates, on a radar.
+- **Explorer**: where the space goes, folder by folder.
 
 </td>
 <td width="50%" valign="top">
 
-### 🧩 Projets
-- Tous vos **dépôts git**, triés par activité, avec une page par dépôt.
-- **Git** : modifications, commits non poussés, fetch.
-- **Commandes** détectées (`package.json`, `Makefile`, `docker-compose`…), lancées en un clic.
-- **Dépendances** obsolètes et **failles** (OSV.dev, GitHub Advisories).
-- **Secrets commités** repérés localement.
-- **Couverture de tests**, avec l’installation de l’outil manquant.
-- Ouverture dans **Claude Code**, votre terminal ou votre éditeur.
+### 🧩 Projects
+- All your **git repositories**, sorted by activity, with a page for each.
+- **Git**: changes, unpushed commits, fetch.
+- Detected **commands** (`package.json`, `Makefile`, `docker-compose`…), run in one click.
+- Outdated **dependencies** and **vulnerabilities** (OSV.dev, GitHub Advisories).
+- **Committed secrets**, found locally.
+- **Test coverage**, including installing the missing tool.
+- Open in **Claude Code**, your terminal or your editor.
 
 </td>
 </tr>
 <tr>
 <td valign="top">
 
-### 🖥️ Serveurs
-- Les connexions de **`~/.ssh/config`** : ajouter, modifier, dupliquer ou supprimer, sans rien perdre du fichier.
-- **Terminal en un clic** dans Terminal, iTerm, Ghostty ou Warp.
-- **Explorateur de fichiers distant**, façon stockage en ligne : grille ou liste, glisser-déposer pour importer, télécharger, renommer, créer un dossier.
-- **Modifier un fichier** du serveur dans l’éditeur intégré ou dans le vôtre. L’envoi est refusé si le fichier a changé entre-temps.
-- Suppression vers une **corbeille sur le serveur**.
+### 🖥️ Servers
+- The connections in **`~/.ssh/config`**: add, edit, duplicate or delete them without losing anything else in the file.
+- **One-click terminal** in Terminal, iTerm, Ghostty or Warp.
+- **Monitor** with nothing to install: CPU, memory, disks, network, processes, systemd services, Docker containers and ports, with actions (stop a process, restart a service…).
+- **Remote file browser**, cloud-drive style: grid or list, drag and drop to upload, download, rename, create folders.
+- **Edit a server file** in the built-in editor or your own. Saving is refused if the file changed in the meantime.
+- Deletion goes to a **trash on the server**.
 
 </td>
 <td valign="top">
 
-### 📦 Paquets
-- **Inventaire** de Homebrew, npm, pnpm, pip, pipx, Cargo, gem…
-- **Mises à jour** classées par écart (correctif, mineure, majeure).
-- **Runtimes** (Node, Python, Ruby…) et leurs versions en fin de vie.
-- **Services** Homebrew : démarrer, arrêter, redémarrer.
+### 📦 Packages
+- **Inventory** of Homebrew, npm, pnpm, pip, pipx, Cargo, gem…
+- **Updates** sorted by gap (patch, minor, major).
+- **Runtimes** (Node, Python, Ruby…) and their end-of-life versions.
+- Homebrew **services**: start, stop, restart.
 
 ### ⚡ Performance
-- **Moniteur** en grand : processeur (cœurs performance et efficacité), mémoire, disque, réseau, GPU, énergie.
-- **Processus** groupés par app, avec une fiche détaillée pour chacun.
-- **Ports en écoute**, ouvrables et copiables.
-- Programmes au **démarrage**.
+- A large **monitor**: CPU (performance and efficiency cores), memory, disk, network, GPU, energy.
+- **Processes** grouped by app, with a detailed sheet for each.
+- **Listening ports**, openable and copyable.
+- **Login items** and background agents.
 
 </td>
 </tr>
@@ -99,69 +104,69 @@ par défaut, et tout est consigné dans un **historique** consultable.
 <td valign="top">
 
 ### 📰 News
-- L’actualité de **vos langages et outils**, et la **cybersécurité** (CISA KEV, GitHub Advisories…).
-- Croisée avec ce qui est installé : un avis qui vous concerne vous mène **là où l’on corrige**.
+- News about **your languages and tools**, and **security** (CISA KEV, GitHub Advisories…).
+- Matched against what is installed: an advisory that affects you takes you **where it can be fixed**.
 
 </td>
 <td valign="top">
 
-### 🧭 Partout
-- **Historique** de toutes les actions, avec la sortie des commandes et l’explication des échecs.
-- **Menu dans la barre des menus** : ressources en direct, processus actifs, alertes.
-- **Mode sombre**, réglages de transparence, et l’app entièrement en français.
+### 🧭 Everywhere
+- A **history** of every action, with command output and an explanation of failures.
+- **Menu bar extra**: live resources, busiest processes, alerts.
+- **Dark mode**, transparency settings, English or French (the system language by default).
 
 </td>
 </tr>
 </table>
 
 <div align="center">
-<img src="docs/screenshots/serveurs.png" width="49%" alt="Serveurs SSH">
-<img src="docs/screenshots/stockage.png" width="49%" alt="Vue d’ensemble du stockage">
+<img src="docs/screenshots/serveurs.png" width="49%" alt="SSH servers">
+<img src="docs/screenshots/stockage.png" width="49%" alt="Storage overview">
 </div>
 
 ## Installation
 
 > [!NOTE]
-> L’Atelier demande **macOS 26 (Tahoe) ou plus récent**, sur un Mac Apple silicon.
+> L’Atelier requires **macOS 26 (Tahoe) or later**, on an Apple silicon Mac.
 
-### Option 1 : compiler sur votre Mac (recommandé)
+### Option 1: build it on your Mac (recommended)
 
-Une seule commande. Elle installe la dernière version publiée dans `/Applications` :
+One command. It installs the latest release into `/Applications`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/DIGYSKY/latelier/main/install.sh | bash
 ```
 
-Le script vérifie les prérequis : les outils de ligne de commande d’Apple, que macOS propose
-d’installer s’ils manquent (Xcode n’est pas nécessaire). Il récupère ensuite les sources dans
-`~/.latelier/source`, compile et installe l’app.
+The script checks the prerequisites: Apple’s Command Line Tools, which macOS offers to install
+if they are missing (Xcode is not needed). It then fetches the sources into `~/.latelier/source`,
+builds and installs the app.
 
-**Une app compilée sur votre propre Mac n’affiche aucun avertissement de sécurité.** Avant de
-lancer ce script, vous pouvez [le lire](install.sh) : il fait une centaine de lignes.
+**An app built on your own Mac shows no security warning.** You can [read the script](install.sh)
+before running it: it is about a hundred lines.
 
-### Option 2 : télécharger l’image disque
+### Option 2: download the disk image
 
-1. Téléchargez `LAtelier-x.y.z.dmg` depuis la [dernière version](https://github.com/DIGYSKY/latelier/releases/latest).
-2. Ouvrez-la et glissez **L’Atelier** dans **Applications**.
-3. Au premier lancement, macOS indique que l’app « ne peut pas être vérifiée ». Ouvrez
-   **Réglages Système › Confidentialité et sécurité**, puis cliquez sur **Ouvrir quand même**.
+1. Download `LAtelier-x.y.z.dmg` from the [latest release](https://github.com/DIGYSKY/latelier/releases/latest).
+2. Open it and drag **L’Atelier** to **Applications**.
+3. On first launch, macOS says the app “cannot be verified”. Open
+   **System Settings › Privacy & Security**, then click **Open Anyway**.
 
 <details>
-<summary><b>Pourquoi cet avertissement ?</b> Et l’alternative en une commande</summary>
+<summary><b>Why this warning?</b> And the one-command alternative</summary>
 
 <br>
 
-L’Atelier est un projet indépendant, distribué hors de l’App Store et sans abonnement
-au programme développeur d’Apple. L’app est donc signée, mais pas « notarisée » par Apple, et
-Gatekeeper demande votre accord une fois, au premier lancement.
+L’Atelier is an independent project, distributed outside the App Store and without a paid Apple
+Developer membership. The app is signed, but not notarized by Apple, so Gatekeeper asks for your
+consent once, on first launch.
 
-Si vous préférez le Terminal, cette commande retire la marque de quarantaine posée sur le téléchargement :
+If you prefer the Terminal, this command removes the quarantine flag set on the download:
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/L’Atelier.app"
 ```
 
-Vous pouvez vérifier l’intégrité du fichier avec l’empreinte publiée à côté du `.dmg` :
+You can check the file’s integrity with the checksum published next to the `.dmg`:
 
 ```bash
 shasum -a 256 -c LAtelier-x.y.z.dmg.sha256
@@ -169,97 +174,105 @@ shasum -a 256 -c LAtelier-x.y.z.dmg.sha256
 
 </details>
 
-### Premier lancement
+### First launch
 
-Pour mesurer tout le disque (la corbeille, les données de certaines apps), L’Atelier a besoin
-de l’**accès complet au disque** :
-**Réglages Système › Confidentialité et sécurité › Accès complet au disque**, puis ajoutez L’Atelier.
+A short welcome walks you through the few settings that matter. To measure the whole disk (the
+Trash, some apps’ data), L’Atelier needs **Full Disk Access**:
+**System Settings › Privacy & Security › Full Disk Access**, then add L’Atelier.
 
-Cet accès est facultatif : sans lui, L’Atelier fonctionne, et vous indique simplement ce qu’il n’a pas pu mesurer.
+This access is optional: without it, L’Atelier works and simply tells you what it could not measure.
 
-## Mises à jour
+> [!NOTE]
+> L’Atelier is in **beta** (`1.0.0-beta`). Your feedback matters: **Settings › About › Report a Problem**, or open an [issue](https://github.com/DIGYSKY/latelier/issues).
 
-L’Atelier vérifie **une fois par jour** si une nouvelle version est publiée dans les
-[releases GitHub](https://github.com/DIGYSKY/latelier/releases). Vous pouvez aussi lancer la
-vérification depuis **Réglages › Général › Rechercher**, ou la désactiver.
+## Updates
 
-Quand une version est disponible, un bandeau s’affiche sur l’Accueil. **Mettre à jour…** ouvre
-d’abord un aperçu des étapes, puis :
+L’Atelier checks **once a day** whether a new version has been published in the
+[GitHub releases](https://github.com/DIGYSKY/latelier/releases). You can also check from
+**Settings › About › Check for Updates**, or turn it off.
 
-| Installée avec | La mise à jour… |
+When a version is available, a banner appears on the Home screen. **Update…** first previews the
+steps, then:
+
+| Installed with | The update… |
 |---|---|
-| `install.sh` | récupère le **tag de la version** dans les sources, **recompile** sur votre Mac et remplace l’app |
-| l’image disque | télécharge le `.dmg`, vérifie son **empreinte SHA-256**, vérifie qu’il est **signé par le même certificat** que la version installée, et remplace l’app |
+| `install.sh` | fetches the **release tag** into the sources, **rebuilds** on your Mac and replaces the app |
+| the disk image | downloads the `.dmg`, checks its **SHA-256 checksum**, checks that it is **signed with the same certificate** as the installed version, and replaces the app |
 
-Dans les deux cas, l’ancienne version va **à la corbeille**, et L’Atelier redémarre tout seul.
-Vos réglages, votre historique et vos autorisations (accès complet au disque) sont conservés.
+The new version is prepared next to the current one and verified before the swap. If anything
+fails, the current version stays in place; otherwise it goes **to the Trash** and L’Atelier
+relaunches on its own. Your settings, history and permissions (Full Disk Access) are kept.
 
-## Les règles de sécurité
+A copy that is not signed with the project’s certificate (an ad hoc build) does not update from
+the disk image, since it could not verify the author. Reinstall it with `install.sh`.
 
-L’Atelier touche à votre disque, à vos dépôts et à vos serveurs. Sept règles s’appliquent à
-chaque écran, sans exception :
+## Safety rules
 
-1. **Aperçu obligatoire** avant toute suppression, mise à jour ou commande qui modifie quelque chose.
-2. **Corbeille par défaut**. La suppression définitive reste possible, en option. Sur un serveur SSH, la corbeille est `~/.latelier-corbeille`.
-3. **Rien de ce qui est en cours d’utilisation n’est touché** : app ouverte, conteneur actif, dépôt en pleine opération git.
-4. **Jamais de chemin système**. Les actions administrateur demandent une autorisation explicite.
-5. **Tout est journalisé** dans l’Historique : quoi, quand, combien, et la sortie de chaque commande.
-6. **Les erreurs sont visibles** : une opération partielle est signalée, jamais masquée. Les échecs courants sont expliqués, avec la correction.
-7. **Réseau minimal** (voir ci-dessous).
+L’Atelier touches your disk, your repositories and your servers. Seven rules apply to every
+screen, without exception:
 
-## Confidentialité
+1. **A preview is mandatory** before any deletion, update or command that changes something.
+2. **The Trash by default**. Permanent deletion stays an option. On an SSH server, the trash is `~/.latelier-corbeille`.
+3. **Nothing in use is touched**: an open app, a running container, a repository in the middle of a git operation.
+4. **Never a system path**. Administrator actions require explicit authorization.
+5. **Everything is logged** in the History: what, when, how much, and each command’s output.
+6. **Errors are visible**: a partial operation is reported, never hidden. Common failures are explained, with the fix.
+7. **Minimal networking** (see below).
 
-**L’Atelier n’envoie aucune télémétrie ni statistique.** Il ne contacte que :
+## Privacy
 
-| Destination | Pour | Ce qui est envoyé |
+**L’Atelier sends no telemetry and no statistics.** It only contacts:
+
+| Destination | For | What is sent |
 |---|---|---|
-| Registres de paquets (npm, PyPI, crates.io…) | versions disponibles | des noms de paquets |
-| OSV.dev, GitHub Advisories | failles connues | des noms et versions de paquets (désactivable) |
-| Sources de news | actualités | rien (lecture de flux RSS) |
-| GitHub Releases | nouvelle version de L’Atelier | rien (désactivable) |
-| Vos serveurs SSH | explorateur, terminal | uniquement quand vous les ouvrez |
+| Package registries (npm, PyPI, crates.io…) | available versions | package names |
+| OSV.dev, GitHub Advisories | known vulnerabilities | package names and versions (can be turned off) |
+| News sources | news | nothing (RSS feeds are read) |
+| GitHub Releases | new versions of L’Atelier | nothing (can be turned off) |
+| Your SSH servers | monitor, file browser, terminal | only when you open them |
 
-Aucun code, chemin, nom de projet ni secret ne quitte votre Mac. La détection des secrets
-commités est entièrement locale.
+No code, path, project name or secret ever leaves your Mac. Committed-secret detection is
+entirely local.
 
-## Compiler depuis les sources
+## Building from source
 
-Il suffit des **outils de ligne de commande d’Apple** (`xcode-select --install`). Xcode n’est pas nécessaire.
+All you need is **Apple’s Command Line Tools** (`xcode-select --install`). Xcode is not required.
 
 ```bash
 git clone https://github.com/DIGYSKY/latelier.git
 cd latelier
-make run        # compile build/L’Atelier.app et l’ouvre
+make run        # builds build/L’Atelier.app and opens it
 ```
 
-| Commande | Rôle |
+| Command | Purpose |
 |---|---|
-| `make app` | compile `build/L’Atelier.app` (en mode release) |
-| `make run` | compile et lance |
-| `make test` | lance les tests (Swift Testing) |
-| `make install` | compile et installe dans `/Applications` |
-| `make cert` | crée un certificat de signature auto-signé (voir plus bas) |
-| `make dmg` | produit `build/LAtelier-<version>.dmg` et son `.sha256` |
-| `make release` | publie la version de `VERSION` sur GitHub (tag, `.dmg`, `.sha256`) |
+| `make app` | builds `build/L’Atelier.app` (release mode) |
+| `make run` | builds and launches |
+| `make test` | runs the tests (Swift Testing) |
+| `make smoke` | opens the real app on every screen and checks it does not crash |
+| `make install` | builds and installs into `/Applications` |
+| `make cert` | creates a self-signed signing certificate (see below) |
+| `make dmg` | produces `build/LAtelier-<version>.dmg` and its `.sha256` |
+| `make release` | publishes the version in `VERSION` on GitHub (tag, `.dmg`, `.sha256`) |
 
 <details>
-<summary><b>Signature et identité de l’app</b></summary>
+<summary><b>Signing and app identity</b></summary>
 
 <br>
 
-macOS associe les autorisations (accès complet au disque…) à l’**identité de signature** d’une
-app. Avec une signature ad hoc, cette identité change à chaque compilation, et macOS oublie vos
-autorisations à chaque mise à jour.
+macOS ties permissions (Full Disk Access…) to an app’s **signing identity**. With an ad hoc
+signature, that identity changes with every build, and macOS forgets your permissions on every
+update.
 
-`make cert` crée une fois pour toutes un certificat auto-signé, « L’Atelier Self-Signed », dans
-votre trousseau de session. `make app` l’utilise ensuite automatiquement, et la mise à jour
-intégrée vérifie que chaque nouvelle version est signée par ce même certificat. **Sauvegardez
-le fichier `.p12`** produit dans `~/.latelier-signing` : le perdre revient à changer d’identité.
+`make cert` creates, once and for all, a self-signed certificate, “L’Atelier Self-Signed”, in your
+login keychain. `make app` then uses it automatically, and the built-in updater checks that every
+new version is signed with that same certificate. **Back up the `.p12` file** created in
+`~/.latelier-signing`: losing it means changing identity.
 
-Avec un compte Apple Developer, la notarisation supprime aussi l’avertissement du premier lancement :
+With an Apple Developer account, notarization also removes the first-launch warning:
 
 ```bash
-SIGN_IDENTITY="Developer ID Application: Nom (TEAMID)" NOTARY_PROFILE="latelier" make dmg
+SIGN_IDENTITY="Developer ID Application: Name (TEAMID)" NOTARY_PROFILE="latelier" make dmg
 ```
 
 </details>
@@ -271,35 +284,32 @@ SIGN_IDENTITY="Developer ID Application: Nom (TEAMID)" NOTARY_PROFILE="latelier"
 
 ```
 Sources/
-├── LAtelierCore/     Logique pure, sans interface, entièrement testée :
-│                     analyses, commandes, aperçus (ActionPlan), historique,
-│                     garde-fous (SafetyGuard), ssh_config, mises à jour…
-└── LAtelier/         L’app SwiftUI : modèle observable, pages, composants Liquid Glass
+├── LAtelierCore/     Pure logic, no UI, fully tested:
+│                     scanners, commands, previews (ActionPlan), history,
+│                     safeguards (SafetyGuard), ssh_config, updates…
+└── LAtelier/         The SwiftUI app: observable model, pages, Liquid Glass components
 Tests/LAtelierCoreTests/   Swift Testing
-scripts/              compilation de l’app, image disque, certificat, publication
+scripts/              app bundle, disk image, certificate, release, smoke test
 ```
 
-- **Aucune dépendance externe** : uniquement les frameworks d’Apple.
-- Les commandes sont lancées sans shell (`Process`), avec des arguments échappés.
-- Chaque action est un `ActionPlan` : montré dans l’aperçu, exécuté étape par étape, puis consigné dans l’historique.
+- **No third-party dependencies**: Apple frameworks only.
+- Commands run without a shell (`Process`), with escaped arguments.
+- Every action is an `ActionPlan`: shown in the preview, executed step by step, then recorded in the history.
 
 </details>
 
-## Contribuer
+## Contributing
 
-Les retours et contributions sont les bienvenus : ouvrez une
-[issue](https://github.com/DIGYSKY/latelier/issues) pour signaler un bug ou proposer une idée,
-ou une pull request (avec ses tests si elle touche à `LAtelierCore`).
+Feedback and contributions are welcome: see the [contributing guide](CONTRIBUTING.md).
+Found a security issue? No public issue, please: follow the [security policy](SECURITY.md).
+Changes in each version are listed in the [changelog](CHANGELOG.md).
 
-Une faille de sécurité ? Merci de la signaler en privé via
-[GitHub Security Advisories](https://github.com/DIGYSKY/latelier/security/advisories/new)
-plutôt que dans une issue publique.
+## License
 
-## Licence
-
-Voir le fichier [LICENSE](LICENSE).
+L’Atelier is free software, released under the [GNU GPL v3](LICENSE). You may use, study, modify
+and redistribute it, as long as you keep the same license. It comes with no warranty.
 
 <div align="center">
 <br>
-<sub>Fait avec soin pour les développeurs sur Mac · <b>L’Atelier</b></sub>
+<sub>Made with care for developers on the Mac · <b>L’Atelier</b></sub>
 </div>
