@@ -122,7 +122,9 @@ struct PlanSheet: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Méthode").font(.system(size: 13, weight: .semibold)).padding(.bottom, 2)
             methodRow(permanent: false, label: "Mettre à la corbeille", note: "récupérable depuis le Finder")
-            methodRow(permanent: true, label: "Supprimer définitivement", note: "irréversible")
+            if plan.allowsPermanent {
+                methodRow(permanent: true, label: "Supprimer définitivement", note: "irréversible")
+            }
         }
     }
 

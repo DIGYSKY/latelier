@@ -64,6 +64,8 @@ public struct ActionPlan: Sendable, Identifiable {
     public var skipped: [String]
     /// Faux : une commande qui échoue n'arrête pas les suivantes (fetch de tous les dépôts).
     public var stopOnFailure: Bool
+    /// Faux : seule la corbeille est proposée (Sonar).
+    public var allowsPermanent = true
 
     public init(
         id: UUID = UUID(), title: String, summary: String, kind: HistoryEntry.Kind, risk: Risk,

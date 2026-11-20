@@ -115,6 +115,12 @@ public struct ProcessTarget: Sendable, Hashable {
         self.isApp = isApp
     }
 
+    /// Cible pour un PID en cours (avec son heure de départ, pour ne pas viser un PID réutilisé).
+    public static func current(pid: Int32, name: String, isApp: Bool) -> ProcessTarget? {
+        guard let info = ProcessSampler.bsdInfo(pid) else { return nil }
+        return ProcessTarget(pid: pid, name: name, started: info.started, isApp: isApp)
+    }
+
     /// Le même processus tourne-t-il toujours ?
     public var isAlive: Bool {
         guard let info = ProcessSampler.bsdInfo(pid) else { return false }

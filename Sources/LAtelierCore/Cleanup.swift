@@ -20,6 +20,9 @@ public struct CleanupItem: Sendable, Identifiable, Hashable {
         case remove
         /// Vider la corbeille de macOS (via le Finder).
         case emptyTrash
+        /// Commande officielle de l'outil (`npm cache clean --force`, `docker image prune -a`).
+        /// Les entrées servent seulement à mesurer.
+        case commands([CommandSpec])
     }
 
     public let id: String
@@ -95,7 +98,7 @@ public struct CleanupGroup: Sendable, Identifiable, Hashable {
 /// Transforme une sélection en plan à montrer en aperçu.
 public enum CleanupPlanner {
     public static func plan(
-        title: String, items: [CleanupItem], skipped: [CleanupItem] = []
+        title: String, items: [CleanupItem], skipped: [CleanupItem] = [], summary: String? = nil
     ) -> ActionPlan? {
         let removable = items.filter { !$0.isLocked }
         guard !removable.isEmpty else { return nil }
@@ -103,20 +106,26 @@ public enum CleanupPlanner {
         var steps: [ActionStep] = removable
             .filter { $0.action == .remove }
             .flatMap { $0.entries.map { ActionStep.remove($0.url, bytes: $0.bytes, permanently: false) } }
+        for item in removable {
+            if case .commands(let specs) = item.action { steps += specs.map(ActionStep.command) }
+        }
         let emptiesTrash = removable.contains { $0.action == .emptyTrash }
         if emptiesTrash {
             steps.append(.command(CommandSpec("/usr/bin/osascript", ["-e", "tell application \"Finder\" to empty trash"])))
         }
+        let usesCommands = steps.contains(where: \.isCommandLike)
         let bytes = removable.reduce(Int64(0)) { $0 + $1.bytes }
-        let summary = emptiesTrash
+        let summary = summary ?? (emptiesTrash
             ? "La corbeille de macOS sera vidée définitivement."
-            : "Seuls des fichiers recréables sont concernés. Le code source n’est jamais touché."
+            : usesCommands
+            ? "Nettoyé avec la commande officielle de chaque outil : ce qui est supprimé ainsi ne passe pas par la corbeille."
+            : "Seuls des fichiers recréables sont concernés. Le code source n’est jamais touché.")
         return ActionPlan(
             title: title,
             summary: summary,
             kind: .nettoyage,
             risk: removable.map(\.risk).max() ?? .safe,
-            reversible: !emptiesTrash,
+            reversible: !emptiesTrash && !usesCommands,
             steps: steps,
             estimatedBytes: bytes,
             skipped: skipped.map { "\($0.name) : \($0.lockReason ?? "ignoré")" }
@@ -132,6 +141,11 @@ public enum DiskUsage {
     }
 
     public static func measure(_ url: URL) -> Result {
+        measure(url, skipping: [])
+    }
+
+    /// Mesure sans entrer dans les dossiers `skipping` (chemins absolus) : dossiers protégés par macOS.
+    public static func measure(_ url: URL, skipping: Set<String>) -> Result {
         let keys: [URLResourceKey] = [.totalFileAllocatedSizeKey, .fileAllocatedSizeKey, .isDirectoryKey, .isSymbolicLinkKey]
         guard let values = try? url.resourceValues(forKeys: Set(keys)) else { return Result(bytes: 0, files: 0) }
         if values.isDirectory != true || values.isSymbolicLink == true {
@@ -145,6 +159,10 @@ public enum DiskUsage {
         for case let child as URL in enumerator {
             counter += 1
             if counter % 2048 == 0, Task.isCancelled { break }
+            if !skipping.isEmpty, skipping.contains(child.path) || ["photoslibrary", "musiclibrary", "tvlibrary", "photolibrary"].contains(child.pathExtension) {
+                enumerator.skipDescendants()
+                continue
+            }
             guard let v = try? child.resourceValues(forKeys: Set(keys)), v.isDirectory != true else { continue }
             result.bytes += Int64(v.totalFileAllocatedSize ?? v.fileAllocatedSize ?? 0)
             result.files += 1
@@ -153,6 +171,22 @@ public enum DiskUsage {
     }
 
     /// Mesure plusieurs éléments en parallèle (8 à la fois).
+    public static func measure(_ urls: [URL], skipping: Set<String>) async -> [URL: Result] {
+        await withTaskGroup(of: (URL, Result).self) { group in
+            var results: [URL: Result] = [:]
+            var iterator = urls.makeIterator()
+            for _ in 0..<8 {
+                guard let url = iterator.next() else { break }
+                group.addTask { (url, measure(url, skipping: skipping)) }
+            }
+            while let (url, result) = await group.next() {
+                results[url] = result
+                if let next = iterator.next() { group.addTask { (next, measure(next, skipping: skipping)) } }
+            }
+            return results
+        }
+    }
+
     public static func measure(_ urls: [URL]) async -> [URL: Result] {
         await withTaskGroup(of: (URL, Result).self) { group in
             var results: [URL: Result] = [:]

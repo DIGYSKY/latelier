@@ -58,6 +58,13 @@ struct PageContainer: View {
         case .enregistreur: RecorderPage()
         case .pourVous, .cyber, .langages, .favoris: NewsPage(page: page)
         case .sources: NewsSourcesPage()
+        case .stockageVue: StorageOverviewPage()
+        case .appsNettoyage: AppsCleanupPage()
+        case .desinstalleur: UninstallerPage()
+        case .docker: DockerPage()
+        case .caches: CachesPage()
+        case .explorateur: ExplorerPage()
+        case .sonar: SonarPage()
         default: PlaceholderPage(page: page)
         }
     }

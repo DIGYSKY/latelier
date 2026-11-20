@@ -299,7 +299,7 @@ struct IconChip: View {
 
 enum Format {
     static func bytes(_ value: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
+        value == 0 ? "0 octet" : ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
     }
 
     static func duration(_ seconds: TimeInterval) -> String {

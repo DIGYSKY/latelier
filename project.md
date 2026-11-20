@@ -417,3 +417,12 @@ Swift Package (pas de projet Xcode à maintenir) ; Xcode peut ouvrir `Package.sw
 - Croisement : avis GitHub → version vérifiée dans l'intervalle (« Vous concerne ») ; CERT-FR / KEV → nom de paquet cité (« Peut vous concerner »).
 - État dans `~/Library/Application Support/local.latelier/news.json` (60 jours, favoris gardés). Première lecture : l'arriéré de plus de 3 jours est marqué lu, rien n'est notifié.
 - Notification macOS seulement pour une faille critique confirmée, apparue après la lecture précédente.
+
+### Notes de développement — Stockage (étape 9)
+- Dossiers protégés par macOS (Bureau, Documents, Téléchargements) : jamais lus sans le bouton « Inclure ces dossiers… » (préférence `allowPersonalFolders`), car macOS affiche alors une demande d'autorisation. Les données des autres apps (`~/Library/Containers`, Group Containers, Mail, Messages, iCloud…) et la Photothèque ne sont jamais parcourues (`PrivacyZones`).
+- Vue d'ensemble : macOS = `diskutil info /` (CapacityInUse) ; Données système = `~/Library` (hors Developer et zones protégées) + `/private/var/vm` ; « Autres » = le reste, y compris ce qui n'est pas mesuré.
+- Caches : commande officielle quand elle existe (`npm cache clean --force`, `pnpm store prune`, `go clean -modcache`, `bun pm cache rm`) ; sinon corbeille. Toolchains verrouillées.
+- Restes d'apps : dossiers nommés par identifiant (ou nom connu) dont aucune app du même éditeur n'est installée ni ouverte ; cochés seulement s'ils n'ont pas bougé depuis 3 mois.
+- Désinstalleur : la règle de sécurité autorise `/Applications/X.app` (et `~/Applications`) seulement ; app d'un autre propriétaire → le Finder demande le mot de passe ; cask → `brew uninstall --cask`.
+- Docker : volumes « données » (postgres, mysql, db, data…) jamais cochés ; conteneurs actifs et volumes utilisés verrouillés.
+- Sonar : fichiers ≥ 50 Mo, doublons par taille puis SHA-256, rien ne part sans l'aperçu (corbeille seulement). `LATELIER_SONAR_HOME` balaie un dossier de test.

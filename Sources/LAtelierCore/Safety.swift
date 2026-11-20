@@ -35,12 +35,23 @@ public struct SafetyGuard: Sendable {
             .map { "\(base)/\($0)" }
     }
 
+    /// `/Applications/Nom.app` ou `~/Applications/Nom.app`, sans sous-dossier (Utilities est exclu).
+    public static func isApplicationBundle(_ path: String, home: String = NSHomeDirectory()) -> Bool {
+        let url = URL(fileURLWithPath: path)
+        let parent = url.deletingLastPathComponent().path
+        let name = url.lastPathComponent
+        return name.hasSuffix(".app") && name.count > 4 && !name.hasPrefix(".")
+            && (parent == "/Applications" || parent == home + "/Applications")
+    }
+
     /// Lève une erreur si l'élément ne doit pas être supprimé.
     public func check(_ url: URL) throws {
         // On résout les liens du dossier parent (pas de l'élément : supprimer un lien ne touche que le lien).
         let parent = url.deletingLastPathComponent().resolvingSymlinksInPath().standardizedFileURL.path
         let path = (parent as NSString).appendingPathComponent(url.lastPathComponent)
         let base = root.path
+        // Une app installée, directement dans /Applications (Désinstalleur) : jamais un dossier système.
+        if Self.isApplicationBundle(path) { return }
         guard path.hasPrefix(base + "/"), !url.lastPathComponent.isEmpty, url.lastPathComponent != ".." else {
             throw Refusal.outsideAllowedRoot(url.path)
         }

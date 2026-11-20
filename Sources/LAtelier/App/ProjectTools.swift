@@ -28,6 +28,11 @@ final class ToolPreferences {
     var neverRecord: Set<String> {
         didSet { defaults.set(Array(neverRecord), forKey: "neverRecord") }
     }
+    /// Bureau, Documents, Téléchargements : lus seulement après l'accord explicite de l'utilisateur
+    /// (macOS demande alors l'autorisation).
+    var allowPersonalFolders: Bool {
+        didSet { defaults.set(allowPersonalFolders, forKey: "allowPersonalFolders") }
+    }
     /// Fréquence de lecture des news, en heures.
     var newsIntervalHours: Int {
         didSet { defaults.set(newsIntervalHours, forKey: "newsIntervalHours") }
@@ -46,6 +51,7 @@ final class ToolPreferences {
         recorderPolicy = RecorderPolicy(rawValue: defaults.string(forKey: "recorderPolicy") ?? "") ?? .ask
         alwaysRecord = Set(defaults.stringArray(forKey: "alwaysRecord") ?? [])
         neverRecord = Set(defaults.stringArray(forKey: "neverRecord") ?? [])
+        allowPersonalFolders = defaults.bool(forKey: "allowPersonalFolders")
         let hours = defaults.integer(forKey: "newsIntervalHours")
         newsIntervalHours = hours == 0 ? 3 : hours
         newsNotifications = defaults.object(forKey: "newsNotifications") as? Bool ?? true

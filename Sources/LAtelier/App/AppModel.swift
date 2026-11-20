@@ -17,6 +17,20 @@ final class AppModel {
 
     let systemScan = ScanStore()
     let devScan = ScanStore()
+    /// Stockage › Caches, Applications › Nettoyage.
+    let cacheScan = ScanStore()
+    let leftoverScan = ScanStore()
+    /// Liens de /usr/local/bin vers une app supprimée.
+    var deadLinks: [DeadLinks.Link] = []
+    /// Stockage › Docker, et ce qui y est coché.
+    let docker = Loadable<DockerReport>()
+    var dockerSelection: Set<String> = []
+    /// Applications › Désinstalleur.
+    let installedApps = Loadable<[AppEntry]>()
+    /// Stockage › Vue d’ensemble.
+    let overview = Loadable<DiskOverview>()
+    let explorer = ExplorerStore()
+    let sonar = SonarStore()
     let repos = RepoStore()
     let packages = PackageStore()
     let runtimes = Loadable<[RuntimeLanguage]>()
@@ -173,6 +187,13 @@ final class AppModel {
             recorder.reload()
             systemScan.invalidate()
             devScan.invalidate()
+            cacheScan.invalidate()
+            leftoverScan.invalidate()
+            docker.invalidate()
+            installedApps.invalidate()
+            overview.invalidate()
+            explorer.invalidate()
+            sonar.reconcile()
         }
         if entry.kind == .git {
             repos.invalidate()
