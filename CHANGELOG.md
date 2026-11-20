@@ -4,6 +4,15 @@
 
 All notable changes to L’Atelier are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [1.0.0-beta.2] — 2026-11-20
+
+### Fixed
+- **Caches**: cleaning the Corepack cache (`~/.cache/node/corepack`) could break pnpm. Without it, Corepack downloads the latest pnpm (12), which the Corepack bundled with Node 22 cannot run. This cache is now “To check” and no longer selected by default.
+- **Cleanup order**: tool commands (`pnpm store prune`…) now run before files are moved to the Trash, so a removed cache can no longer break a tool that still has to run.
+- **Failure explanations**: a pnpm/yarn version that Corepack cannot run is recognized, with a “Go Back to pnpm 10…” fix; a missing tool file is no longer described as a missing project dependency.
+
+> If pnpm stopped working after a cleanup with beta 1: run `corepack install -g pnpm@10`, or put the `corepack` folder back from the Trash.
+
 ## [1.0.0-beta.1] — 2026-11-20
 
 First public beta.
