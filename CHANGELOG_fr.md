@@ -4,7 +4,7 @@
 
 Les changements notables de L’Atelier sont listés ici. Les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
-## [1.0.0-beta.1] — non publiée
+## [1.0.0-beta.1] — 2026-11-20
 
 Première bêta publique.
 

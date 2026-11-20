@@ -4,7 +4,7 @@
 
 All notable changes to L’Atelier are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
-## [1.0.0-beta.1] — unreleased
+## [1.0.0-beta.1] — 2026-11-20
 
 First public beta.
 

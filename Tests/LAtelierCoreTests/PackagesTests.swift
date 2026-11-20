@@ -151,7 +151,7 @@ import Testing
 @Suite struct ServiceTests {
     @Test func readsBrewServices() {
         let services = BrewServices.parse(Data("""
-        [{"name":"postgresql@16","running":true,"registered":true,"pid":812,"exit_code":null,"user":"lilyan",
+        [{"name":"postgresql@16","running":true,"registered":true,"pid":812,"exit_code":null,"user":"dev",
           "log_path":"/opt/homebrew/var/log/pg.log","error_log_path":"/opt/homebrew/var/log/pg.log"},
          {"name":"nginx","running":false,"registered":false,"pid":null,"exit_code":1,"user":"root"}]
         """.utf8))
