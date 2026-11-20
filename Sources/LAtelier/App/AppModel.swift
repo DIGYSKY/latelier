@@ -78,6 +78,7 @@ final class AppModel {
         news.start { [weak self] in await self?.newsInventory() ?? ([], []) }
         packages.offerMajors = preferences.offerMajors
         startBackgroundChecks()
+        if preferences.scanAtLaunch { scanEverything() }
     }
 
     func preview(_ plan: ActionPlan) {

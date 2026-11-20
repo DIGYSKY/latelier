@@ -325,41 +325,20 @@ public struct LeftoverScanner: Sendable {
         return pick.prefix(1).uppercased() + pick.dropFirst()
     }
 
-    /// Lignes de nettoyage (sizes : tailles mesurées par URL). Les petits restes (< 5 Mo) sont regroupés.
+    /// Lignes de nettoyage, une par app (sizes : tailles mesurées par URL), de la plus lourde à la plus légère.
     public func items(_ leftovers: [Leftover], sizes: [URL: Int64]) -> [CleanupItem] {
-        var rows: [CleanupItem] = []
-        var smallOld: [Leftover] = [], smallRecent: [Leftover] = []
-        func total(_ leftover: Leftover) -> Int64 { leftover.urls.reduce(0) { $0 + (sizes[$1] ?? 0) } }
-        func isOld(_ leftover: Leftover) -> Bool { leftover.modified.map { now.timeIntervalSince($0) > 90 * 86_400 } ?? true }
-        for leftover in leftovers {
-            let bytes = total(leftover)
-            guard bytes > 0 else { continue }
-            if bytes < 5_000_000 {
-                if isOld(leftover) { smallOld.append(leftover) } else { smallRecent.append(leftover) }
-                continue
-            }
-            let old = isOld(leftover)
-            rows.append(CleanupItem(
+        leftovers.compactMap { leftover -> CleanupItem? in
+            let entries = leftover.urls.map { CleanupItem.Entry(url: $0, bytes: sizes[$0] ?? 0) }
+            guard entries.reduce(0, { $0 + $1.bytes }) > 0 else { return nil }
+            let old = leftover.modified.map { now.timeIntervalSince($0) > 90 * 86_400 } ?? true
+            return CleanupItem(
                 id: "leftover:" + leftover.id, name: leftover.name,
                 detail: "\(leftover.id) · \(leftover.folders.joined(separator: ", "))",
                 meta: leftover.modified.map { "Modifié \(RelativeDate.french($0, now: now))" },
-                metaHighlighted: old, risk: old ? .safe : .caution, selectedByDefault: old,
-                entries: leftover.urls.map { CleanupItem.Entry(url: $0, bytes: sizes[$0] ?? 0) }
-            ))
-        }
-        rows.sort { ($0.bytes, $1.name) > ($1.bytes, $0.name) }
-        func grouped(_ list: [Leftover], old: Bool) -> CleanupItem? {
-            guard !list.isEmpty else { return nil }
-            let names = list.sorted { total($0) > total($1) }.map(\.name)
-            return CleanupItem(
-                id: "leftover:small:\(old)", name: "\(list.count) autre\(list.count > 1 ? "s" : "") app\(list.count > 1 ? "s" : "")\(old ? "" : " (récentes)")",
-                detail: "Réglages et petits caches · " + names.prefix(8).joined(separator: ", ") + (names.count > 8 ? "…" : ""),
-                meta: old ? "plus de 3 mois" : "modifiés récemment", metaHighlighted: old,
-                risk: old ? .safe : .caution, selectedByDefault: old,
-                entries: list.flatMap { $0.urls.map { CleanupItem.Entry(url: $0, bytes: sizes[$0] ?? 0) } }
+                metaHighlighted: old, risk: old ? .safe : .caution, selectedByDefault: old, entries: entries
             )
         }
-        return rows + [grouped(smallOld, old: true), grouped(smallRecent, old: false)].compactMap { $0 }
+        .sorted { ($0.bytes, $1.name) > ($1.bytes, $0.name) }
     }
 
     /// Installations interrompues connues.

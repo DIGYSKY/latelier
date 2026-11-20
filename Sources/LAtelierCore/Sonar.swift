@@ -138,11 +138,27 @@ public struct SonarScanner: Sendable {
         extensions[url.pathExtension.lowercased()] ?? .document
     }
 
-    func roots(_ zone: SonarZone) -> [(URL, SonarZone)] {
+    /// Dossiers parcourus pour une zone. « Dossier personnel » : les zones connues
+    /// et les autres dossiers visibles du dossier personnel (sauf Library, Applications et les projets).
+    public func roots(_ zone: SonarZone) -> [(URL, SonarZone)] {
         let all: [SonarZone] = zone == .home ? SonarZone.allCases.filter { $0 != .home } : [zone]
-        return all.filter { allowPersonal || !$0.isPersonal }.compactMap { zone in
+        var roots: [(URL, SonarZone)] = all.filter { allowPersonal || !$0.isPersonal }.compactMap { zone in
             zone.folder.map { (home.appending(path: $0), zone) }
         }
+        if zone == .home {
+            let known = Set(SonarZone.allCases.compactMap(\.folder) + ["Library", "Applications", "Public"])
+            let excludedPaths = Set(excluded.map(\.standardizedFileURL.path))
+            let others = ((try? FileManager.default.contentsOfDirectory(atPath: home.path)) ?? [])
+                .filter { !$0.hasPrefix(".") && !known.contains($0) }
+                .map { home.appending(path: $0) }
+                .filter { url in
+                    var isDirectory: ObjCBool = false
+                    return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && isDirectory.boolValue
+                        && !excludedPaths.contains(url.standardizedFileURL.path)
+                }
+            roots += others.map { ($0, .home) }
+        }
+        return roots
     }
 
     /// Parcourt une zone et rend les gros fichiers, doublons et installeurs reconnus.

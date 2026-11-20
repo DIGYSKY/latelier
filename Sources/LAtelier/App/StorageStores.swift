@@ -36,9 +36,15 @@ extension AppModel {
             let sizes = await DiskUsage.measure(leftovers.flatMap(\.urls) + interrupted)
             var groups: [CleanupGroup] = []
             let items = scanner.items(leftovers, sizes: sizes.mapValues(\.bytes))
-            if !items.isEmpty {
+            let large = items.filter { $0.bytes >= 5_000_000 }, small = items.filter { $0.bytes < 5_000_000 }
+            if !large.isEmpty {
                 groups.append(CleanupGroup(id: "leftovers", title: "Apps désinstallées",
-                                           detail: "Données dont l’app n’est plus installée · nom retrouvé depuis l’identifiant", items: items))
+                                           detail: "Données dont l’app n’est plus installée · nom retrouvé depuis l’identifiant", items: large))
+            }
+            if !small.isEmpty {
+                groups.append(CleanupGroup(id: "leftovers-small", title: "Petits restes (moins de 5 Mo)",
+                                           detail: "Réglages et petits caches d’apps supprimées · cochés s’ils n’ont pas bougé depuis 3 mois",
+                                           tone: .neutral, items: small))
             }
             let stale = interrupted.map { url -> CleanupItem in
                 let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
@@ -116,6 +122,28 @@ extension AppModel {
         overview.run { await DiskOverviewScanner(runner: runner, allowPersonal: allow, projectRoots: roots).scan() }
     }
 
+    /// Toutes les analyses (réglage « Tout analyser au démarrage », ou bouton Analyser de la vue d'ensemble).
+    func scanEverything() {
+        scanOverview()
+        scanSystem()
+        scanDev()
+        scanCaches()
+        scanLeftovers()
+        if preferences.includeDocker { scanDocker() }
+        scanInstalledApps()
+        ensureRepos()
+        scanPackages()
+        scanRuntimes()
+        scanServices()
+        scanAnalysis()
+        scanStartup()
+        Task {
+            // La couverture a besoin de la liste des dépôts.
+            while repos.scanning { try? await Task.sleep(for: .milliseconds(300)) }
+            scanCoverage()
+        }
+    }
+
     /// Accord explicite pour Bureau, Documents, Téléchargements : macOS demandera ensuite l'autorisation.
     func allowPersonalFolders() {
         preferences.allowPersonalFolders = true
@@ -140,6 +168,23 @@ final class ExplorerStore {
             path = Array(path.prefix(index + 1))
         } else {
             path.append(url)
+        }
+        selected = nil
+    }
+
+    /// Ouvre directement un dossier : le fil d'Ariane part du dossier personnel s'il en fait partie.
+    func reveal(_ url: URL) {
+        let home = URL(fileURLWithPath: NSHomeDirectory())
+        if url.path.hasPrefix(home.path + "/") {
+            var trail = [home]
+            var current = home
+            for component in url.path.dropFirst(home.path.count + 1).split(separator: "/") {
+                current = current.appending(path: String(component))
+                trail.append(current)
+            }
+            path = trail
+        } else {
+            path = [url]
         }
         selected = nil
     }
@@ -171,6 +216,10 @@ final class SonarStore {
     /// Ordre des décisions, pour « Annuler la dernière ».
     private(set) var decisions: [(id: String, action: Action)] = []
     var goal: Int64 = 10_000_000_000
+    /// Taille minimale d'un fichier proposé.
+    var minimumBytes: Int64 = 50_000_000
+    /// Dossiers parcourus lors du dernier balayage.
+    private(set) var scannedRoots: [URL] = []
     /// Libéré par les corbeilles déjà faites dans cette session.
     private(set) var freed: Int64 = 0
     private var task: Task<Void, Never>?
@@ -185,8 +234,10 @@ final class SonarStore {
             // Captures et tests : LATELIER_SONAR_HOME=/dossier/de/test balaie ce dossier à la place du dossier personnel.
             let home = ProcessInfo.processInfo.environment["LATELIER_SONAR_HOME"].map { URL(fileURLWithPath: $0) }
                 ?? URL(fileURLWithPath: NSHomeDirectory())
-            let found = await SonarScanner(home: home, allowPersonal: allowPersonal || home.path != NSHomeDirectory(),
-                                           excluded: excluded, installedApps: installedApps).scan(zone)
+            let scanner = SonarScanner(home: home, allowPersonal: allowPersonal || home.path != NSHomeDirectory(),
+                                       minimumBytes: minimumBytes, excluded: excluded, installedApps: installedApps)
+            scannedRoots = scanner.roots(zone).map(\.0)
+            let found = await scanner.scan(zone)
             guard !Task.isCancelled else { return }
             files = found
             scannedZone = zone

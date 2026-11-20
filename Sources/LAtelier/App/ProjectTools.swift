@@ -80,6 +80,10 @@ final class ToolPreferences {
     var checkInterval: String {
         didSet { defaults.set(checkInterval, forKey: "checkInterval") }
     }
+    /// Tout analyser au démarrage (stockage, paquets, projets, sécurité…).
+    var scanAtLaunch: Bool {
+        didSet { defaults.set(scanAtLaunch, forKey: "scanAtLaunch") }
+    }
     var pauseOnBattery: Bool {
         didSet { defaults.set(pauseOnBattery, forKey: "pauseOnBattery") }
     }
@@ -142,6 +146,7 @@ final class ToolPreferences {
         detectSecrets = bool("detectSecrets", true)
         checkInterval = defaults.string(forKey: "checkInterval") ?? "daily"
         pauseOnBattery = bool("pauseOnBattery", true)
+        scanAtLaunch = bool("scanAtLaunch", false)
         offerMajors = bool("offerMajors", true)
         notifyLowSpace = bool("notifyLowSpace", true)
         notifyNews = bool("notifyNews", false)

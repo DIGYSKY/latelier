@@ -386,6 +386,10 @@ private struct CheckSettings: View {
             SettingRow(label: "Rafraîchir les news", help: "Le bouton ↻ de News relit tout de suite") {
                 Choice(selection: $preferences.newsIntervalHours, options: [(1, "1 h"), (3, "3 h"), (6, "6 h"), (24, "1 jour")])
             }
+            SettingRow(label: "Tout analyser au démarrage",
+                       help: "Stockage, Docker, apps, paquets, runtimes, dépôts, sécurité, couverture et démarrage sont calculés dès l’ouverture de L’Atelier") {
+                Switch(label: "Tout analyser au démarrage", isOn: $preferences.scanAtLaunch)
+            }
             SettingRow(label: "Suspendre sur batterie", help: "Aucune vérification ni lecture de news hors secteur") {
                 Switch(label: "Suspendre sur batterie", isOn: $preferences.pauseOnBattery)
             }

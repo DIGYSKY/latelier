@@ -13,6 +13,8 @@ public struct DockerReport: Sendable {
         public var name: String
         public var bytes: Int64
         public var containers: Int
+        public var id: String = ""
+        public var created: String = ""
     }
 
     public struct Container: Sendable, Hashable {
@@ -112,7 +114,8 @@ public enum DockerScanner {
             let tag = image["Tag"] as? String ?? ""
             let name = repository == "<none>" ? "image sans nom" : (tag.isEmpty || tag == "<none>" ? repository : "\(repository):\(tag)")
             let unique = bytes(image["UniqueSize"] as? String ?? image["Size"] as? String ?? "0B")
-            report.images.append(.init(name: name, bytes: unique, containers: Int(image["Containers"] as? String ?? "") ?? 0))
+            report.images.append(.init(name: name, bytes: unique, containers: Int(image["Containers"] as? String ?? "") ?? 0,
+                                       id: image["ID"] as? String ?? "", created: image["CreatedSince"] as? String ?? ""))
         }
         for container in object["Containers"] as? [[String: Any]] ?? [] {
             let labels = labels(container["Labels"] as? String)
@@ -155,16 +158,29 @@ public enum DockerScanner {
     public static func groups(_ report: DockerReport, docker: String) -> [CleanupGroup] {
         guard report.state == .ready else { return [] }
         var safe: [CleanupItem] = []
-        let unused = report.images.filter { $0.containers == 0 }
-        if !unused.isEmpty {
-            let names = unused.sorted { $0.bytes > $1.bytes }.prefix(4).map(\.name).joined(separator: ", ")
-            safe.append(CleanupItem(
-                id: "docker:images", name: "Images inutilisées",
-                detail: "\(unused.count) image\(unused.count > 1 ? "s" : "") sans conteneur · \(names)\(unused.count > 4 ? "…" : "")",
-                meta: "docker image prune -a",
-                entries: [], action: .commands([CommandSpec(docker, ["image", "prune", "-a", "-f"])]),
-                displayBytes: unused.reduce(0) { $0 + $1.bytes }
-            ))
+        var images: [CleanupItem] = []
+        for image in report.images.sorted(by: { $0.bytes > $1.bytes }) {
+            let users = report.containers.filter { $0.image == image.name || image.name.hasPrefix($0.image + ":") || $0.image == image.id }
+            let shortID = String(image.id.replacingOccurrences(of: "sha256:", with: "").prefix(12))
+            let reference = image.name == "image sans nom" ? shortID : image.name
+            if image.containers > 0 {
+                let names = users.map(\.name).joined(separator: ", ")
+                images.append(CleanupItem(
+                    id: "docker:image:\(image.id)", name: image.name,
+                    detail: "Utilisée par " + (names.isEmpty ? "\(image.containers) conteneur\(image.containers > 1 ? "s" : "")" : names)
+                        + (image.created.isEmpty ? "" : " · créée \(image.created)"),
+                    meta: shortID, tag: users.contains(where: \.running) ? "Actif" : nil, risk: .protected,
+                    lockReason: "image utilisée par un conteneur : supprimez d’abord le conteneur", selectedByDefault: false,
+                    entries: [], action: .remove, displayBytes: image.bytes
+                ))
+            } else {
+                images.append(CleanupItem(
+                    id: "docker:image:\(image.id)", name: image.name,
+                    detail: "Aucun conteneur · re-téléchargée au prochain docker pull" + (image.created.isEmpty ? "" : " · créée \(image.created)"),
+                    meta: shortID, entries: [], action: .commands([CommandSpec(docker, ["image", "rm", reference])]),
+                    displayBytes: image.bytes
+                ))
+            }
         }
         if report.buildCache > 0 {
             safe.append(CleanupItem(
@@ -229,9 +245,13 @@ public enum DockerScanner {
             ))
         }
         var groups: [CleanupGroup] = []
+        if !images.isEmpty {
+            groups.append(CleanupGroup(id: "docker-images", title: "Images",
+                                       detail: "Sans conteneur : supprimables (re-téléchargées au besoin) · utilisées : verrouillées", items: images))
+        }
         if !safe.isEmpty {
             groups.append(CleanupGroup(id: "docker-safe", title: "Sans risque · recréable",
-                                       detail: "Images, conteneurs arrêtés, build cache, volumes de cache", items: safe))
+                                       detail: "Conteneurs arrêtés, build cache, volumes de cache", items: safe))
         }
         if !review.isEmpty {
             groups.append(CleanupGroup(id: "docker-review", title: "À vérifier", detail: "Volumes sans conteneur dont le contenu n’est pas reconnu",

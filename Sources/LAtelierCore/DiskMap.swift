@@ -52,7 +52,20 @@ public struct DiskCategory: Sendable, Identifiable, Hashable {
     }
 }
 
+/// Une partie de « Autres » : ce qui n'entre dans aucune catégorie.
+public struct DiskOtherPart: Sendable, Identifiable, Hashable {
+    public var name: String
+    public var url: URL?
+    /// `nil` : non mesuré (raison dans `note`).
+    public var bytes: Int64?
+    public var note: String
+
+    public var id: String { url?.path ?? name }
+}
+
 public struct DiskOverview: Sendable {
+    /// Détail de « Autres », du plus lourd au plus léger.
+    public var others: [DiskOtherPart] = []
     public var volumeName: String
     public var total: Int64
     public var available: Int64
@@ -85,11 +98,77 @@ public struct DiskOverviewScanner: Sendable {
 
     func p(_ relative: String) -> URL { home.appending(path: relative) }
 
+    static let developerFolders = ["Library/Developer", ".npm", ".cargo", ".rustup", ".nvm", ".gradle", ".m2", "go", ".cache", ".pyenv",
+                                   ".bun", ".deno", ".docker", ".volta", ".sdkman", ".local", ".android", "Library/Android", "Library/pnpm",
+                                   ".yarn", ".pub-cache", ".flutter", ".swiftpm", ".cocoapods", ".composer", ".minikube", ".kube", ".dart-tool"]
+
+    /// Dossiers du dossier personnel déjà rangés dans une catégorie.
+    func attributedHomeNames() -> Set<String> {
+        var names: Set<String> = ["Library", "Applications", "Pictures", "Movies", "Music", "Documents", "Desktop", "Downloads", ".Trash"]
+        for folder in Self.developerFolders where !folder.contains("/") { names.insert(folder) }
+        for root in projectRoots where root.deletingLastPathComponent().standardizedFileURL.path == home.standardizedFileURL.path {
+            names.insert(root.lastPathComponent)
+        }
+        return names
+    }
+
+    /// Ce qui n'entre dans aucune catégorie : dossiers du dossier personnel, dossiers système lisibles, et ce qui n'est pas mesuré.
+    func otherParts(skip: Set<String>, snapshots: Int) async -> [DiskOtherPart] {
+        let fm = FileManager.default
+        let attributed = attributedHomeNames()
+        let homeChildren = ((try? fm.contentsOfDirectory(atPath: home.path)) ?? [])
+            .filter { !attributed.contains($0) && $0 != ".DS_Store" && $0 != ".localized" }
+            .map { home.appending(path: $0) }
+            .filter { !skip.contains($0.path) }
+        let tmp = URL(fileURLWithPath: NSTemporaryDirectory()).deletingLastPathComponent()
+        let system: [(String, URL, String)] = [
+            ("Bibliothèque du Mac (/Library)", URL(fileURLWithPath: "/Library"), "Données partagées des apps, polices, extensions, réglages pour tous les comptes"),
+            ("/usr/local", URL(fileURLWithPath: "/usr/local"), "Outils installés hors Homebrew (ou ancien Homebrew Intel)"),
+            ("Dossier partagé (/Users/Shared)", URL(fileURLWithPath: "/Users/Shared"), "Fichiers partagés entre les comptes"),
+            ("Fichiers temporaires", tmp, "Caches et fichiers temporaires de vos apps (/var/folders), vidés par macOS au redémarrage"),
+        ].filter { fm.fileExists(atPath: $0.1.path) }
+        let skipping = skip.union(["/Library/Developer"])
+        let sizes = await DiskUsage.measure(homeChildren + system.map(\.1), skipping: skipping)
+        var parts: [DiskOtherPart] = []
+        var small: Int64 = 0
+        var smallCount = 0
+        for url in homeChildren {
+            let bytes = sizes[url]?.bytes ?? 0
+            if bytes >= 20_000_000 {
+                let (_, description, _) = FolderExplorer.describe(url, home: home.path, projectRoots: projectRoots)
+                parts.append(DiskOtherPart(name: "~/" + url.lastPathComponent, url: url, bytes: bytes, note: description))
+            } else {
+                small += bytes
+                smallCount += 1
+            }
+        }
+        if small > 0 {
+            parts.append(DiskOtherPart(name: "\(smallCount) petits éléments du dossier personnel", url: home, bytes: small,
+                                       note: "Fichiers de configuration (.zshrc, .gitconfig…) et petits dossiers d’outils"))
+        }
+        for (name, url, note) in system {
+            let bytes = sizes[url]?.bytes ?? 0
+            if bytes > 0 { parts.append(DiskOtherPart(name: name, url: url, bytes: bytes, note: note)) }
+        }
+        parts.sort { ($0.bytes ?? 0) > ($1.bytes ?? 0) }
+        // Ce qui n'est pas mesuré, et pourquoi.
+        if !allowPersonal {
+            parts.append(DiskOtherPart(name: "Documents, Bureau, Téléchargements", url: nil, bytes: nil,
+                                       note: "Non mesurés : macOS demande votre autorisation (bouton « Inclure ces dossiers… »)"))
+        }
+        parts.append(DiskOtherPart(name: "Conteneurs d’apps (~/Library/Containers, Group Containers)", url: p("Library/Containers"), bytes: nil,
+                                   note: "Non mesurés : données protégées des autres apps. Le disque virtuel de Docker (Docker.raw) y est rangé"))
+        if snapshots > 0 {
+            parts.append(DiskOtherPart(name: "\(snapshots) instantané\(snapshots > 1 ? "s" : "") Time Machine locaux", url: nil, bytes: nil,
+                                       note: "Gérés par macOS : supprimés automatiquement quand la place manque"))
+        }
+        return parts
+    }
+
     /// Emplacements de chaque catégorie mesurée.
     func locations() -> [DiskCategory.ID: [URL]] {
-        let developer = ["Library/Developer", ".npm", ".cargo", ".rustup", ".nvm", ".gradle", ".m2", "go", ".cache", ".pyenv",
-                         ".bun", ".deno", ".docker", ".volta", ".sdkman", ".local", ".android", "Library/Android", "Library/pnpm"]
-            .map(p) + projectRoots + [URL(fileURLWithPath: "/opt/homebrew")]
+        let developer = Self.developerFolders.map(p) + projectRoots
+            + [URL(fileURLWithPath: "/opt/homebrew"), URL(fileURLWithPath: "/Library/Developer")]
         var result: [DiskCategory.ID: [URL]] = [
             // ~/Library (sans Developer, compté dans Développeur, ni les données protégées) et le swap.
             .sysdata: [p("Library"), URL(fileURLWithPath: "/private/var/vm")],
@@ -139,18 +218,26 @@ public struct DiskOverviewScanner: Sendable {
                 categories.append(DiskCategory(id: id, bytes: nil, note: "Autorisation requise"))
             }
         }
-        let others = otherUsers()
-        categories.append(DiskCategory(id: .users, bytes: nil, note: others == 0 ? "Aucun autre compte" : "\(others) compte\(others > 1 ? "s" : "") · lecture seule"))
+        let otherAccounts = otherUsers()
+        categories.append(DiskCategory(id: .users, bytes: nil, note: otherAccounts == 0 ? "Aucun autre compte" : "\(otherAccounts) compte\(otherAccounts > 1 ? "s" : "") · lecture seule"))
         let trash = trashBytes()
         categories.append(DiskCategory(id: .trash, bytes: trash, note: trash == nil ? "Accès complet au disque requis" : nil))
         let used = total - Int64(important)
         let attributed = categories.compactMap(\.bytes).reduce(0, +)
-        categories.append(DiskCategory(id: .other, bytes: max(0, used - attributed),
+        let otherBytes = max(0, used - attributed)
+        categories.append(DiskCategory(id: .other, bytes: otherBytes,
                                        note: allowPersonal ? nil : "Comprend Documents, Bureau et Téléchargements, non mesurés"))
+        let snapshotCount = await snapshots
+        var others = await otherParts(skip: skip, snapshots: snapshotCount)
+        let identified = others.compactMap { $0.bytes }.reduce(0, +)
+        if otherBytes > identified {
+            others.append(DiskOtherPart(name: "Reste non identifié", url: nil, bytes: otherBytes - identified,
+                                        note: "Ce qui n’est pas lisible sans droits (conteneurs, instantanés, fichiers système, autres comptes)"))
+        }
         return DiskOverview(
-            volumeName: values?.volumeLocalizedName ?? "Macintosh HD", total: total, available: Int64(important),
+            others: others, volumeName: values?.volumeLocalizedName ?? "Macintosh HD", total: total, available: Int64(important),
             purgeable: max(0, Int64(important) - free), categories: categories,
-            localSnapshots: await snapshots, duration: Date().timeIntervalSince(start)
+            localSnapshots: snapshotCount, duration: Date().timeIntervalSince(start)
         )
     }
 

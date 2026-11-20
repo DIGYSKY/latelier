@@ -86,17 +86,21 @@ private func write(_ home: URL, _ relative: String, bytes: Int = 2_000_000) thro
         #expect(report.volumes.first?.composeName == "postgres-data")
 
         let groups = DockerScanner.groups(report, docker: "/usr/local/bin/docker")
-        #expect(groups.map(\.id) == ["docker-safe", "docker-review", "docker-data"])
-        let safe = groups[0].items
-        let images = try #require(safe.first { $0.id == "docker:images" })
-        #expect(images.bytes == 910_000_000)
-        #expect(images.action == .commands([CommandSpec("/usr/local/bin/docker", ["image", "prune", "-a", "-f"])]))
+        #expect(groups.map(\.id) == ["docker-images", "docker-safe", "docker-review", "docker-data"])
+        let images = groups[0].items
+        #expect(images.count == 3)
+        let mysql = try #require(images.first { $0.name == "mysql:8.4" })
+        #expect(mysql.isLocked && mysql.detail.contains("db-1"))
+        let node = try #require(images.first { $0.name == "node:18" })
+        #expect(node.selectedByDefault && node.bytes == 900_000_000)
+        #expect(node.action == .commands([CommandSpec("/usr/local/bin/docker", ["image", "rm", "node:18"])]))
+        let safe = groups[1].items
         #expect(safe.contains { $0.name == "amiral-web_node_modules" && $0.selectedByDefault })
         #expect(safe.contains { $0.name == "amiral-api_maven-cache" && $0.selectedByDefault })
         #expect(safe.first { $0.name == "live_db" }?.isLocked == true)
         #expect(safe.first { $0.name.hasPrefix("db-1") }?.isLocked == true)
-        #expect(groups[1].items.map(\.name) == ["shared"])
-        let data = try #require(groups[2].items.first)
+        #expect(groups[2].items.map(\.name) == ["shared"])
+        let data = try #require(groups[3].items.first)
         #expect(data.name == "amiral-api_postgres-data" && !data.selectedByDefault && data.risk == .danger)
     }
 
@@ -138,7 +142,7 @@ private func write(_ home: URL, _ relative: String, bytes: Int = 2_000_000) thro
         var sizes: [URL: Int64] = [:]
         for url in found.flatMap(\.urls) { sizes[url] = DiskUsage.measure(url).bytes }
         let items = scanner.items(found, sizes: sizes)
-        #expect(items.allSatisfy { !$0.selectedByDefault && $0.risk == .caution } && items.count == 1)
+        #expect(items.allSatisfy { !$0.selectedByDefault && $0.risk == .caution } && items.count == 3)
         let later = LeftoverScanner(home: home, installedIDs: [], now: Date().addingTimeInterval(200 * 86_400))
         #expect(later.items(found, sizes: sizes).allSatisfy { $0.selectedByDefault })
     }
@@ -307,6 +311,9 @@ private func write(_ home: URL, _ relative: String, bytes: Int = 2_000_000) thro
         }
         print("INTERRUPTED", scanner.interruptedInstalls().map(\.path))
         print("DEADLINKS", DeadLinks.find().map { "\($0.url.lastPathComponent) → \($0.destination)" })
+        let overview = await DiskOverviewScanner(runner: runner, allowPersonal: false, projectRoots: DevArtifactScanner.defaultRoots()).scan()
+        for category in overview.categories { print("CATEGORY", category.id, category.bytes.map { $0 / 1_000_000 } ?? -1, "Mo") }
+        for part in overview.others { print("OTHER", part.name, part.bytes.map { "\($0 / 1_000_000) Mo" } ?? "non mesuré") }
         let apps = AppInventory.installed()
         print("APPS", apps.count, apps.map { "\($0.name)\($0.deletable ? "" : "(root)")\($0.fromAppStore ? "(MAS)" : "") \($0.lastUsed.map { RelativeDate.french($0) } ?? "-")" })
     }

@@ -28,9 +28,18 @@ struct SonarPage: View {
         } content: {
             VStack(alignment: .leading, spacing: 8) {
                 zones(sonar)
-                GlassSegments(selection: Binding(get: { sonar.lens }, set: { sonar.lens = $0; sonar.selected = nil }),
-                              items: SonarLens.allCases.map { ($0, $0.label) }, compact: true)
-                    .fixedSize()
+                HStack(spacing: 12) {
+                    GlassSegments(selection: Binding(get: { sonar.lens }, set: { sonar.lens = $0; sonar.selected = nil }),
+                                  items: SonarLens.allCases.map { ($0, $0.label) }, compact: true)
+                        .fixedSize()
+                    Spacer()
+                    Text("Fichiers de plus de").font(.system(size: 12)).foregroundStyle(Theme.muted)
+                    GlassSegments(selection: Binding(get: { sonar.minimumBytes }, set: { value in
+                        sonar.minimumBytes = value
+                        if sonar.scannedZone != nil { scan(sonar.zone) }
+                    }), items: [(10_000_000, "10 Mo"), (50_000_000, "50 Mo"), (100_000_000, "100 Mo"), (500_000_000, "500 Mo")], compact: true)
+                        .fixedSize()
+                }
             }
             if sonar.scannedZone == nil && !sonar.scanning {
                 start(sonar)
@@ -116,7 +125,7 @@ struct SonarPage: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Lancer un balayage").font(.system(size: 17, weight: .semibold))
-                Text("Le Sonar repère les fichiers de plus de 50 Mo dans la zone choisie, leur dernière ouverture, les doublons exacts et les installeurs déjà utilisés. Vos projets de code sont ignorés (voir Développement).")
+                Text("Le Sonar repère les gros fichiers (50 Mo par défaut) dans la zone choisie, leur dernière ouverture, les doublons exacts et les installeurs déjà utilisés. Vos projets de code sont ignorés (voir Développement).")
                     .font(.system(size: 13)).foregroundStyle(Theme.muted)
                 if !model.preferences.allowPersonalFolders {
                     Text("Bureau, Documents et Téléchargements sont exclus tant que vous ne les incluez pas : macOS demandera alors l’autorisation.")
@@ -159,8 +168,32 @@ struct SonarPage: View {
                 VStack(spacing: 6) {
                     Text(Format.bytes(sonar.freed + sonar.staged.reduce(0) { $0 + $1.bytes })).font(.system(size: 26, weight: .bold)).foregroundStyle(Tag.green.0)
                     Text("Zone triée !").font(.system(size: 16, weight: .semibold))
-                    Text(sonar.files.isEmpty ? "Aucun fichier de plus de 50 Mo ici." : "Tout a été trié dans ce filtre. Essayez un autre filtre ou une autre zone.")
+                    Text(sonar.files.isEmpty ? "Aucun fichier de plus de \(Format.bytes(sonar.minimumBytes)) ici." : "Tout a été trié dans ce filtre. Essayez un autre filtre ou une autre zone.")
                         .font(.system(size: 12)).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
+                    if sonar.files.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Dossiers parcourus :").font(.system(size: 11, weight: .semibold))
+                            Text(sonar.scannedRoots.map { $0.abbreviatingHome() }.joined(separator: ", "))
+                                .font(.system(size: 11).monospaced()).foregroundStyle(Theme.muted)
+                            if !model.preferences.allowPersonalFolders {
+                                Text("Vos gros fichiers sont souvent dans Téléchargements ou Documents, que macOS protège.")
+                                    .font(.system(size: 11)).padding(.top, 4)
+                                Button("Inclure Bureau, Documents, Téléchargements…") {
+                                    model.allowPersonalFolders()
+                                    scan(sonar.zone)
+                                }
+                                .buttonStyle(PillButtonStyle(kind: .small))
+                            } else if sonar.minimumBytes > 10_000_000 {
+                                Button("Chercher dès 10 Mo") {
+                                    sonar.minimumBytes = 10_000_000
+                                    scan(sonar.zone)
+                                }
+                                .buttonStyle(PillButtonStyle(kind: .small))
+                            }
+                        }
+                        .padding(.top, 6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
                 .padding(20)
                 .frame(maxWidth: .infinity)

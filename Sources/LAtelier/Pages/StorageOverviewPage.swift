@@ -28,6 +28,7 @@ struct StorageOverviewPage: View {
         }
         .onAppear {
             if store.stale && !store.loading { model.scanOverview() }
+            if model.devScan.stale && !model.devScan.scanning { model.scanDev() }
             if model.systemScan.stale && !model.systemScan.scanning { model.scanSystem() }
             if model.cacheScan.stale && !model.cacheScan.scanning { model.scanCaches() }
             if model.leftoverScan.stale && !model.leftoverScan.scanning { model.scanLeftovers() }
@@ -147,6 +148,7 @@ struct StorageOverviewPage: View {
             }
 
             if let current { selectionDetail(current, overview: overview) }
+            if current?.id == .other { othersDetail(overview) }
 
             if !model.preferences.allowPersonalFolders {
                 HStack(spacing: 10) {
@@ -187,6 +189,45 @@ struct StorageOverviewPage: View {
         }
         .padding(12)
         .background(Theme.raised.opacity(0.6), in: .rect(cornerRadius: 14, style: .continuous))
+    }
+
+    /// Détail de « Autres » : chaque dossier mesuré, et ce qui ne peut pas l'être.
+    private func othersDetail(_ overview: DiskOverview) -> some View {
+        let maxBytes = max(1, overview.others.compactMap(\.bytes).max() ?? 1)
+        return VStack(alignment: .leading, spacing: 0) {
+            Text("Ce que contient « Autres »").font(.system(size: 14, weight: .semibold)).padding(.bottom, 8)
+            ForEach(overview.others) { part in
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(part.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                        Text(part.note).font(.system(size: 11)).foregroundStyle(Theme.muted).lineLimit(2)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    if let bytes = part.bytes {
+                        Capsule().fill(Theme.hairline).frame(width: 140, height: 6)
+                            .overlay(alignment: .leading) {
+                                Capsule().fill(Color(hex: 0xC9B88A)).frame(width: max(3, 140 * Double(bytes) / Double(maxBytes)), height: 6)
+                            }
+                        Text(Format.bytes(bytes)).font(.system(size: 13, weight: .semibold)).monospacedDigit().frame(width: 80, alignment: .trailing)
+                    } else {
+                        Text("non mesuré").font(.system(size: 12)).foregroundStyle(Theme.muted).frame(width: 232, alignment: .trailing)
+                    }
+                    if let url = part.url, part.bytes != nil {
+                        Button("Explorer") {
+                            model.explorer.reveal(url)
+                            model.selection = .explorateur
+                        }
+                        .buttonStyle(PillButtonStyle(kind: .small))
+                    } else {
+                        Color.clear.frame(width: 84, height: 1)
+                    }
+                }
+                .padding(.vertical, 7)
+                Divider().opacity(0.5)
+            }
+        }
+        .padding(14)
+        .background(Theme.raised.opacity(0.45), in: .rect(cornerRadius: 14, style: .continuous))
     }
 
     // MARK: Récupérable
