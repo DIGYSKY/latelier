@@ -72,6 +72,9 @@ final class AppModel {
     var actionNotice: String?
     /// Erreur d'ouverture d'un terminal ou d'un éditeur.
     var launchError: String?
+    /// Accueil du premier lancement (et « Revoir l’accueil » dans Réglages › À propos).
+    var showOnboarding = !UserDefaults.standard.bool(forKey: "onboardingDone")
+        || ProcessInfo.processInfo.environment["LATELIER_ONBOARDING"] == "1"
     private static let rootsKey = "projectRoots"
 
     init(historyStore: HistoryStore = HistoryStore()) {
@@ -288,6 +291,7 @@ final class AppModel {
         if entry.kind == .processus { performance.refreshNow() }
         if entry.kind == .serveur { ssh.afterAction(entry) }
         updates.didRecord(entry)
+        finishUninstall(entry)
         if entry.kind == .commande {
             coverage.invalidate()
             commandCenter.reload()

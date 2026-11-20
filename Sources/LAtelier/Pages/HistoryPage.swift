@@ -109,6 +109,7 @@ struct HistoryPage: View {
 }
 
 struct HistoryRow: View {
+    @Environment(AppModel.self) private var model
     let entry: HistoryEntry
     let expanded: Bool
     /// Version courte (Accueil) : sans résumé ni taille.
@@ -144,6 +145,17 @@ struct HistoryRow: View {
                     Label(message, systemImage: "xmark.octagon").font(.callout).foregroundStyle(.red)
                 }
                 if let hint = FailureAdvisor.hint(for: entry) { FailureHintCard(hint: hint) }
+                if entry.outcome != .success && entry.outcome != .cancelled {
+                    HStack {
+                        Spacer()
+                        Button("Signaler ce problème…", systemImage: "ladybug") {
+                            let output = entry.commands.map { "$ \($0.command)\n\($0.output)" }.joined(separator: "\n\n")
+                            model.reportIssue(.bug, details: "\(entry.title)\n\(output)")
+                        }
+                        .buttonStyle(PillButtonStyle(kind: .small))
+                        .help("Ouvre une issue GitHub pré-remplie ; votre dossier personnel et votre nom de compte sont masqués. Relisez avant de publier.")
+                    }
+                }
                 ForEach(Array(entry.commands.enumerated()), id: \.offset) { _, log in
                     CommandLogView(log: log)
                 }

@@ -6,7 +6,7 @@ import SwiftUI
 /// Réglages : six sections comme la maquette. Chaque réglage agit réellement sur l'app.
 struct SettingsPage: View {
     enum Section: String, CaseIterable {
-        case general, stockage, projets, verifs, notifs, privacy
+        case general, stockage, projets, verifs, notifs, privacy, about
 
         var label: String {
             switch self {
@@ -16,12 +16,13 @@ struct SettingsPage: View {
             case .verifs: "Vérifications"
             case .notifs: "Notifications"
             case .privacy: "Confidentialité"
+            case .about: "À propos"
             }
         }
     }
 
     @Environment(AppModel.self) private var model
-    @ViewState private var section = Section.general
+    @ViewState private var section = ProcessInfo.processInfo.environment["LATELIER_SETTINGS"].flatMap(Section.init(rawValue:)) ?? .general
 
     var body: some View {
         PageScaffold(page: .reglages, subtitle: "L’Atelier · version \(Self.version)") {
@@ -36,6 +37,7 @@ struct SettingsPage: View {
             case .verifs: CheckSettings()
             case .notifs: NotificationSettings()
             case .privacy: PrivacySettings()
+            case .about: AboutSettings()
             }
         }
     }
@@ -132,7 +134,7 @@ private struct Switch: View {
 }
 
 /// Liste de dossiers : pastilles avec ×, « + Ajouter un dossier… ».
-private struct FolderList: View {
+struct FolderList: View {
     let folders: [String]
     let remove: (String) -> Void
     let add: (URL) -> Void
@@ -203,8 +205,6 @@ private struct GeneralSettings: View {
         }
         .onAppear { fullDiskAccess = FullDiskAccess.granted }
 
-        UpdateSettings()
-
         Card(title: "Outils de développement") {
             if tools.isEmpty {
                 ProgressView("Recherche des outils…").frame(maxWidth: .infinity).padding()
@@ -228,17 +228,6 @@ private struct GeneralSettings: View {
         }
         .task { tools = await ToolProbe(runner: model.runner).probe() }
 
-        Card(title: "À propos") {
-            LabeledContent("Version", value: SettingsPage.version)
-            LabeledContent("Identifiant", value: AppPaths.bundleIdentifier)
-            LabeledContent("Données") {
-                Button("Afficher dans le Finder") {
-                    try? FileManager.default.createDirectory(at: AppPaths.supportDirectory, withIntermediateDirectories: true)
-                    NSWorkspace.shared.activateFileViewerSelecting([AppPaths.supportDirectory])
-                }
-                .buttonStyle(.secondary)
-            }
-        }
     }
 
     private var loginHelp: String {
@@ -428,6 +417,90 @@ private struct NotificationSettings: View {
         }
         Text("macOS demande l’autorisation d’afficher des notifications la première fois qu’une alerte est envoyée.")
             .font(.system(size: 12)).foregroundStyle(Theme.muted)
+    }
+}
+
+// MARK: - À propos
+
+private struct AboutSettings: View {
+    @Environment(AppModel.self) private var model
+    @ViewState private var sizes: [String: Int64] = [:]
+    @ViewState private var copied = false
+
+    var body: some View {
+        let repository = model.repository
+        Card {
+            HStack(spacing: 16) {
+                Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 72, height: 72)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("L’Atelier").font(.system(size: 22, weight: .bold))
+                    Text("Version \(SettingsPage.version)").font(.system(size: 13)).foregroundStyle(Theme.muted)
+                    Text("La boîte à outils macOS des développeurs : une machine propre, à jour et sûre.")
+                        .font(.system(size: 13)).foregroundStyle(Theme.muted)
+                }
+                Spacer()
+            }
+            FlowLayout(spacing: 8) {
+                link("Dépôt GitHub", "chevron.left.forwardslash.chevron.right", "https://github.com/\(repository)")
+                link("Nouveautés", "sparkles", "https://github.com/\(repository)/releases")
+                Button("Signaler un problème…", systemImage: "ladybug") { model.reportIssue(.bug) }.buttonStyle(.small)
+                Button("Proposer une idée…", systemImage: "lightbulb") { model.reportIssue(.idea) }.buttonStyle(.small)
+                Button(copied ? "Copié" : "Copier les infos de diagnostic", systemImage: copied ? "checkmark" : "doc.on.doc") {
+                    model.copyDiagnostics()
+                    copied = true
+                }
+                .buttonStyle(.small)
+                .help(model.issueEnvironment.summary)
+            }
+            Text("« Signaler un problème » ouvre une page GitHub pré-remplie avec la version de L’Atelier et de macOS : vous relisez avant de publier, rien n’est envoyé par l’app.")
+                .font(.system(size: 12)).foregroundStyle(Theme.muted)
+        }
+
+        UpdateSettings()
+
+        Card(title: "Licence") {
+            Text("L’Atelier est un logiciel libre, distribué sous licence GNU GPL v3 : vous pouvez l’utiliser, l’étudier, le modifier et le redistribuer, à condition de garder la même licence. Il est fourni sans aucune garantie.")
+                .font(.system(size: 13)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+            link("Lire la licence", "doc.text", "https://github.com/\(repository)/blob/main/LICENSE")
+        }
+
+        Card(title: "Données de L’Atelier sur ce Mac") {
+            ForEach(model.ownData, id: \.url) { item in
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(item.label).font(.system(size: 13, weight: .medium))
+                        Text(item.url.abbreviatingHome()).font(.system(size: 11).monospaced()).foregroundStyle(Theme.muted)
+                    }
+                    Spacer()
+                    if let size = sizes[item.url.path] { Text(Format.bytes(size)).font(.system(size: 12)).foregroundStyle(Theme.muted) }
+                    Button("Afficher") { NSWorkspace.shared.activateFileViewerSelecting([item.url]) }.buttonStyle(.small)
+                }
+            }
+            HStack {
+                Text("Votre ~/.ssh/config, vos projets, vos serveurs et le certificat de signature (~/.latelier-signing) ne sont jamais touchés.")
+                    .font(.system(size: 12)).foregroundStyle(Theme.muted)
+                Spacer()
+                Button("Désinstaller L’Atelier…", systemImage: "trash") { model.preview(model.uninstallPlan()) }
+                    .buttonStyle(.small)
+            }
+        }
+        .task {
+            for item in model.ownData { sizes[item.url.path] = DiskUsage.measure(item.url).bytes }
+        }
+
+        Card(title: "Premier lancement") {
+            HStack {
+                Text("Revoir l’accueil : accès au disque, dossiers de projets, terminal, éditeur et langue.")
+                    .font(.system(size: 13)).foregroundStyle(Theme.muted)
+                Spacer()
+                Button("Revoir l’accueil…") { model.showOnboarding = true }.buttonStyle(.small)
+            }
+        }
+    }
+
+    private func link(_ title: String, _ symbol: String, _ address: String) -> some View {
+        Button(title, systemImage: symbol) { if let url = URL(string: address) { NSWorkspace.shared.open(url) } }
+            .buttonStyle(.small)
     }
 }
 

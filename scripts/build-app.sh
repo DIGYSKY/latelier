@@ -30,6 +30,8 @@ if [[ -z "$REPO" ]]; then
     REMOTE="$(git remote get-url origin 2>/dev/null || true)"
     REPO="$(printf '%s' "$REMOTE" | sed -nE 's#.*github\.com[:/]([^/]+/[^/]+)$#\1#p' | sed 's/\.git$//')"
 fi
+# Dépôt officiel par défaut (un fork le remplace avec GITHUB_REPO ou son propre remote).
+REPO="${REPO:-DIGYSKY/latelier}"
 [[ -n "$REPO" ]] && plutil -insert LAtelierRepository -string "$REPO" "$APP/Contents/Info.plist"
 [[ -n "${SOURCE_INSTALL:-}" ]] && plutil -insert LAtelierSourcePath -string "$(pwd)" "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist" >/dev/null

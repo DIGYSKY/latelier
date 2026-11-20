@@ -1,0 +1,49 @@
+name: Bug report · Signaler un bug
+description: Something does not work as expected · Quelque chose ne fonctionne pas comme prévu
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this! Please check that the text below contains no personal information (paths, server names, tokens).
+        Merci de prendre le temps de le signaler ! Vérifiez que le texte ne contient aucune information personnelle (chemins, noms de serveurs, jetons).
+
+        **Security issue?** Do not open a public issue: use [a private security advisory](../security/advisories/new) instead.
+        **Faille de sécurité ?** Pas d'issue publique : utilisez [un signalement privé](../security/advisories/new).
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened? · Que s'est-il passé ?
+      description: What did you expect, and what happened instead? · Ce que vous attendiez, et ce qui s'est passé.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce · Étapes pour reproduire
+      placeholder: |
+        1. Open Storage › Overview
+        2. Click Analyze
+        3. …
+  - type: input
+    id: version
+    attributes:
+      label: L’Atelier version · Version de L’Atelier
+      description: Settings › About · Réglages › À propos
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version · Version de macOS
+  - type: input
+    id: install
+    attributes:
+      label: Installed with · Installé avec
+      description: install.sh, disk image (.dmg), or built from a clone · install.sh, image disque (.dmg) ou compilé depuis un clone
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output · Sortie de l'erreur
+      description: From History, if relevant (personal paths are already replaced by ~) · Depuis l'Historique, si utile (les chemins personnels sont déjà remplacés par ~)
+      render: text

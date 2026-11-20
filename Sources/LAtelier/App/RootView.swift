@@ -31,6 +31,9 @@ struct RootView: View {
         .sheet(item: $model.pendingClaude) { request in
             ClaudeSheet(request: request)
         }
+        .sheet(isPresented: $model.showOnboarding) {
+            OnboardingSheet()
+        }
         .alert("Action impossible", isPresented: Binding(get: { model.actionNotice != nil }, set: { if !$0 { model.actionNotice = nil } })) {
             Button("OK") { model.actionNotice = nil }
         } message: {

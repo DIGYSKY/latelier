@@ -1,10 +1,14 @@
-.PHONY: build test app run dmg release install cert icon clean
+.PHONY: build test smoke app run dmg release install cert icon clean
 
 build:
 	swift build
 
 test:
 	scripts/test.sh
+
+# De bout en bout : chaque écran de la vraie app s'ouvre sans planter (quitte L’Atelier s'il est ouvert).
+smoke: app
+	scripts/smoke.sh
 
 app:
 	scripts/build-app.sh

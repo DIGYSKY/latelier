@@ -1,0 +1,19 @@
+name: Idea · Proposer une idée
+description: Suggest a feature or an improvement · Suggérer une fonctionnalité ou une amélioration
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do? · Que voudriez-vous faire ?
+      description: The need behind the idea · Le besoin derrière l'idée
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: How could L’Atelier help? · Comment L’Atelier pourrait-il aider ?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you use today · Ce que vous utilisez aujourd'hui

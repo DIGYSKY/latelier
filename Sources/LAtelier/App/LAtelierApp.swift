@@ -31,6 +31,15 @@ struct LAtelierApp: App {
                 Button("Réglages…") { model.selection = .reglages }
                     .keyboardShortcut(",", modifiers: .command)
             }
+            CommandGroup(replacing: .help) {
+                Button("Signaler un problème…") { model.reportIssue(.bug) }
+                Button("Proposer une idée…") { model.reportIssue(.idea) }
+                Divider()
+                Button("Nouveautés de L’Atelier") {
+                    if let url = URL(string: "https://github.com/\(model.repository)/releases") { NSWorkspace.shared.open(url) }
+                }
+                Button("Revoir l’accueil…") { model.showOnboarding = true }
+            }
         }
 
         MenuBarExtra(isInserted: Binding(get: { model.preferences.menuBarIcon }, set: { model.preferences.menuBarIcon = $0 })) {
