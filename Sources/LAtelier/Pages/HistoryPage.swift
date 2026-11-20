@@ -227,6 +227,7 @@ extension HistoryEntry.Kind {
         case .commande: "terminal"
         case .systeme: "gearshape.2"
         case .processus: "xmark.octagon"
+        case .serveur: "server.rack"
         }
     }
 
@@ -238,6 +239,7 @@ extension HistoryEntry.Kind {
         case .commande: .teal
         case .systeme: .gray
         case .processus: .red
+        case .serveur: .indigo
         }
     }
 }

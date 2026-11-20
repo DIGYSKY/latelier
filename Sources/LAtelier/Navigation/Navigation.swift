@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Les grandes sections de la barre latérale (accordéon).
 enum SidebarGroup: String, CaseIterable, Identifiable {
-    case stockage, projets, paquets, performance, news
+    case stockage, projets, serveurs, paquets, performance, news
 
     var id: String { rawValue }
 
@@ -10,6 +10,7 @@ enum SidebarGroup: String, CaseIterable, Identifiable {
         switch self {
         case .stockage: "Stockage"
         case .projets: "Projets"
+        case .serveurs: "Serveurs"
         case .paquets: "Paquets"
         case .performance: "Performance"
         case .news: "News"
@@ -20,6 +21,7 @@ enum SidebarGroup: String, CaseIterable, Identifiable {
         switch self {
         case .stockage: "internaldrive"
         case .projets: "folder.badge.gearshape"
+        case .serveurs: "externaldrive.connected.to.line.below"
         case .paquets: "cube.box"
         case .performance: "gauge.with.dots.needle.67percent"
         case .news: "newspaper"
@@ -30,6 +32,7 @@ enum SidebarGroup: String, CaseIterable, Identifiable {
         switch self {
         case .stockage: .blue
         case .projets: .orange
+        case .serveurs: .indigo
         case .paquets: .purple
         case .performance: .green
         case .news: .pink
@@ -40,6 +43,7 @@ enum SidebarGroup: String, CaseIterable, Identifiable {
         switch self {
         case .stockage: "Ce qui occupe le disque, et ce qu’on peut libérer sans risque."
         case .projets: "Dépôts git, commandes, dépendances, sécurité et couverture."
+        case .serveurs: "Vos connexions SSH, le terminal en un clic, et les fichiers des serveurs."
         case .paquets: "Tout ce qui est installé, ce qui est obsolète, les mises à jour."
         case .performance: "Le gestionnaire des tâches : CPU, mémoire, GPU, réseau, processus."
         case .news: "L’actualité de tes langages et la cybersécurité qui te concerne."
@@ -55,6 +59,8 @@ enum SidebarGroup: String, CaseIterable, Identifiable {
         case .projets:
             [.page(.depots), .page(.modifications), .page(.commandes), .page(.dependances),
              .page(.securite), .page(.couverture)]
+        case .serveurs:
+            [.page(.serveurs)]
         case .paquets:
             [.page(.majs), .page(.inventaire), .page(.runtimes), .page(.services)]
         case .performance:
@@ -75,8 +81,8 @@ enum SidebarGroup: String, CaseIterable, Identifiable {
 
     var firstPage: Page { pages[0] }
 
-    /// Projets n'a pas de sous-menu : une seule entrée, puis une page par dépôt.
-    var showsChildren: Bool { self != .projets }
+    /// Projets et Serveurs n'ont pas de sous-menu : une seule entrée, puis une page par dépôt ou serveur.
+    var showsChildren: Bool { self != .projets && self != .serveurs }
 }
 
 enum SidebarEntry: Hashable {
@@ -91,6 +97,8 @@ enum Page: String, CaseIterable, Identifiable {
     case stockageVue, systeme, appsNettoyage, desinstalleur, docker, dev, caches, explorateur, sonar
     // Projets
     case depots, modifications, commandes, dependances, securite, couverture
+    // Serveurs
+    case serveurs
     // Paquets
     case majs, inventaire, runtimes, services
     // Performance
@@ -124,6 +132,7 @@ enum Page: String, CaseIterable, Identifiable {
         case .dependances: "Dépendances"
         case .securite: "Sécurité"
         case .couverture: "Couverture"
+        case .serveurs: "Serveurs"
         case .majs: "Mises à jour"
         case .inventaire: "Inventaire"
         case .runtimes: "Runtimes"
@@ -173,6 +182,7 @@ enum Page: String, CaseIterable, Identifiable {
         case .dependances: "point.3.connected.trianglepath.dotted"
         case .securite: "lock.shield"
         case .couverture: "checkmark.seal"
+        case .serveurs: "externaldrive.connected.to.line.below"
         case .majs: "arrow.down.circle"
         case .inventaire: "list.bullet.rectangle"
         case .runtimes: "chevron.left.forwardslash.chevron.right"

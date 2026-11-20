@@ -66,6 +66,7 @@ struct PageContainer: View {
         case .systeme: SystemPage()
         case .dev: DevPage()
         case .depots: ReposPage()
+        case .serveurs: ServersPage()
         case .modifications: BackToProjects { ModificationsPage() }
         case .majs: UpdatesPage()
         case .inventaire: InventoryPage()

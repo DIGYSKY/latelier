@@ -44,6 +44,14 @@ public struct SafetyGuard: Sendable {
             && (parent == "/Applications" || parent == home + "/Applications")
     }
 
+    /// Fichier que L’Atelier peut réécrire (jamais supprimer) : comme `check`,
+    /// plus `~/.ssh/config`, le seul fichier modifiable de ~/.ssh.
+    public func checkEditable(_ url: URL) throws {
+        let parent = url.deletingLastPathComponent().resolvingSymlinksInPath().standardizedFileURL.path
+        if parent == root.path + "/.ssh", url.lastPathComponent == "config" { return }
+        try check(url)
+    }
+
     /// Lève une erreur si l'élément ne doit pas être supprimé.
     public func check(_ url: URL) throws {
         // On résout les liens du dossier parent (pas de l'élément : supprimer un lien ne touche que le lien).

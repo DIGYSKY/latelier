@@ -30,6 +30,8 @@ final class AppModel {
     /// Stockage › Vue d’ensemble.
     let overview = Loadable<DiskOverview>()
     let explorer = ExplorerStore()
+    /// Serveurs : connexions SSH et explorateur distant.
+    let ssh = SSHStore()
     let sonar = SonarStore()
     let repos = RepoStore()
     let packages = PackageStore()
@@ -96,6 +98,17 @@ final class AppModel {
         news = NewsStore(preferences: preferences)
         news.start { [weak self] in await self?.newsInventory() ?? ([], []) }
         packages.offerMajors = preferences.offerMajors
+        ssh.attach(runner: runner, preferences: preferences,
+                   preview: { [weak self] plan in self?.preview(plan) },
+                   record: { [weak self] entry in await self?.record(entry) })
+        // Captures : LATELIER_SSH=<alias>[#configuration]
+        if let raw = environment["LATELIER_SSH"] {
+            let parts = raw.split(separator: "#")
+            selection = .serveurs
+            if let alias = parts.first, !alias.isEmpty {
+                ssh.open(String(alias), tab: parts.count > 1 ? ServerTab(rawValue: String(parts[1])) ?? .files : .files)
+            }
+        }
         startBackgroundChecks()
         if preferences.scanAtLaunch { scanEverything() }
     }
@@ -270,6 +283,7 @@ final class AppModel {
             startup.invalidate()
         }
         if entry.kind == .processus { performance.refreshNow() }
+        if entry.kind == .serveur { ssh.afterAction(entry) }
         if entry.kind == .commande {
             coverage.invalidate()
             commandCenter.reload()

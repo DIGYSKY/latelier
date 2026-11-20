@@ -174,6 +174,7 @@ struct MenuBarContent: View {
         HStack(spacing: 6) {
             shortcut("Stockage", "internaldrive", .stockageVue)
             shortcut("Projets", "folder.badge.gearshape", .depots)
+            shortcut("Serveurs", "externaldrive.connected.to.line.below", .serveurs)
             shortcut("Moniteur", "waveform.path.ecg.rectangle", .moniteur)
             shortcut("News", "newspaper", .pourVous)
         }
@@ -229,6 +230,7 @@ struct MenuBarContent: View {
     private func open(_ page: Page) {
         model.selection = page
         if page == .depots { model.openRepo = nil }
+        if page == .serveurs { model.ssh.close() }
         NSApp.activate()
         if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
             window.makeKeyAndOrderFront(nil)

@@ -35,7 +35,7 @@ public enum ActionStep: Sendable, Hashable {
         case .remove(let url, _, _): url.path
         case .appendLine(let line, let file): "echo \(ShellQuote.quote(line)) >> \(ShellQuote.quote(file.path))"
         case .editFile(let edit):
-            "modifier \(edit.file.lastPathComponent) : " + edit.added.map { "+ \($0)" }.joined(separator: "  ")
+            "modifier \(edit.file.lastPathComponent) : " + (edit.removed.map { "− \($0)" } + edit.added.map { "+ \($0)" }).joined(separator: "  ")
         case .signal(let target, let force):
             target.isApp && !force
                 ? "quitter « \(target.name) » (PID \(target.pid))"
@@ -223,12 +223,10 @@ public struct PlanExecutor: Sendable {
                 if let log = removal.flush() { logs.append(log) }
                 let start = Date()
                 do {
-                    try safety.check(edit.file)
-                    let current = try String(contentsOf: edit.file, encoding: .utf8)
-                    guard current == edit.before else { throw EditConflict(file: edit.file.lastPathComponent) }
-                    try edit.after.write(to: edit.file, atomically: true, encoding: .utf8)
+                    try safety.checkEditable(edit.file)
+                    try Self.write(edit)
                     completed += 1
-                    let output = edit.added.map { "+ \($0)" }.joined(separator: "\n")
+                    let output = (edit.removed.map { "− \($0)" } + edit.added.map { "+ \($0)" }).joined(separator: "\n")
                     onEvent(index, .stdout(output))
                     onEvent(index, .exited(status: 0, uncaughtSignal: false))
                     logs.append(CommandLog(command: step.displayString, exitStatus: 0, output: output, duration: Date().timeIntervalSince(start)))
@@ -330,6 +328,28 @@ public struct PlanExecutor: Sendable {
         if !text.isEmpty && !text.hasSuffix("\n") { text += "\n" }
         text += line + "\n"
         try text.write(to: file, atomically: true, encoding: .utf8)
+    }
+
+    /// Réécrit le fichier s'il n'a pas changé depuis l'aperçu, en gardant ses droits
+    /// (600 pour ~/.ssh/config). Avec `backup`, l'ancienne version part à la corbeille.
+    static func write(_ edit: FileEdit) throws {
+        let fm = FileManager.default
+        let exists = fm.fileExists(atPath: edit.file.path)
+        let current = exists ? try String(contentsOf: edit.file, encoding: .utf8) : ""
+        guard current == edit.before else { throw EditConflict(file: edit.file.lastPathComponent) }
+        let permissions = (try? fm.attributesOfItem(atPath: edit.file.path)[.posixPermissions]) as? NSNumber
+        if !exists {
+            try fm.createDirectory(at: edit.file.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        }
+        if edit.backup, exists, !current.isEmpty {
+            let stamp = Date.now.formatted(.iso8601.year().month().day().time(includingFractionalSeconds: false)).replacingOccurrences(of: ":", with: "-")
+            let copy = fm.temporaryDirectory.appendingPathComponent("\(edit.file.lastPathComponent) avant L’Atelier \(stamp)")
+            try? fm.removeItem(at: copy)
+            try current.write(to: copy, atomically: true, encoding: .utf8)
+            try fm.trashItem(at: copy, resultingItemURL: nil)
+        }
+        try edit.after.write(to: edit.file, atomically: true, encoding: .utf8)
+        try fm.setAttributes([.posixPermissions: permissions?.intValue ?? (edit.backup ? 0o600 : 0o644)], ofItemAtPath: edit.file.path)
     }
 
     static func describe(_ error: Error) -> String {

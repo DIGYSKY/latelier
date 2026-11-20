@@ -63,7 +63,7 @@ struct SidebarView: View {
         case .paquets:
             let updates = model.packages.updates.count
             return updates > 0 ? Badge(text: "\(updates)", color: Theme.orange) : nil
-        case .stockage, .performance:
+        case .stockage, .performance, .serveurs:
             return nil
         }
     }
@@ -115,6 +115,7 @@ private struct PageRow: View {
         Button {
             // Projets : un clic revient à la liste des dépôts.
             if page == .depots { model.openRepo = nil }
+            if page == .serveurs { model.ssh.close() }
             model.selection = page
         } label: {
             HStack(spacing: 10) {

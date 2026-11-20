@@ -80,14 +80,19 @@ public struct FileEdit: Sendable, Hashable {
     public var file: URL
     public var before: String
     public var after: String
-    /// Lignes ajoutées, pour l'aperçu.
+    /// Lignes ajoutées et retirées, pour l'aperçu.
     public var added: [String]
+    public var removed: [String]
+    /// Met l'ancienne version à la corbeille avant d'écrire (~/.ssh/config).
+    public var backup: Bool
 
-    public init(file: URL, before: String, after: String, added: [String]) {
+    public init(file: URL, before: String, after: String, added: [String], removed: [String] = [], backup: Bool = false) {
         self.file = file
         self.before = before
         self.after = after
         self.added = added
+        self.removed = removed
+        self.backup = backup
     }
 }
 

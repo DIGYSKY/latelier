@@ -3,7 +3,7 @@ import Foundation
 /// Une action passée, consultable dans l'Historique (règle de sécurité n° 5).
 public struct HistoryEntry: Sendable, Codable, Identifiable, Hashable {
     public enum Kind: String, Sendable, Codable, CaseIterable {
-        case nettoyage, git, paquet, commande, systeme, processus
+        case nettoyage, git, paquet, commande, systeme, processus, serveur
 
         public var label: String {
             switch self {
@@ -13,6 +13,7 @@ public struct HistoryEntry: Sendable, Codable, Identifiable, Hashable {
             case .commande: "Commandes"
             case .systeme: "Système"
             case .processus: "Processus"
+            case .serveur: "Serveurs"
             }
         }
     }
