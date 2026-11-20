@@ -125,7 +125,7 @@ struct SecurityPage: View {
                     Button(String(localized: "Afficher \(min(25, visible.count - limit)) de plus")) { limit += 25 }.buttonStyle(.small)
                 }
                 Spacer()
-                let fixable = visible.prefix(limit).filter { DependencyFix.fix($0) != nil }
+                let fixable = visible.prefix(limit).filter { DependencyFix.canFix($0) }
                 if fixable.count > 1, let plan = DependencyFix.fixPlan(Array(fixable)) {
                     Button(String(localized: "Corriger les \(fixable.count) paquets affichés…")) { model.preview(plan) }
                         .buttonStyle(.small)
@@ -355,7 +355,9 @@ private struct VulnerabilityRow: View {
                             Text(" · ")
                             Text("\(package.dependency.name)@\(package.dependency.version) · \(package.headline.vulnerability.displayID)")
                                 .font(.system(size: 12).monospaced())
-                            if !package.dependency.direct { Text(String(localized: " · indirecte")) }
+                            if !package.dependency.direct {
+                                Text(package.requiredBy.first.map { String(localized: " · sous-paquet de \($0.parent)") } ?? String(localized: " · indirecte"))
+                            }
                             if package.dependency.dev { Text(" · dev") }
                         }
                         .font(.system(size: 12))
@@ -380,6 +382,7 @@ private struct VulnerabilityRow: View {
                     .help(String(localized: "Corriger avec Claude : la consigne est montrée avant l’ouverture"))
                 }
             }
+            if let chain { chain }
             if open { details }
         }
         .padding(.horizontal, 16)
@@ -395,16 +398,48 @@ private struct VulnerabilityRow: View {
         return package.headline.vulnerability.summary + (extra > 0 ? (extra > 1 ? String(localized: " (+\(extra) autres)") : String(localized: " (+\(extra) autre)")) : "")
     }
 
+    /// Sous-paquet : qui le demande, et si cet intervalle empêche la correction.
+    private var chain: Text? {
+        guard !package.dependency.direct, !package.requiredBy.isEmpty else { return nil }
+        let parents = package.requiredBy.prefix(3).map(\.label).joined(separator: ", ")
+            + (package.requiredBy.count > 3 ? String(localized: " et \(package.requiredBy.count - 3) autres") : "")
+        var text = Text(String(localized: "Absent de package.json : installé parce que \(parents) le demande."))
+        if let fixed = package.fixedVersion, !package.blockers.isEmpty {
+            let blockers = package.blockers.map(\.parent).joined(separator: ", ")
+            text = text + Text(" ") + Text(DependencyFix.canForce(package)
+                ? String(localized: "Cet intervalle exclut \(fixed) : une simple mise à jour ne change rien tant que \(blockers) ne suit pas, il faut forcer la version.")
+                : (DependencyFix.blockedReason(package) ?? String(localized: "Cet intervalle exclut \(fixed).")))
+                .foregroundStyle(Tag.orange.0)
+        }
+        return text.font(.system(size: 12)).foregroundStyle(Theme.muted)
+    }
+
     @ViewBuilder
     private var action: some View {
         if let fixed = package.fixedVersion {
-            if DependencyFix.fix(package) != nil {
+            if DependencyFix.canForce(package) {
+                Button(String(localized: "Forcer \(fixed)…")) {
+                    if let plan = DependencyFix.fixPlan([package]) { model.preview(plan) }
+                }
+                .buttonStyle(PillButtonStyle(kind: .smallFilled))
+                .disabled(!toolAvailable)
+                .help(toolAvailable
+                      ? String(localized: "Ajoute la version dans « \(package.manager.flatMap(DependencyOverride.field) ?? "") » de package.json, puis réinstalle. Aperçu avant.")
+                      : String(localized: "\(toolName) introuvable sur cette machine"))
+            } else if !package.blockers.isEmpty {
+                Text(String(localized: "Bloqué par \(package.blockers.map(\.parent).joined(separator: ", "))"))
+                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(Tag.orange.0)
+            } else if DependencyFix.canFix(package) {
                 Button(String(localized: "Mettre à jour vers \(fixed)")) {
                     if let plan = DependencyFix.fixPlan([package]) { model.preview(plan) }
                 }
                 .buttonStyle(PillButtonStyle(kind: .smallFilled))
                 .disabled(!toolAvailable)
-                .help(toolAvailable ? (DependencyFix.fix(package)?.displayString ?? "") : String(localized: "\(toolName) introuvable sur cette machine"))
+                .help(toolAvailable
+                      ? (DependencyFix.canRelock(package)
+                         ? String(localized: "Sous-paquet : son entrée est retirée du yarn.lock, puis « yarn install » prend la version corrigée. Aperçu avant.")
+                         : (DependencyFix.fix(package)?.displayString ?? ""))
+                      : String(localized: "\(toolName) introuvable sur cette machine"))
             } else {
                 Text(String(localized: "Corrigé en \(fixed) · à changer dans \(package.file)"))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
@@ -414,7 +449,7 @@ private struct VulnerabilityRow: View {
         }
     }
 
-    private var toolName: String { DependencyFix.fix(package)?.tool ?? "" }
+    private var toolName: String { DependencyFix.tool(for: package) ?? "" }
     private var toolAvailable: Bool { ToolLocator.standard.locate(toolName) != nil }
 
     private var details: some View {

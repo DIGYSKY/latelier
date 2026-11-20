@@ -101,6 +101,8 @@ public struct ProjectManifest: Sendable, Identifiable {
     /// Autres lockfiles trouvés pour le même écosystème (npm + yarn…).
     public var extraLockfiles: [String] = []
     public var dependencies: [Dependency]
+    /// Pour chaque paquet, ceux qui le demandent (lu dans le lockfile npm ou yarn).
+    public var requiredBy: [String: [DependencyRequirement]] = [:]
 
     public var id: String { "\(project.path)#\(manifest)" }
     public var projectName: String { project.lastPathComponent }
@@ -237,6 +239,7 @@ public enum DependencyReader {
         let chosen = declared ?? newest
         var manager = PackageManager.npm
         var locked: [Dependency]?
+        var requiredBy: [String: [DependencyRequirement]] = [:]
         switch chosen {
         case "pnpm-lock.yaml":
             manager = .pnpm
@@ -245,8 +248,11 @@ public enum DependencyReader {
             let lock = text("yarn.lock") ?? ""
             manager = lock.contains("__metadata:") ? .yarnBerry : .yarn
             locked = YarnLock.parse(lock)
+            requiredBy = YarnLock.requirements(lock)
         case "package-lock.json", "npm-shrinkwrap.json":
-            locked = (try? Data(contentsOf: project.appending(path: chosen!))).map(NpmLock.parse)
+            let data = try? Data(contentsOf: project.appending(path: chosen!))
+            locked = data.map(NpmLock.parse)
+            requiredBy = data.map(NpmLock.requirements) ?? [:]
         case "bun.lock":
             manager = .bun
         default:
@@ -255,12 +261,14 @@ public enum DependencyReader {
         var direct = info.dependencies
         for (name, range) in info.devDependencies where direct[name] == nil { direct[name] = (range, true) }
         let readable = chosen == "bun.lock" ? nil : chosen
-        return ProjectManifest(
+        var result = ProjectManifest(
             project: project, ecosystem: .npm, manager: manager, manifest: "package.json",
             lockfile: locked == nil ? nil : readable,
             extraLockfiles: candidates.filter { $0 != chosen },
             dependencies: merge(locked: locked, direct: direct.mapValues { ($0.range, $0.dev) }, ecosystem: .npm)
         )
+        result.requiredBy = requiredBy
+        return result
     }
 
     private static func python(project: URL, files: Set<String>, text: (String) -> String?) -> ProjectManifest? {

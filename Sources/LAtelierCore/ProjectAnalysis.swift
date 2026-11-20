@@ -13,6 +13,10 @@ public struct VulnerabilityFinding: Sendable, Identifiable, Hashable {
     public var dependency: Dependency
     public var vulnerability: Vulnerability
     public var fixedVersion: String?
+    /// Paquets qui demandent cette version (dépendance indirecte).
+    public var requiredBy: [DependencyRequirement] = []
+    /// Toutes les versions de ce paquet présentes dans le lockfile.
+    public var lockedVersions: [String] = []
 
     public var id: String { "\(projectName)|\(file)|\(dependency.versionKey)|\(vulnerability.id)" }
     public var severity: Severity { vulnerability.severity }
@@ -26,8 +30,19 @@ public struct VulnerablePackage: Sendable, Identifiable, Hashable {
     public var manager: PackageManager?
     public var dependency: Dependency
     public var findings: [VulnerabilityFinding]
+    /// Paquets qui demandent cette version : vide pour une dépendance directe.
+    public var requiredBy: [DependencyRequirement] { findings.first?.requiredBy ?? [] }
+    public var lockedVersions: [String] { findings.first?.lockedVersions ?? [] }
 
     public var id: String { "\(project?.path ?? projectName)|\(file)|\(dependency.versionKey)" }
+
+    /// Parents dont l'intervalle exclut la version corrigée : une simple mise à jour ne peut pas l'installer.
+    public var blockers: [DependencyRequirement] {
+        guard !dependency.direct, let fixed = fixedVersion else { return [] }
+        return requiredBy.filter { requirement in
+            requirement.range.flatMap { SemverRange.satisfies(fixed, $0) } == false
+        }
+    }
     public var severity: Severity { findings.map(\.severity).max() ?? .unknown }
     /// Version qui corrige toutes les failles connues ; `nil` si l'une n'a pas encore de correctif.
     public var fixedVersion: String? {
@@ -363,35 +378,177 @@ public enum DependencyFix {
         return fix(finding.dependency, to: fixed, manager: manager, in: project)
     }
 
+    /// Mise à jour par commande ; `nil` si un parent l'empêche, ou pour un sous-paquet yarn 1 (voir `canRelock`).
     public static func fix(_ package: VulnerablePackage) -> CommandSpec? {
-        guard let project = package.project, let manager = package.manager, let fixed = package.fixedVersion else { return nil }
+        guard let project = package.project, let manager = package.manager, let fixed = package.fixedVersion,
+              package.blockers.isEmpty, !canRelock(package) else { return nil }
         return fix(package.dependency, to: fixed, manager: manager, in: project)
     }
 
+    /// Sous-paquet yarn 1 que ses parents laissent monter : `yarn upgrade` ne fait rien pour un sous-paquet,
+    /// on retire son entrée du yarn.lock puis `yarn install` la re-résout.
+    public static func canRelock(_ package: VulnerablePackage) -> Bool {
+        package.manager == .yarn && !package.dependency.direct && package.project != nil
+            && package.fixedVersion != nil && package.blockers.isEmpty && package.file == "yarn.lock"
+    }
+
+    /// Bloquée par un parent, mais la version peut être forcée dans `package.json` (overrides / resolutions).
+    public static func canForce(_ package: VulnerablePackage) -> Bool {
+        guard package.project != nil, let manager = package.manager, DependencyOverride.field(for: manager) != nil,
+              let fixed = package.fixedVersion, !package.blockers.isEmpty else { return false }
+        // Le forçage vaut pour tous les exemplaires du paquet : seulement s'ils sont de la même série.
+        return package.lockedVersions.allSatisfy { compatible($0, fixed) }
+    }
+
+    public static func canFix(_ package: VulnerablePackage) -> Bool { fix(package) != nil || canRelock(package) || canForce(package) }
+
+    /// Outil lancé par la correction (pour vérifier qu'il est installé).
+    public static func tool(for package: VulnerablePackage) -> String? {
+        if canRelock(package) || canForce(package), let project = package.project, let manager = package.manager {
+            return DependencyOverride.install(for: manager, in: project)?.tool
+        }
+        return fix(package)?.tool
+    }
+
+    /// Pourquoi rien n'est proposé pour un paquet bloqué par ses parents.
+    public static func blockedReason(_ package: VulnerablePackage) -> String? {
+        guard !package.blockers.isEmpty, !canForce(package) else { return nil }
+        let parents = package.blockers.map(\.label).joined(separator: ", ")
+        if let manager = package.manager, DependencyOverride.field(for: manager) == nil {
+            return String(localized: "Demandé par \(parents) : mettez ce paquet à jour, ou forcez la version à la main (\(manager.label)).")
+        }
+        return String(localized: "Demandé par \(parents). D’autres versions de \(package.dependency.name) sont utilisées dans le projet : forcer une seule version risquerait de les casser. Mettez à jour le paquet parent.")
+    }
+
+    /// Même version majeure (même mineure pour les 0.x) : forcer l'une vers l'autre reste compatible.
+    static func compatible(_ a: String, _ b: String) -> Bool {
+        let x = UpdateGap.numericParts(a), y = UpdateGap.numericParts(b)
+        guard let first = x.first, first == y.first else { return false }
+        return first > 0 || (x.count > 1 && y.count > 1 && x[1] == y[1])
+    }
+
     /// Une commande par paquet vulnérable ; si l'une échoue, les autres continuent.
+    /// Sous-paquets : entrée retirée du yarn.lock (yarn 1) ou version forcée dans `package.json`, puis réinstallation.
+    /// Après coup, le lockfile est relu : une version restée vulnérable est signalée.
     public static func fixPlan(_ packages: [VulnerablePackage]) -> ActionPlan? {
+        struct Group {
+            var manager: PackageManager
+            var forced: [(String, String)] = []
+            var relock: [(String, String)] = []
+            var notes: [String] = []
+        }
         var seen = Set<String>()
         var commands: [CommandSpec] = []
         var skipped: [String] = []
+        var groups: [URL: Group] = [:]
+        var expected: [DependencyExpectation] = []
+        var planned: [VulnerablePackage] = []
         for package in packages {
-            guard let command = fix(package) else {
-                skipped.append("\(package.dependency.name) (\(package.projectName)) : " + (package.fixedVersion == nil ? String(localized: "pas encore de version corrigée") : String(localized: "\(package.file) à modifier à la main")))
+            if let project = package.project, let manager = package.manager, let fixed = package.fixedVersion,
+               canForce(package) || canRelock(package) {
+                var group = groups[project] ?? Group(manager: manager)
+                if canForce(package) {
+                    if !group.forced.contains(where: { $0.0 == package.dependency.name }) {
+                        group.forced.append((package.dependency.name, "^\(fixed)"))
+                    }
+                    group.notes.append("\(package.dependency.name) (" + package.blockers.map(\.label).joined(separator: ", ") + ")")
+                } else {
+                    group.relock.append((package.dependency.name, package.dependency.version))
+                }
+                groups[project] = group
+                planned.append(package)
                 continue
             }
+            guard let command = fix(package) else {
+                let reason = blockedReason(package)
+                    ?? (package.fixedVersion == nil ? String(localized: "pas encore de version corrigée") : String(localized: "\(package.file) à modifier à la main"))
+                skipped.append("\(package.dependency.name) (\(package.projectName)) : " + reason)
+                continue
+            }
+            planned.append(package)
             if seen.insert(command.displayString).inserted { commands.append(command) }
         }
-        guard !commands.isEmpty else { return nil }
+        // Les modifications de fichiers d'abord : elles vérifient que le fichier n'a pas changé depuis l'aperçu.
+        var edits: [ActionStep] = []
+        var installs: [CommandSpec] = []
+        var notes: [String] = []
+        var dropped = Set<String>()
+        for (project, group) in groups.sorted(by: { $0.key.path < $1.key.path }) {
+            var changed = false
+            if !group.forced.isEmpty, let field = DependencyOverride.field(for: group.manager) {
+                let file = project.appending(path: "package.json")
+                if let before = try? String(contentsOf: file, encoding: .utf8) {
+                    var after = before
+                    var added: [String] = []
+                    for (name, value) in group.forced {
+                        if let next = DependencyOverride.set(name, to: value, field: field, in: after) {
+                            after = next
+                            added.append("\"\(field)\" › \"\(name)\": \"\(value)\"")
+                        } else {
+                            dropped.insert("\(project.path)|\(name)")
+                            skipped.append(String(localized: "\(name) (\(project.lastPathComponent)) : le bloc « \(field) » de package.json est à modifier à la main"))
+                        }
+                    }
+                    if after != before {
+                        edits.append(.editFile(FileEdit(file: file, before: before, after: after, added: added)))
+                        changed = true
+                        notes.append(group.notes.count == 1
+                            ? String(localized: "Sous-paquet bloqué par la version que demande son parent : \(group.notes[0]). Sa version est forcée dans « \(field) » de package.json.")
+                            : String(localized: "Sous-paquets bloqués par la version que demandent leurs parents : \(group.notes.joined(separator: ", ")). Leurs versions sont forcées dans « \(field) » de package.json."))
+                    }
+                } else {
+                    for (name, _) in group.forced { dropped.insert("\(project.path)|\(name)") }
+                    skipped.append(String(localized: "\(project.lastPathComponent) : package.json illisible"))
+                }
+            }
+            if !group.relock.isEmpty {
+                let file = project.appending(path: "yarn.lock")
+                if let before = try? String(contentsOf: file, encoding: .utf8) {
+                    var after = before
+                    var removed: [String] = []
+                    for (name, version) in group.relock {
+                        if let result = YarnLock.removing(name, version: version, from: after) {
+                            after = result.text
+                            removed += result.removed
+                        } else {
+                            dropped.insert("\(project.path)|\(name)")
+                            skipped.append(String(localized: "\(name) (\(project.lastPathComponent)) : entrée introuvable dans yarn.lock"))
+                        }
+                    }
+                    if after != before {
+                        edits.append(.editFile(FileEdit(file: file, before: before, after: after, added: [], removed: removed)))
+                        changed = true
+                        notes.append(String(localized: "Sous-paquets : leurs entrées sont retirées du yarn.lock, puis « yarn install » les réinstalle dans la dernière version que permettent leurs parents (« yarn upgrade » ne le fait pas pour un sous-paquet)."))
+                    }
+                }
+            }
+            if changed, let install = DependencyOverride.install(for: group.manager, in: project) { installs.append(install) }
+        }
+        planned.removeAll { dropped.contains("\($0.project?.path ?? "")|\($0.dependency.name)") }
+        guard !commands.isEmpty || !edits.isEmpty else { return nil }
+        for package in planned {
+            if let project = package.project {
+                expected.append(DependencyExpectation(project: project, file: package.file,
+                                                      name: package.dependency.name, vulnerableVersion: package.dependency.version))
+            }
+        }
         let first = packages[0]
         let major = packages.contains { p in p.fixedVersion.map { UpdateGap.between(p.dependency.version, $0) == .major } ?? false }
-        return ActionPlan(
+        let forcing = edits.contains { if case .editFile(let edit) = $0 { edit.file.lastPathComponent == "package.json" && !edit.added.isEmpty } else { false } }
+        var plan = ActionPlan(
             title: packages.count == 1
-                ? String(localized: "Mettre à jour \(first.dependency.name) vers \(first.fixedVersion ?? "") (\(first.projectName))")
+                ? (forcing
+                    ? String(localized: "Forcer \(first.dependency.name) en \(first.fixedVersion ?? "") (\(first.projectName))")
+                    : String(localized: "Mettre à jour \(first.dependency.name) vers \(first.fixedVersion ?? "") (\(first.projectName))"))
                 : String(localized: "Corriger \(packages.count) paquets vulnérables"),
             summary: (major ? String(localized: "Changement de version majeure : des incompatibilités sont possibles. ") : "")
+                + notes.map { $0 + " " }.joined()
                 + String(localized: "Modifie le manifeste et le lockfile du projet ; annulable avec git. Relancez les tests du projet ensuite."),
             kind: .paquet, risk: .caution, reversible: true,
-            steps: commands.map(ActionStep.command), skipped: skipped, stopOnFailure: false
+            steps: edits + commands.map(ActionStep.command) + installs.map(ActionStep.command), skipped: skipped, stopOnFailure: false
         )
+        plan.purpose = .dependencyFix(expected)
+        return plan
     }
 
     /// « Aligner tous les projets sur X » : une commande par projet en retard.
@@ -471,7 +628,12 @@ public struct ProjectAnalyzer: Sendable {
                         analysis.vulnerabilities.append(VulnerabilityFinding(
                             project: manifest.project, projectName: manifest.projectName,
                             file: manifest.lockfile ?? manifest.manifest, manager: manifest.manager,
-                            dependency: dep, vulnerability: vuln, fixedVersion: vuln.fixedVersion(for: dep)
+                            dependency: dep, vulnerability: vuln, fixedVersion: vuln.fixedVersion(for: dep),
+                            requiredBy: dep.direct ? [] : (manifest.requiredBy[dep.name] ?? []).filter { requirement in
+                                // Seuls les parents qui ont choisi cette version-ci (sinon : autre exemplaire du paquet).
+                                requirement.range.flatMap { SemverRange.satisfies(dep.version, $0) } ?? true
+                            },
+                            lockedVersions: manifest.dependencies.filter { $0.name == dep.name }.map(\.version)
                         ))
                     }
                 }

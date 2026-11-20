@@ -72,6 +72,8 @@ public struct ActionPlan: Sendable, Identifiable {
     public enum Purpose: Sendable, Equatable {
         case standard
         case appUpdate(version: String)
+        /// Correction de failles : le lockfile est relu après coup pour vérifier que la version a vraiment changé.
+        case dependencyFix([DependencyExpectation])
     }
 
     public init(
@@ -288,6 +290,26 @@ public struct PlanExecutor: Sendable {
             } else if removalFailures > 0 {
                 let message = String(localized: "\(removalFailures) élément(s) n’ont pas pu être retirés, voir le détail.")
                 outcome = removalSuccesses == 0 && plan.commands.isEmpty ? .failure(message) : .partial(message)
+            }
+        }
+
+        // Une commande peut réussir sans rien changer (yarn 1 et les sous-paquets) : on relit le lockfile.
+        if case .dependencyFix(let expected) = plan.purpose, !stoppedEarly, outcome != .cancelled {
+            let still = DependencyExpectation.unchanged(expected)
+            if !still.isEmpty {
+                let list = still.map { "\($0.name) \($0.vulnerableVersion) (\($0.project.lastPathComponent))" }.joined(separator: ", ")
+                let message = String(localized: "Toujours en version vulnérable après coup : \(list).")
+                switch outcome {
+                case .success:
+                    outcome = still.count == expected.count ? .failure(message) : .partial(message)
+                case .partial(let previous):
+                    outcome = .partial(previous + " " + message)
+                case .failure(let previous):
+                    outcome = .failure(previous + " " + message)
+                case .cancelled:
+                    break
+                }
+                logs.append(CommandLog(command: String(localized: "vérification du lockfile"), exitStatus: 1, output: message, duration: 0))
             }
         }
 
