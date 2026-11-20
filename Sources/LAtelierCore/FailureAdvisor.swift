@@ -39,6 +39,23 @@ public enum FailureAdvisor {
                 fixLabel: String(localized: "Installer la dernière Node \(major)…"), fix: Nvm.command(["install", major], root: nvmRoot), page: "runtimes"
             )
         }
+        // Corepack a téléchargé une version de pnpm / yarn que le Corepack de Node ne sait pas lancer.
+        if let tool = capture(#"Cannot find module '[^']*/corepack/v1/(pnpm|yarn)/[^']+'"#, in: output) {
+            let version = capture(#"/corepack/v1/(?:pnpm|yarn)/([0-9.]+)/"#, in: output) ?? "?"
+            let major = Int(version.split(separator: ".").first ?? "") ?? 0
+            let pin = tool == "pnpm" ? "10" : "1"
+            return FailureHint(
+                title: String(localized: "\(tool) \(version) ne fonctionne pas avec ce Corepack"),
+                explanation: String(localized: "Corepack (fourni avec Node) a téléchargé \(tool) \(version), dont les fichiers ne sont plus organisés comme il l’attend. Revenez à une version compatible, ou remettez le dossier ~/.cache/node/corepack depuis la corbeille s’il vient d’y partir."),
+                fixLabel: major > Int(pin)! ? String(localized: "Revenir à \(tool) \(pin)…") : nil,
+                fix: major > Int(pin)! ? CommandSpec("corepack", ["install", "-g", "\(tool)@\(pin)"]) : nil
+            )
+        }
+        // Un fichier d'outil (chemin absolu) a disparu : ce n'est pas une dépendance du projet.
+        if let path = capture(#"Cannot find module '(/[^']+)'"#, in: output) {
+            return FailureHint(title: String(localized: "Fichier d’outil introuvable"),
+                               explanation: String(localized: "L’outil cherche \(path), qui n’existe plus. Son installation est incomplète : réinstallez l’outil, ou remettez depuis la corbeille ce qui vient d’y partir."))
+        }
         // Vitest sans module de couverture, et autres dépendances absentes.
         if let missing = capture(#"Cannot find (?:dependency|module) '([^']+)'"#, in: output) {
             return FailureHint(title: String(localized: "Dépendance manquante : \(missing)"),

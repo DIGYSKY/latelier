@@ -140,7 +140,9 @@ public struct PackageCacheScanner: Sendable {
         "uv": ("uv", String(localized: "Paquets Python téléchargés par uv"), .safe),
         "pypoetry": ("Poetry", String(localized: "Paquets Python téléchargés"), .safe),
         "pre-commit": ("pre-commit", String(localized: "Environnements des hooks, recréés au besoin"), .safe),
-        "node": ("Corepack", String(localized: "Versions de pnpm / yarn téléchargées par Corepack"), .safe),
+        // Pas « sans risque » : sans ce cache, Corepack télécharge la dernière version de pnpm ou yarn,
+        // qui peut être incompatible avec le Corepack fourni par votre Node (pnpm 12 avec Node 22, par exemple).
+        "node": ("Corepack", String(localized: "Versions de pnpm / yarn choisies par Corepack. Sans elles, Corepack télécharge la dernière version, parfois incompatible avec votre Node : à garder"), .caution),
         "node-gyp": ("node-gyp", String(localized: "En-têtes Node pour compiler les modules natifs"), .safe),
         "typescript": ("TypeScript", String(localized: "Types téléchargés par l’éditeur"), .safe),
         "yarn": ("Yarn", String(localized: "Paquets téléchargés"), .safe),

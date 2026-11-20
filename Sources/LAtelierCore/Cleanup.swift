@@ -103,12 +103,15 @@ public enum CleanupPlanner {
         let removable = items.filter { !$0.isLocked }
         guard !removable.isEmpty else { return nil }
 
-        var steps: [ActionStep] = removable
-            .filter { $0.action == .remove }
-            .flatMap { $0.entries.map { ActionStep.remove($0.url, bytes: $0.bytes, permanently: false) } }
+        // Les commandes des outils (pnpm store prune…) passent avant les fichiers à retirer :
+        // un cache retiré d'abord (celui de Corepack, par exemple) peut casser l'outil qui doit encore tourner.
+        var steps: [ActionStep] = []
         for item in removable {
             if case .commands(let specs) = item.action { steps += specs.map(ActionStep.command) }
         }
+        steps += removable
+            .filter { $0.action == .remove }
+            .flatMap { $0.entries.map { ActionStep.remove($0.url, bytes: $0.bytes, permanently: false) } }
         let emptiesTrash = removable.contains { $0.action == .emptyTrash }
         if emptiesTrash {
             steps.append(.command(CommandSpec("/usr/bin/osascript", ["-e", "tell application \"Finder\" to empty trash"])))

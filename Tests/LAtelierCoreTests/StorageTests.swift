@@ -371,3 +371,29 @@ private func write(_ home: URL, _ relative: String, bytes: Int = 2_000_000) thro
         #expect(FailureAdvisor.hint(for: "tout va bien") == nil)
     }
 }
+
+
+@Suite("Nettoyage : ordre des étapes et Corepack")
+struct CorepackCleanupTests {
+    @Test func toolCommandsRunBeforeFileRemovals() throws {
+        let file = CleanupItem(id: "a", name: "a", detail: "", entries: [.init(url: URL(fileURLWithPath: "/tmp/a"), bytes: 1)])
+        let tool = CleanupItem(id: "b", name: "b", detail: "", entries: [], action: .commands([CommandSpec("pnpm", ["store", "prune"])]))
+        let plan = try #require(CleanupPlanner.plan(title: "t", items: [file, tool]))
+        #expect(plan.steps.first?.isCommandLike == true)
+        if case .remove = plan.steps.last! {} else { Issue.record("la suppression doit venir après la commande") }
+    }
+
+    @Test func corepackCacheIsNotSafe() {
+        #expect(PackageCacheScanner.knownDotCache["node"]?.2 == .caution)
+    }
+
+    @Test func explainsIncompatibleCorepackDownload() throws {
+        let output = "Error: Cannot find module '/Users/x/.cache/node/corepack/v1/pnpm/12.21.0/bin/pnpm.cjs'"
+        let hint = try #require(FailureAdvisor.hint(for: output, nvmRoot: URL(fileURLWithPath: "/nonexistent")))
+        #expect(hint.title.contains("pnpm 12.21.0"))
+        #expect(hint.fix?.arguments == ["install", "-g", "pnpm@10"])
+        let other = try #require(FailureAdvisor.hint(for: "Cannot find module '/opt/tool/lib/x.js'", nvmRoot: URL(fileURLWithPath: "/nonexistent")))
+        #expect(other.title.contains("introuvable"))
+        #expect(FailureAdvisor.hint(for: "Error: Cannot find module 'vitest'", nvmRoot: URL(fileURLWithPath: "/nonexistent"))?.title.contains("vitest") == true)
+    }
+}
