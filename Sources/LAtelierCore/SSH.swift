@@ -600,6 +600,11 @@ public struct SSHCommands: Sendable {
         return ["ssh", "-t", alias, "cd \(ShellQuote.quote(directory)) && exec \"$SHELL\" -l"]
     }
 
+    /// Commande distante dans le terminal (sudo, journaux en direct) : `ssh -t alias '<commande>'`.
+    public func interactive(remote command: String) -> [String] {
+        ["ssh", "-t", alias, command]
+    }
+
     /// Ferme la connexion partagée.
     public var closeMaster: CommandSpec {
         CommandSpec("/usr/bin/ssh", options + ["-O", "exit", "--", alias])

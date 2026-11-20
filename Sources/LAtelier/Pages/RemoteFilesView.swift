@@ -56,6 +56,7 @@ struct RemoteFilesView: View {
         } message: {
             Text("Sans passer par la corbeille du serveur. Préférez « Supprimer », qui déplace dans ~/.latelier-corbeille.")
         }
+        .onAppear { browser.start() }
         .onDisappear { if model.ssh.openHost == nil { browser.stop() } }
     }
 

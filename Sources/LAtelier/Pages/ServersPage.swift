@@ -169,7 +169,7 @@ private struct HostCard: View {
             }
             HStack(spacing: 8) {
                 TerminalButton(alias: host.alias)
-                Button("Fichiers", systemImage: "folder") { ssh.open(host.alias) }
+                Button("Fichiers", systemImage: "folder") { ssh.open(host.alias, tab: .files) }
                     .buttonStyle(.small)
                 Spacer()
                 Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.muted)
@@ -241,7 +241,8 @@ private struct HostMenuItems: View {
 
     var body: some View {
         let ssh = model.ssh
-        Button("Ouvrir les fichiers", systemImage: "folder") { ssh.open(host.alias) }
+        Button("Moniteur", systemImage: "waveform.path.ecg.rectangle") { ssh.open(host.alias, tab: .monitor) }
+        Button("Ouvrir les fichiers", systemImage: "folder") { ssh.open(host.alias, tab: .files) }
         Button("Tester la connexion", systemImage: "bolt.horizontal") { ssh.test(host.alias) }
         Button("Installer ma clé sur le serveur…", systemImage: "key") {
             if let error = ssh.installKey(host.alias) { model.launchError = error }
@@ -295,6 +296,10 @@ private struct ServerPage: View {
             .padding(.top, 6)
             .padding(.bottom, 12)
             switch ssh.tab {
+            case .monitor:
+                if let monitor = ssh.monitor, monitor.alias == host.alias {
+                    RemoteMonitorView(monitor: monitor, host: host)
+                }
             case .files:
                 if let browser = ssh.browser, browser.alias == host.alias {
                     RemoteFilesView(browser: browser, host: host)

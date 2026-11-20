@@ -519,7 +519,7 @@ struct MonitorPage: View {
 }
 
 /// Grand graphique avec axes, une ou plusieurs courbes.
-private struct BigChart: View {
+struct BigChart: View {
     let title: String
     let value: String
     let detail: String
@@ -528,6 +528,9 @@ private struct BigChart: View {
     var maximum: Double?
     /// Graduations imposées (mémoire : multiples ronds de Gio), sinon automatiques.
     var ticks: [Double]?
+    /// Points affichés sur la largeur, et durée entre deux points (local : 1 s ; serveur : 2 s).
+    var window = 300
+    var secondsPerPoint: Double = 1
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -537,41 +540,8 @@ private struct BigChart: View {
                 Text(value).font(.system(size: 20, weight: .bold)).monospacedDigit()
             }
             Text(detail).font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1)
-            Chart {
-                ForEach(series, id: \.0) { serie in
-                    ForEach(Array(serie.1.enumerated()), id: \.offset) { point in
-                        LineMark(x: .value("Secondes", point.offset - serie.1.count), y: .value(serie.0, point.element),
-                                 series: .value("Série", serie.0))
-                            .foregroundStyle(serie.2)
-                            .interpolationMethod(.monotone)
-                        if series.count == 1 {
-                            AreaMark(x: .value("Secondes", point.offset - serie.1.count), y: .value(serie.0, point.element))
-                                .foregroundStyle(serie.2.opacity(0.15))
-                                .interpolationMethod(.monotone)
-                        }
-                    }
-                }
-            }
-            .chartYScale(domain: 0...(maximum ?? max(1, series.flatMap(\.1).max() ?? 1) * 1.1))
-            .chartXAxis {
-                AxisMarks(values: .stride(by: 60)) { value in
-                    AxisGridLine()
-                    AxisValueLabel { if let v = value.as(Int.self) { Text(v == 0 ? "maintenant" : "\(v / 60) min").font(.system(size: 9)) } }
-                }
-            }
-            .chartYAxis {
-                if let ticks {
-                    AxisMarks(position: .leading, values: ticks) { value in
-                        AxisGridLine()
-                        AxisValueLabel { if let v = value.as(Double.self) { Text(format(v)).font(.system(size: 9)) } }
-                    }
-                } else {
-                    AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
-                        AxisGridLine()
-                        AxisValueLabel { if let v = value.as(Double.self) { Text(format(v)).font(.system(size: 9)) } }
-                    }
-                }
-            }
+            LightChart(series: series, maximum: maximum, ticks: ticks, format: format,
+                       window: window, secondsPerPoint: secondsPerPoint)
             .frame(height: 170)
             if series.count > 1 {
                 HStack(spacing: 12) {
@@ -586,5 +556,119 @@ private struct BigChart: View {
         }
         .padding(16)
         .cardBackground(radius: 18)
+    }
+}
+
+/// Graphique dessiné directement (Canvas) : quelques centaines de points redessinés chaque seconde
+/// coûtent bien moins qu'avec Swift Charts, qui recrée une vue par point.
+struct LightChart: View {
+    let series: [(String, [Double], Color)]
+    var maximum: Double?
+    var ticks: [Double]?
+    let format: (Double) -> String
+    var window = 300
+    var secondsPerPoint: Double = 1
+
+    private let left: CGFloat = 58
+    private let bottom: CGFloat = 16
+
+    var body: some View {
+        let (top, marks) = scale()
+        Canvas { context, size in
+            let plot = CGRect(x: left, y: 6, width: max(1, size.width - left - 4), height: max(1, size.height - bottom - 6))
+            func y(_ value: Double) -> CGFloat { plot.maxY - CGFloat(min(max(value, 0), top) / top) * plot.height }
+            let grid = GraphicsContext.Shading.color(Color.secondary.opacity(0.18))
+
+            // Graduations horizontales et leurs valeurs.
+            for mark in marks {
+                var line = Path()
+                line.move(to: CGPoint(x: plot.minX, y: y(mark)))
+                line.addLine(to: CGPoint(x: plot.maxX, y: y(mark)))
+                context.stroke(line, with: grid, lineWidth: 0.5)
+                context.draw(Text(format(mark)).font(.system(size: 9)).foregroundStyle(.secondary),
+                             at: CGPoint(x: plot.minX - 6, y: y(mark)), anchor: .trailing)
+            }
+            // Repères de temps toutes les minutes, depuis la droite (maintenant).
+            let step = plot.width / CGFloat(max(1, window - 1))
+            let perMinute = Int((60 / secondsPerPoint).rounded())
+            if perMinute > 0 {
+                var index = perMinute
+                while index < window {
+                    let x = plot.maxX - CGFloat(index) * step
+                    var line = Path()
+                    line.move(to: CGPoint(x: x, y: plot.minY))
+                    line.addLine(to: CGPoint(x: x, y: plot.maxY))
+                    context.stroke(line, with: grid, style: StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
+                    context.draw(Text("-\(index / perMinute) min").font(.system(size: 9)).foregroundStyle(.secondary),
+                                 at: CGPoint(x: x, y: plot.maxY + 3), anchor: .top)
+                    index += perMinute
+                }
+            }
+            // Courbes, alignées à droite (le dernier point est « maintenant »).
+            for serie in series {
+                let values = Array(serie.1.suffix(window))
+                guard values.count > 1 else { continue }
+                let points = values.enumerated().map { offset, value in
+                    CGPoint(x: plot.maxX - CGFloat(values.count - 1 - offset) * step, y: y(value))
+                }
+                let curve = Self.smooth(points)
+                if series.count == 1 {
+                    var area = curve
+                    area.addLine(to: CGPoint(x: points.last!.x, y: plot.maxY))
+                    area.addLine(to: CGPoint(x: points.first!.x, y: plot.maxY))
+                    area.closeSubpath()
+                    context.fill(area, with: .color(serie.2.opacity(0.15)))
+                }
+                context.stroke(curve, with: .color(serie.2), style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
+            }
+        }
+        .frame(height: 170)
+        .accessibilityElement()
+        .accessibilityLabel(series.map { "\($0.0) : \($0.1.last.map(format) ?? "—")" }.joined(separator: ", "))
+    }
+
+    /// Haut de l'échelle et graduations : imposés, ou « ronds » (1, 2, 2,5, 5 × 10ⁿ).
+    private func scale() -> (Double, [Double]) {
+        let peak = series.flatMap { $0.1.suffix(window) }.max() ?? 0
+        if let ticks, let last = ticks.last {
+            return (max(maximum ?? last, last, 1e-9), ticks)
+        }
+        let target = maximum ?? max(peak * 1.1, 1)
+        let rough = target / 4
+        let magnitude = pow(10, floor(log10(rough)))
+        let step = [1, 2, 2.5, 5, 10].map { $0 * magnitude }.first { $0 >= rough } ?? rough
+        let top = maximum ?? (target / step).rounded(.up) * step
+        let marks = stride(from: 0, through: top + step * 0.01, by: step).map { $0 }
+        return (top, marks)
+    }
+
+    /// Courbe monotone (Fritsch-Carlson) : lisse, sans dépasser les valeurs mesurées.
+    static func smooth(_ points: [CGPoint]) -> Path {
+        var path = Path()
+        guard let first = points.first else { return path }
+        path.move(to: first)
+        guard points.count > 2 else {
+            points.dropFirst().forEach { path.addLine(to: $0) }
+            return path
+        }
+        let n = points.count
+        var slopes = [CGFloat](repeating: 0, count: n - 1)
+        for i in 0..<(n - 1) {
+            let dx = points[i + 1].x - points[i].x
+            slopes[i] = dx == 0 ? 0 : (points[i + 1].y - points[i].y) / dx
+        }
+        var tangents = [CGFloat](repeating: 0, count: n)
+        tangents[0] = slopes[0]
+        tangents[n - 1] = slopes[n - 2]
+        for i in 1..<(n - 1) {
+            tangents[i] = slopes[i - 1] * slopes[i] <= 0 ? 0 : (slopes[i - 1] + slopes[i]) / 2
+        }
+        for i in 0..<(n - 1) {
+            let dx = (points[i + 1].x - points[i].x) / 3
+            path.addCurve(to: points[i + 1],
+                          control1: CGPoint(x: points[i].x + dx, y: points[i].y + tangents[i] * dx),
+                          control2: CGPoint(x: points[i + 1].x - dx, y: points[i + 1].y - tangents[i + 1] * dx))
+        }
+        return path
     }
 }

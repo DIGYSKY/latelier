@@ -109,7 +109,7 @@ final class AppModel {
             let parts = raw.split(separator: "#")
             selection = .serveurs
             if let alias = parts.first, !alias.isEmpty {
-                ssh.open(String(alias), tab: parts.count > 1 ? ServerTab(rawValue: String(parts[1])) ?? .files : .files)
+                ssh.open(String(alias), tab: parts.count > 1 ? ServerTab(rawValue: String(parts[1])) ?? .monitor : .monitor)
             }
         }
         startBackgroundChecks()

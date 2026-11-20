@@ -5,10 +5,11 @@ import SwiftUI
 
 /// Onglets de la page d'un serveur.
 enum ServerTab: String, CaseIterable {
-    case files, configuration
+    case monitor, files, configuration
 
     var label: String {
         switch self {
+        case .monitor: "Moniteur"
         case .files: "Fichiers"
         case .configuration: "Configuration"
         }
@@ -87,6 +88,8 @@ final class SSHStore {
     var draft: HostDraft?
     /// Explorateur du serveur ouvert (gardé tant qu'on reste sur le même serveur).
     private(set) var browser: RemoteBrowser?
+    /// Moniteur du serveur ouvert (connexion active seulement pendant que l'onglet est affiché).
+    private(set) var monitor: RemoteMonitorStore?
     /// Configuration effective (`ssh -G`) du serveur ouvert.
     private(set) var effective: [String: String] = [:]
 
@@ -123,13 +126,16 @@ final class SSHStore {
 
     // MARK: Navigation
 
-    func open(_ alias: String, tab: ServerTab = .files) {
+    func open(_ alias: String, tab: ServerTab = .monitor) {
         openHost = alias
         self.tab = tab
         if browser?.alias != alias {
+            browser?.stop()
+            monitor?.stop()
             browser = RemoteBrowser(alias: alias, store: self)
-            browser?.start()
+            monitor = RemoteMonitorStore(alias: alias, store: self)
         }
+        if tab == .files { browser?.start() }
         loadEffective(alias)
     }
 
@@ -186,6 +192,17 @@ final class SSHStore {
         do {
             try Launcher.openTerminal(app, directory: URL(fileURLWithPath: NSHomeDirectory()),
                                       command: SSHCommands(alias: alias).interactive(directory: directory))
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
+    /// Une commande distante dans le terminal (sudo, journaux) : le mot de passe éventuel se tape là.
+    func openTerminal(_ alias: String, remote command: String) -> String? {
+        do {
+            try Launcher.openTerminal(preferences?.terminal ?? .terminal, directory: URL(fileURLWithPath: NSHomeDirectory()),
+                                      command: SSHCommands(alias: alias).interactive(remote: command))
             return nil
         } catch {
             return error.localizedDescription
