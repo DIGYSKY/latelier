@@ -32,6 +32,8 @@ final class AppModel {
     let explorer = ExplorerStore()
     /// Serveurs : connexions SSH et explorateur distant.
     let ssh = SSHStore()
+    /// Nouvelles versions de L’Atelier (GitHub Releases).
+    let updates = UpdateStore()
     let sonar = SonarStore()
     let repos = RepoStore()
     let packages = PackageStore()
@@ -101,6 +103,7 @@ final class AppModel {
         ssh.attach(runner: runner, preferences: preferences,
                    preview: { [weak self] plan in self?.preview(plan) },
                    record: { [weak self] entry in await self?.record(entry) })
+        updates.attach(preferences: preferences, preview: { [weak self] plan in self?.preview(plan) })
         // Captures : LATELIER_SSH=<alias>[#configuration]
         if let raw = environment["LATELIER_SSH"] {
             let parts = raw.split(separator: "#")
@@ -284,6 +287,7 @@ final class AppModel {
         }
         if entry.kind == .processus { performance.refreshNow() }
         if entry.kind == .serveur { ssh.afterAction(entry) }
+        updates.didRecord(entry)
         if entry.kind == .commande {
             coverage.invalidate()
             commandCenter.reload()

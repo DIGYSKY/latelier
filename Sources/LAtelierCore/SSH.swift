@@ -109,7 +109,9 @@ public struct SSHHost: Sendable, Hashable, Identifiable {
 /// (commentaires, blocs `Match`, `Host *`, options inconnues).
 public struct SSHConfig: Sendable {
     public static var defaultURL: URL {
-        URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".ssh/config")
+        // Captures d'écran (README) : LATELIER_SSH_CONFIG=/chemin/vers/une/config/de/démo
+        if let demo = ProcessInfo.processInfo.environment["LATELIER_SSH_CONFIG"] { return URL(fileURLWithPath: demo) }
+        return URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".ssh/config")
     }
 
     struct Block: Sendable {

@@ -105,6 +105,10 @@ final class ToolPreferences {
 
     // MARK: Confidentialité
     /// OSV.dev et GitHub Advisories (noms et versions de paquets seulement).
+    /// Vérifier une fois par jour s'il existe une nouvelle version de L’Atelier (GitHub Releases).
+    var checkAppUpdates: Bool {
+        didSet { defaults.set(checkAppUpdates, forKey: "checkAppUpdates") }
+    }
     var remoteAdvisories: Bool {
         didSet { defaults.set(remoteAdvisories, forKey: "remoteAdvisories") }
     }
@@ -152,6 +156,7 @@ final class ToolPreferences {
         notifyNews = bool("notifyNews", false)
         notifyHeavyProcess = bool("notifyHeavyProcess", false)
         remoteAdvisories = bool("remoteAdvisories", true)
+        checkAppUpdates = bool("checkAppUpdates", true)
         historyDays = int("historyDays", 90)
         let hours = defaults.integer(forKey: "newsIntervalHours")
         newsIntervalHours = hours == 0 ? 3 : hours

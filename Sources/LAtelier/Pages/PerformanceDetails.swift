@@ -379,6 +379,14 @@ struct ProcessDetailSheet: View {
 // MARK: - Moniteur : les performances en grand
 
 struct MonitorPage: View {
+    /// 0, 4, 8, 12, 16 Go pour 16 Go de RAM : multiples ronds de Gio, quatre ou cinq graduations.
+    static func memoryTicks(_ total: Int64) -> [Double] {
+        let gib = Double(1 << 30)
+        let totalGiB = Double(total) / gib
+        let step = [1.0, 2, 4, 8, 16, 32, 64].first { totalGiB / $0 <= 5 } ?? 128
+        return stride(from: 0, through: totalGiB + 0.01, by: step).map { $0 * gib }
+    }
+
     @Environment(AppModel.self) private var model
 
     var body: some View {
@@ -395,7 +403,7 @@ struct MonitorPage: View {
                     BigChart(title: "Mémoire", value: Format.ram(sample.memory.used),
                              detail: "sur \(Format.ram(sample.memory.total)) · pression \(sample.memory.pressure.label) · swap \(Format.ram(sample.memory.swapUsed))",
                              series: [("Utilisée", monitor.memoryHistory, Color(hex: 0x6E4BD8))], format: { Format.ram(Int64($0)) },
-                             maximum: Double(sample.memory.total))
+                             maximum: Double(sample.memory.total), ticks: Self.memoryTicks(sample.memory.total))
                     BigChart(title: "Disque", value: "\(Format.rate(sample.diskRead)) ↓  \(Format.rate(sample.diskWrite)) ↑",
                              detail: sample.diskFree.map { "\(Format.bytes($0)) libres" } ?? "lecture et écriture",
                              series: [("Lecture", monitor.diskReadHistory, Color(hex: 0x00879E)), ("Écriture", monitor.diskWriteHistory, Color(hex: 0xE8890C))],
@@ -518,6 +526,8 @@ private struct BigChart: View {
     let series: [(String, [Double], Color)]
     let format: (Double) -> String
     var maximum: Double?
+    /// Graduations imposées (mémoire : multiples ronds de Gio), sinon automatiques.
+    var ticks: [Double]?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -550,9 +560,16 @@ private struct BigChart: View {
                 }
             }
             .chartYAxis {
-                AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
-                    AxisGridLine()
-                    AxisValueLabel { if let v = value.as(Double.self) { Text(format(v)).font(.system(size: 9)) } }
+                if let ticks {
+                    AxisMarks(position: .leading, values: ticks) { value in
+                        AxisGridLine()
+                        AxisValueLabel { if let v = value.as(Double.self) { Text(format(v)).font(.system(size: 9)) } }
+                    }
+                } else {
+                    AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
+                        AxisGridLine()
+                        AxisValueLabel { if let v = value.as(Double.self) { Text(format(v)).font(.system(size: 9)) } }
+                    }
                 }
             }
             .frame(height: 170)

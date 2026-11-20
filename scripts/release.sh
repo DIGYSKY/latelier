@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Construit l’app, la signe, la notarise si possible, et produit build/LAtelier-<version>.dmg.
 #
-#   scripts/release.sh                              → .dmg signé ad hoc (pour cette machine)
+#   scripts/release.sh                              → .dmg signé avec le certificat auto-signé
+#                                                     (scripts/make-signing-cert.sh), sinon ad hoc
 #   SIGN_IDENTITY="Developer ID Application: Nom (TEAMID)" \
 #   NOTARY_PROFILE="latelier" scripts/release.sh   → signé, notarisé, agrafé (distribuable)
 #
@@ -17,9 +18,9 @@ DMG="build/LAtelier-$VERSION.dmg"
 
 scripts/build-app.sh
 
-if [[ -z "${SIGN_IDENTITY:-}" ]]; then
-    echo "⚠︎ Pas de SIGN_IDENTITY : signature ad hoc. Le .dmg s’ouvre sur ce Mac ;" >&2
-    echo "  ailleurs, Gatekeeper le bloquera (clic droit › Ouvrir, ou un certificat Developer ID)." >&2
+if [[ "${SIGN_IDENTITY:-}" != "Developer ID"* ]]; then
+    echo "ℹ︎ Sans Developer ID, Gatekeeper demandera « Ouvrir quand même » au premier lancement" >&2
+    echo "  (Réglages Système › Confidentialité et sécurité). Voir le README." >&2
 fi
 
 # Image disque : l’app et un raccourci vers /Applications.
@@ -30,7 +31,7 @@ ln -s /Applications "$STAGE/Applications"
 rm -f "$DMG"
 hdiutil create -volname "L’Atelier $VERSION" -srcfolder "$STAGE" -fs HFS+ -format UDZO -ov "$DMG" >/dev/null
 
-if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+if [[ "${SIGN_IDENTITY:-}" == "Developer ID"* ]]; then
     codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
 fi
 
@@ -44,5 +45,7 @@ else
     echo "ℹ︎ Pas de NOTARY_PROFILE : .dmg non notarisé." >&2
 fi
 
-shasum -a 256 "$DMG"
+# Empreinte publiée à côté du .dmg : la mise à jour intégrée la vérifie avant d’installer.
+(cd build && shasum -a 256 "$(basename "$DMG")" > "$(basename "$DMG").sha256")
+cat "$DMG.sha256"
 echo "$DMG"

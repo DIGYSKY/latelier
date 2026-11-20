@@ -117,6 +117,9 @@ struct MenuBarContent: View {
             if critical > 0 { list.append(("\(critical) dépendance\(critical > 1 ? "s" : "") à faille critique", "lock.shield", Theme.red, .securite)) }
             if !analysis.secrets.isEmpty { list.append(("\(analysis.secrets.count) secret\(analysis.secrets.count > 1 ? "s" : "") commité\(analysis.secrets.count > 1 ? "s" : "")", "key", Theme.red, .securite)) }
         }
+        if let release = model.updates.available {
+            list.append(("L’Atelier \(release.version) est disponible", "sparkles", Theme.accent, .reglages))
+        }
         let updates = model.packages.updates.count
         if updates > 0 { list.append(("\(updates) mise\(updates > 1 ? "s" : "") à jour de paquets", "arrow.down.circle", Theme.orange, .majs)) }
         let unpushed = model.repos.repos.filter { $0.ahead > 0 }.count

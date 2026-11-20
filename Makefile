@@ -1,4 +1,4 @@
-.PHONY: build test app run dmg icon clean
+.PHONY: build test app run dmg release install cert icon clean
 
 build:
 	swift build
@@ -15,6 +15,18 @@ run: app
 # .dmg ; avec SIGN_IDENTITY et NOTARY_PROFILE : signé et notarisé (voir scripts/release.sh).
 dmg:
 	scripts/release.sh
+
+# Publie VERSION sur GitHub (tag, .dmg, .sha256) : voir scripts/publish-release.sh.
+release:
+	scripts/publish-release.sh
+
+# Compile et installe dans /Applications (l’ancienne version va à la corbeille).
+install:
+	./install.sh
+
+# Certificat de signature auto-signé (une fois) : identité stable d’une version à l’autre.
+cert:
+	scripts/make-signing-cert.sh
 
 # Régénère Support/AppIcon.icns.
 icon:

@@ -203,6 +203,8 @@ private struct GeneralSettings: View {
         }
         .onAppear { fullDiskAccess = FullDiskAccess.granted }
 
+        UpdateSettings()
+
         Card(title: "Outils de développement") {
             if tools.isEmpty {
                 ProgressView("Recherche des outils…").frame(maxWidth: .infinity).padding()
@@ -429,6 +431,52 @@ private struct NotificationSettings: View {
     }
 }
 
+// MARK: - Mises à jour de L’Atelier
+
+private struct UpdateSettings: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        @Bindable var preferences = model.preferences
+        let updates = model.updates
+        SettingsCard {
+            SettingRow(label: "L’Atelier \(updates.currentVersion)", help: status) {
+                HStack(spacing: 8) {
+                    if updates.state == .checking { ProgressView().controlSize(.small) }
+                    if let release = updates.available {
+                        if let page = release.page {
+                            Button("Nouveautés") { NSWorkspace.shared.open(page) }.buttonStyle(PillButtonStyle(kind: .small))
+                        }
+                        Button("Mettre à jour vers \(release.version)…") { updates.install(release) }
+                            .buttonStyle(PillButtonStyle(kind: .smallFilled))
+                    } else {
+                        Button("Rechercher") { updates.check() }
+                            .buttonStyle(PillButtonStyle(kind: .small))
+                            .disabled(updates.state == .checking || updates.repository == nil)
+                    }
+                }
+            }
+            SettingRow(label: "Rechercher les mises à jour automatiquement",
+                       help: "Une fois par jour, une seule requête à GitHub (\(updates.repository ?? "dépôt non configuré")) ; rien d’autre n’est envoyé") {
+                Switch(label: "Rechercher les mises à jour automatiquement", isOn: $preferences.checkAppUpdates)
+            }
+        }
+    }
+
+    private var status: String {
+        let updates = model.updates
+        let source = updates.installedFromSource ? "Installée depuis les sources : la mise à jour recompile le tag publié. " : ""
+        let last = updates.lastCheck.map { " · vérifié \(RelativeDate.french($0))" } ?? ""
+        switch updates.state {
+        case .checking: return source + "Recherche en cours…"
+        case .available(let release): return source + "La version \(release.version) est disponible" + (release.published.map { ", publiée \(RelativeDate.french($0))" } ?? "") + "."
+        case .upToDate: return source + "À jour" + last
+        case .failed(let reason): return reason
+        case .idle: return source + (updates.repository == nil ? "Compilée sans dépôt GitHub : les mises à jour automatiques sont désactivées." : "Mises à jour depuis github.com/\(updates.repository!)\(last)")
+        }
+    }
+}
+
 // MARK: - Confidentialité
 
 private struct PrivacySettings: View {
@@ -476,7 +524,7 @@ private struct PrivacySettings: View {
             Text("Le journal des suppressions, mises à jour et commandes sera vidé. Cela ne défait aucune action.")
         }
         .task { cacheBytes = cacheTargets.reduce(0) { $0 + DiskUsage.measure($1).bytes } }
-        Text("Réseau : uniquement les registres de paquets, OSV.dev, GitHub Advisories et les sources de news. Aucun code, chemin ni nom de projet n’est envoyé.")
+        Text("Réseau : uniquement les registres de paquets, OSV.dev, GitHub Advisories, les sources de news, les releases GitHub de L’Atelier et vos serveurs SSH (quand vous les ouvrez). Aucun code, chemin ni nom de projet n’est envoyé.")
             .font(.system(size: 12)).foregroundStyle(Theme.muted)
     }
 

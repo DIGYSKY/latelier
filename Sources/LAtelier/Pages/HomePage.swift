@@ -1,3 +1,4 @@
+import AppKit
 import LAtelierCore
 import SwiftUI
 
@@ -9,6 +10,24 @@ struct HomePage: View {
 
     var body: some View {
         PageScaffold(title: greeting, subtitle: Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)).capitalizedFirst) {
+            if let release = model.updates.available {
+                HStack(spacing: 12) {
+                    Image(systemName: "sparkles").font(.system(size: 16, weight: .semibold)).foregroundStyle(Theme.accent)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("L’Atelier \(release.version) est disponible").font(.system(size: 14, weight: .semibold))
+                        Text("Vous utilisez la version \(model.updates.currentVersion). La mise à jour passe par un aperçu ; l’ancienne version va à la corbeille.")
+                            .font(.system(size: 12)).foregroundStyle(Theme.muted)
+                    }
+                    Spacer()
+                    if let page = release.page {
+                        Button("Nouveautés") { NSWorkspace.shared.open(page) }.buttonStyle(PillButtonStyle(kind: .small))
+                    }
+                    Button("Mettre à jour…") { model.updates.install(release) }.buttonStyle(PillButtonStyle(kind: .smallFilled))
+                }
+                .padding(.horizontal, 16).padding(.vertical, 12)
+                .background(Theme.accent.opacity(0.12), in: .rect(cornerRadius: 18, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.accent.opacity(0.3)))
+            }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 12)], spacing: 12) {
                 KpiTile(
                     label: "Stockage", symbol: "internaldrive", color: Theme.accent,
