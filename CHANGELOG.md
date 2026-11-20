@@ -4,6 +4,16 @@
 
 All notable changes to L’Atelier are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [1.0.0-beta.4] — 2026-11-20
+
+### Fixed
+- **Vulnerable sub-dependencies are really fixed.** A package that is not in `package.json` but required by another one (for example `proxy-addr`, required by `express`) stayed vulnerable: with yarn 1, `yarn upgrade` does nothing for a sub-dependency, and the action was still reported as successful. Its entry is now removed from `yarn.lock`, then `yarn install` picks the fixed version allowed by the parent.
+- **No more false successes.** After a security fix, L’Atelier reads the lockfile again: a version that is still vulnerable is reported in the history instead of a ✓.
+
+### Improved
+- **Where a sub-dependency comes from.** Security rows say “sub-dependency of express” and which parent requires it, with which range.
+- **Versions blocked by a parent.** When the parent’s range excludes the fixed version, L’Atelier says so and offers **Force x…**: the version is added to `resolutions` (yarn) or `overrides` (npm) in `package.json`, then reinstalled, with a preview first. If other major versions of the same package are used, nothing is forced and the parent to update is named.
+
 ## [1.0.0-beta.3] — 2026-11-20
 
 ### Fixed

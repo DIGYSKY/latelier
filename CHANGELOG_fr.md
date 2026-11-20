@@ -4,6 +4,16 @@
 
 Les changements notables de L’Atelier sont listés ici. Les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [1.0.0-beta.4] — 2026-11-20
+
+### Corrigé
+- **Les sous-paquets vulnérables sont vraiment corrigés.** Un paquet absent de `package.json` mais demandé par un autre (par exemple `proxy-addr`, demandé par `express`) restait vulnérable : avec yarn 1, `yarn upgrade` ne fait rien pour un sous-paquet, et l’action était tout de même notée réussie. Son entrée est maintenant retirée du `yarn.lock`, puis `yarn install` prend la version corrigée que permet le parent.
+- **Fini les faux succès.** Après une correction de faille, L’Atelier relit le lockfile : une version toujours vulnérable est signalée dans l’historique au lieu d’un ✓.
+
+### Amélioré
+- **D’où vient un sous-paquet.** Les lignes de sécurité indiquent « sous-paquet de express », quel parent le demande et avec quel intervalle.
+- **Versions bloquées par un parent.** Quand l’intervalle du parent exclut la version corrigée, L’Atelier le dit et propose **Forcer x…** : la version est ajoutée à `resolutions` (yarn) ou `overrides` (npm) dans `package.json`, puis réinstallée, avec aperçu avant. Si d’autres versions majeures du même paquet sont utilisées, rien n’est forcé et le parent à mettre à jour est nommé.
+
 ## [1.0.0-beta.3] — 2026-11-20
 
 ### Corrigé
