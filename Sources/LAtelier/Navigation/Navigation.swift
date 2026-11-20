@@ -58,7 +58,7 @@ enum SidebarGroup: String, CaseIterable, Identifiable {
         case .paquets:
             [.page(.majs), .page(.inventaire), .page(.runtimes), .page(.services)]
         case .performance:
-            [.page(.perfVue), .page(.processus), .page(.reseau), .page(.demarrage), .page(.enregistreur)]
+            [.page(.perfVue), .page(.moniteur), .page(.processus), .page(.reseau), .page(.demarrage), .page(.enregistreur)]
         case .news:
             [.page(.pourVous), .page(.cyber), .page(.langages), .page(.favoris), .page(.sources)]
         }
@@ -91,7 +91,7 @@ enum Page: String, CaseIterable, Identifiable {
     // Paquets
     case majs, inventaire, runtimes, services
     // Performance
-    case perfVue, processus, reseau, demarrage, enregistreur
+    case perfVue, moniteur, processus, reseau, demarrage, enregistreur
     // News
     case pourVous, cyber, langages, favoris, sources
     // Bas de barre
@@ -126,6 +126,7 @@ enum Page: String, CaseIterable, Identifiable {
         case .runtimes: "Runtimes"
         case .services: "Services"
         case .perfVue: "Vue d’ensemble"
+        case .moniteur: "Moniteur"
         case .processus: "Processus"
         case .reseau: "Réseau"
         case .demarrage: "Démarrage"
@@ -173,6 +174,7 @@ enum Page: String, CaseIterable, Identifiable {
         case .runtimes: "chevron.left.forwardslash.chevron.right"
         case .services: "server.rack"
         case .perfVue: "gauge.with.dots.needle.67percent"
+        case .moniteur: "waveform.path.ecg.rectangle"
         case .processus: "list.number"
         case .reseau: "network"
         case .demarrage: "power"

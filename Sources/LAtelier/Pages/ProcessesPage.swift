@@ -254,6 +254,7 @@ private struct ProcessRow: View {
         .frame(minHeight: 36)
         .background(row.child ? Theme.raised.opacity(0.35) : .clear)
         .contentShape(.rect)
+        .onTapGesture(count: 2) { if let pid = row.pid { model.processDetail = ProcessDetailRequest(pid: pid) } }
         .contextMenu { menu }
     }
 
@@ -263,6 +264,10 @@ private struct ProcessRow: View {
 
     @ViewBuilder
     private var menu: some View {
+        if let pid = row.pid {
+            Button("Détails…") { model.processDetail = ProcessDetailRequest(pid: pid) }
+            Divider()
+        }
         if !row.targets.isEmpty {
             Button("Quitter") { model.quit(row.targets, label: label, force: false) }
             Button("Forcer à quitter…") { model.quit(row.targets, label: label, force: true) }

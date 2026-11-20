@@ -184,6 +184,7 @@ private struct PortRow: View {
                 }
             }
             .frame(width: 160, alignment: .leading)
+            PortActions(port: port).fixedSize().frame(width: 150, alignment: .trailing)
             Group {
                 if let process, process.canQuit {
                     Button("Libérer le port") {
@@ -199,5 +200,8 @@ private struct PortRow: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
+        .contentShape(.rect)
+        .portContextMenu(port)
+        .onTapGesture(count: 2) { model.processDetail = ProcessDetailRequest(pid: port.pid) }
     }
 }

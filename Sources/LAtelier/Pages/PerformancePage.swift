@@ -224,6 +224,7 @@ private struct OverviewRow: View {
         .frame(minHeight: 34)
         .background(selected ? Theme.accent.opacity(0.12) : .clear)
         .contentShape(.rect)
+        .onTapGesture(count: 2) { model.processDetail = ProcessDetailRequest(pid: process.pid) }
         .onTapGesture(perform: select)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
@@ -244,6 +245,8 @@ private struct SelectionBar: View {
                 .font(.system(size: 13))
                 .lineLimit(1)
             Spacer()
+            Button("Détails…") { model.processDetail = ProcessDetailRequest(pid: process.pid) }
+                .buttonStyle(.small)
             if process.canQuit {
                 Button("Quitter") { model.quit([process.target], label: process.displayName, force: false) }
                     .buttonStyle(.small)
@@ -290,10 +293,12 @@ private struct PortsCard: View {
                         Text(info.note).font(.system(size: 11)).foregroundStyle(port.exposed ? Tag.orange.0 : Theme.muted).lineLimit(1)
                     }
                     Spacer(minLength: 0)
+                    PortActions(port: port)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .background(Theme.raised.opacity(0.6), in: .rect(cornerRadius: 12, style: .continuous))
+                .portContextMenu(port)
             }
         }
         .padding(.horizontal, 16)

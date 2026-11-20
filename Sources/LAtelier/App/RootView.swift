@@ -22,6 +22,10 @@ struct RootView: View {
         .sheet(item: $model.pendingPlan) { plan in
             PlanSheet(plan: plan)
         }
+        .sheet(item: $model.processDetail) { request in
+            ProcessDetailSheet(pid: request.pid)
+                .id(request.pid)
+        }
         .sheet(item: $model.pendingClaude) { request in
             ClaudeSheet(request: request)
         }
@@ -74,6 +78,7 @@ struct PageContainer: View {
         case .commandes: CommandsPage()
         case .couverture: CoveragePage()
         case .enregistreur: RecorderPage()
+        case .moniteur: MonitorPage()
         case .pourVous, .cyber, .langages, .favoris: NewsPage(page: page)
         case .sources: NewsSourcesPage()
         case .stockageVue: StorageOverviewPage()
@@ -83,7 +88,6 @@ struct PageContainer: View {
         case .caches: CachesPage()
         case .explorateur: ExplorerPage()
         case .sonar: SonarPage()
-        default: PlaceholderPage(page: page)
         }
     }
 }

@@ -23,6 +23,9 @@ public struct RunningProcess: Sendable, Identifiable, Hashable {
     public var cwd: String?
     /// Lu avec les droits de l'utilisateur (sinon via `ps`, sans threads ni dossier).
     public var detailed: Bool
+    /// Octets lus et écrits sur le disque depuis le lancement.
+    public var diskRead: UInt64 = 0
+    public var diskWritten: UInt64 = 0
 
     public var id: Int32 { pid }
 
@@ -172,7 +175,8 @@ public struct ProcessSampler: Sendable {
             result.append(RunningProcess(
                 pid: pid, ppid: bsd.ppid, uid: bsd.uid, name: task.path.map { ($0 as NSString).lastPathComponent } ?? bsd.name,
                 path: task.path, started: bsd.started, cpu: max(0, cpu), memory: task.footprint, threads: task.threads,
-                wakeups: max(0, wakeups), cwd: bsd.uid == getuid() ? Self.cwd(pid) : nil, detailed: true
+                wakeups: max(0, wakeups), cwd: bsd.uid == getuid() ? Self.cwd(pid) : nil, detailed: true,
+                diskRead: task.diskRead, diskWritten: task.diskWritten
             ))
         }
         // kernel_task (PID 0) n'apparaît que via ps.

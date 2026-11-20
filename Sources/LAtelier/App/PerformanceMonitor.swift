@@ -52,7 +52,7 @@ actor TrafficEngine {
 /// et que la fenêtre est visible (règle de sobriété du cahier des charges).
 @Observable
 final class PerformanceMonitor {
-    static let historyLength = 60
+    static let historyLength = 300
 
     let machine: MachineInfo
     private(set) var latest: SystemSample?
@@ -61,6 +61,12 @@ final class PerformanceMonitor {
     private(set) var gpuHistory: [Double] = []
     private(set) var networkHistory: [Double] = []
     private(set) var diskHistory: [Double] = []
+    private(set) var diskReadHistory: [Double] = []
+    private(set) var diskWriteHistory: [Double] = []
+    private(set) var netInHistory: [Double] = []
+    private(set) var netOutHistory: [Double] = []
+    /// CPU (%) et mémoire (octets) par processus, pour la fiche d'un processus.
+    private(set) var processHistory: [Int32: [(cpu: Double, memory: Int64)]] = [:]
     private(set) var processes: [RunningProcess] = []
     private(set) var ports: [ListeningPort] = []
     private(set) var connections: [Int32: ProcessConnections] = [:]
@@ -143,6 +149,19 @@ final class PerformanceMonitor {
         Self.push(&gpuHistory, sample.gpu?.utilization ?? 0)
         Self.push(&networkHistory, sample.networkIn + sample.networkOut)
         Self.push(&diskHistory, sample.diskRead + sample.diskWrite)
+        Self.push(&diskReadHistory, sample.diskRead)
+        Self.push(&diskWriteHistory, sample.diskWrite)
+        Self.push(&netInHistory, sample.networkIn)
+        Self.push(&netOutHistory, sample.networkOut)
+        // Historique par processus (2 minutes), seulement pour ceux qui tournent encore.
+        var histories: [Int32: [(cpu: Double, memory: Int64)]] = [:]
+        for process in list {
+            var points = processHistory[process.pid] ?? []
+            points.append((process.cpu, process.memory))
+            if points.count > 120 { points.removeFirst(points.count - 120) }
+            histories[process.pid] = points
+        }
+        processHistory = histories
         if networkToo {
             let (listening, established, totals) = await engine.network()
             ports = listening

@@ -106,7 +106,7 @@ public enum RecorderDetector {
     }
 
     /// « /opt/homebrew/bin/node /Users/…/node_modules/.bin/vite » → « node …/.bin/vite ».
-    static func displayCommand(_ args: [String]) -> String {
+    public static func displayCommand(_ args: [String]) -> String {
         var maskNext = false
         return args.prefix(6).enumerated().map { index, arg in
             if index == 0 { return (arg as NSString).lastPathComponent }

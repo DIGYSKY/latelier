@@ -56,6 +56,8 @@ final class AppModel {
     @ObservationIgnored private(set) var news: NewsStore!
     /// Demande « Ouvrir dans Claude » en attente (feuille).
     var pendingClaude: ClaudeRequest?
+    /// Fiche d'un processus (Performance).
+    var processDetail: ProcessDetailRequest?
     /// Action refusée avant l'aperçu, avec la raison (paquet requis par un autre…).
     var actionNotice: String?
     /// Erreur d'ouverture d'un terminal ou d'un éditeur.
