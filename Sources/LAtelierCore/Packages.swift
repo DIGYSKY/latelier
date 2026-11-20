@@ -144,6 +144,13 @@ public enum Brew {
     /// Pas de mise à jour automatique de Homebrew à chaque lecture, pas d'astuces dans la sortie.
     public static let environment = ["HOMEBREW_NO_AUTO_UPDATE": "1", "HOMEBREW_NO_ENV_HINTS": "1", "HOMEBREW_NO_COLOR": "1"]
 
+    /// Formules installées qui dépendent de `formula` (`brew uses --installed`) : Homebrew refuse alors de la désinstaller.
+    public static func dependents(of formula: String, runner: CommandRunner) async -> [String] {
+        guard let result = try? await runner.run(CommandSpec("brew", ["uses", "--installed", formula], environment: environment), timeout: .seconds(30)),
+              result.succeeded else { return [] }
+        return result.stdout.flatMap { $0.split(whereSeparator: \.isWhitespace).map(String.init) }.filter { !$0.isEmpty }
+    }
+
     /// Paquets « à mettre à jour » : nom (ou token de cask) → version disponible.
     public static func parseOutdated(_ data: Data) -> [String: String] {
         struct Entry: Decodable { let name: String; let current_version: String }

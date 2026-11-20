@@ -311,3 +311,30 @@ private func write(_ home: URL, _ relative: String, bytes: Int = 2_000_000) thro
         print("APPS", apps.count, apps.map { "\($0.name)\($0.deletable ? "" : "(root)")\($0.fromAppStore ? "(MAS)" : "") \($0.lastUsed.map { RelativeDate.french($0) } ?? "-")" })
     }
 }
+
+@Suite struct CoverageMissingTests {
+    @Test func vitestWithoutProvider() throws {
+        let project = try tempHome()
+        try #"{"scripts":{"test":"vitest"},"devDependencies":{"vitest":"^2.1.8"}}"#.write(to: project.appending(path: "package.json"), atomically: true, encoding: .utf8)
+        try "".write(to: project.appending(path: "yarn.lock"), atomically: true, encoding: .utf8)
+        let setup = try #require(CoverageDetector.setup(for: project))
+        let missing = try #require(setup.missing)
+        #expect(missing.package == "@vitest/coverage-v8")
+        #expect(missing.install.tool == "yarn")
+        #expect(missing.install.arguments == ["add", "--dev", "@vitest/coverage-v8@^2.1.8"])
+        let plan = try #require(CoverageDetector.installPlan(project: project, setup: setup, thenRun: true))
+        #expect(plan.commands.count == 2)
+
+        // Avec le module de couverture : rien à ajouter.
+        try #"{"devDependencies":{"vitest":"^2.1.8","@vitest/coverage-v8":"^2.1.8"}}"#.write(to: project.appending(path: "package.json"), atomically: true, encoding: .utf8)
+        #expect(CoverageDetector.setup(for: project)?.missing == nil)
+    }
+
+    @Test func pythonWithoutPytestCov() throws {
+        let project = try tempHome()
+        try "[project]\nname='x'\n[dependency-groups]\ndev=['pytest']\n".write(to: project.appending(path: "pyproject.toml"), atomically: true, encoding: .utf8)
+        try "".write(to: project.appending(path: "uv.lock"), atomically: true, encoding: .utf8)
+        let setup = try #require(CoverageDetector.setup(for: project))
+        #expect(setup.missing?.install.arguments == ["add", "--dev", "pytest-cov"])
+    }
+}

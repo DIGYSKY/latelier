@@ -72,7 +72,7 @@ struct MenuBarContent: View {
 
     private var alerts: [(String, String, Page)] {
         var list: [(String, String, Page)] = []
-        let concerning = model.news.visibleItems.filter { model.news.confirmed($0) && $0.isSevere && !model.news.isRead($0) }.count
+        let concerning = model.news.concerningSevere
         if concerning > 0 { list.append(("\(concerning) avis de sécurité vous concerne\(concerning > 1 ? "nt" : "")", "exclamationmark.shield", .pourVous)) }
         if let analysis = model.analysis.value {
             let serious = analysis.vulnerablePackages.filter { $0.severity >= .high }.count

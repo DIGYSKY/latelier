@@ -224,10 +224,28 @@ public enum CoverageParser {
 
 /// Comment mesurer la couverture d'un projet, et où trouver le rapport.
 public struct CoverageSetup: Sendable, Hashable {
+    /// Outil de couverture absent du projet, et comment l'ajouter.
+    public struct Missing: Sendable, Hashable {
+        /// « @vitest/coverage-v8 »
+        public var package: String
+        public var install: CommandSpec
+        /// Vrai si la commande installe un outil global (cargo install) plutôt qu'une dépendance du projet.
+        public var global: Bool = false
+        public var why: String
+    }
+
     public var tool: String
     public var command: CommandSpec?
     /// Chemins (relatifs au projet) où chercher un rapport, par ordre de préférence.
     public var reports: [String]
+    public var missing: Missing?
+
+    public init(tool: String, command: CommandSpec?, reports: [String], missing: Missing? = nil) {
+        self.tool = tool
+        self.command = command
+        self.reports = reports
+        self.missing = missing
+    }
 }
 
 public enum CoverageDetector {
@@ -252,24 +270,67 @@ public enum CoverageDetector {
             case .pnpm: ("pnpm", ["exec"])
             case .bun: ("bunx", [])
             }
+            let add: [String] = switch manager {
+            case .npm: ["npm", "install", "--save-dev"]
+            case .yarn: ["yarn", "add", "--dev"]
+            case .pnpm: ["pnpm", "add", "--save-dev"]
+            case .bun: ["bun", "add", "--dev"]
+            }
+            let run = CommandSpec(exec.0, exec.1 + ["vitest", "run", "--coverage", "--coverage.reporter=lcov", "--coverage.reporter=text-summary"], in: project)
             if json.contains("\"vitest\"") {
-                return CoverageSetup(tool: "Vitest", command: CommandSpec(exec.0, exec.1 + ["vitest", "run", "--coverage", "--coverage.reporter=lcov", "--coverage.reporter=text-summary"], in: project),
-                                     reports: ["coverage/lcov.info"] + knownReports)
+                var missing: CoverageSetup.Missing?
+                // Vitest a besoin d'un fournisseur de couverture, à la même version que lui.
+                let providers = ["@vitest/coverage-v8", "@vitest/coverage-istanbul"]
+                let installed = providers.contains { json.contains("\"\($0)\"") || has("node_modules/\($0)/package.json") }
+                if !installed {
+                    let version = requirement(of: "vitest", in: json).map { "@\($0)" } ?? ""
+                    missing = CoverageSetup.Missing(
+                        package: "@vitest/coverage-v8",
+                        install: CommandSpec(add[0], Array(add.dropFirst()) + ["@vitest/coverage-v8\(version)"], in: project),
+                        why: "Vitest est installé mais pas son module de couverture : sans lui, « vitest --coverage » échoue (MISSING DEPENDENCY)."
+                    )
+                }
+                return CoverageSetup(tool: "Vitest", command: run, reports: ["coverage/lcov.info"] + knownReports, missing: missing)
             }
             if json.contains("\"jest\"") {
                 return CoverageSetup(tool: "Jest", command: CommandSpec(exec.0, exec.1 + ["jest", "--coverage"], in: project),
                                      reports: ["coverage/lcov.info"] + knownReports)
             }
+            // Projet JS sans outil de test : on propose Vitest et sa couverture.
+            if json.contains("\"scripts\"") || has("src") {
+                return CoverageSetup(tool: "Vitest", command: run, reports: ["coverage/lcov.info"] + knownReports, missing: CoverageSetup.Missing(
+                    package: "vitest + @vitest/coverage-v8",
+                    install: CommandSpec(add[0], Array(add.dropFirst()) + ["vitest", "@vitest/coverage-v8"], in: project),
+                    why: "Aucun outil de test dans ce projet : Vitest et son module de couverture seront ajoutés en dépendances de développement."
+                ))
+            }
         }
         if has("Cargo.toml") {
+            let home = FileManager.default.homeDirectoryForCurrentUser.path
+            let installed = ["\(home)/.cargo/bin/cargo-llvm-cov", "/opt/homebrew/bin/cargo-llvm-cov", "/usr/local/bin/cargo-llvm-cov"]
+                .contains { fm.isExecutableFile(atPath: $0) }
             return CoverageSetup(tool: "cargo llvm-cov", command: CommandSpec("cargo", ["llvm-cov", "--lcov", "--output-path", "target/llvm-cov/lcov.info"], in: project),
-                                 reports: ["target/llvm-cov/lcov.info"] + knownReports)
+                                 reports: ["target/llvm-cov/lcov.info"] + knownReports,
+                                 missing: installed ? nil : CoverageSetup.Missing(
+                                    package: "cargo-llvm-cov", install: CommandSpec("cargo", ["install", "cargo-llvm-cov", "--locked"]), global: true,
+                                    why: "La couverture Rust passe par cargo-llvm-cov, un outil installé une fois pour tous les projets (~/.cargo/bin)."))
         }
         if has("pyproject.toml") || has("setup.py") || has("requirements.txt") || has("pytest.ini") {
             let runner: [String] = has("uv.lock") ? ["uv", "run"] : has("poetry.lock") ? ["poetry", "run"] : []
             let args = ["pytest", "--cov", "--cov-report=xml"]
             let spec = runner.isEmpty ? CommandSpec("pytest", Array(args.dropFirst()), in: project) : CommandSpec(runner[0], Array(runner.dropFirst()) + args, in: project)
-            return CoverageSetup(tool: "pytest-cov", command: spec, reports: ["coverage.xml"] + knownReports)
+            let declared = ["pyproject.toml", "requirements.txt", "requirements-dev.txt", "setup.py", "uv.lock", "poetry.lock"]
+                .contains { text($0).contains("pytest-cov") }
+            var missing: CoverageSetup.Missing?
+            if !declared {
+                let install: CommandSpec? = has("uv.lock") ? CommandSpec("uv", ["add", "--dev", "pytest-cov"], in: project)
+                    : has("poetry.lock") ? CommandSpec("poetry", ["add", "--group", "dev", "pytest-cov"], in: project) : nil
+                if let install {
+                    missing = CoverageSetup.Missing(package: "pytest-cov", install: install,
+                                                    why: "pytest-cov n’est pas dans les dépendances du projet : sans lui, « pytest --cov » échoue.")
+                }
+            }
+            return CoverageSetup(tool: "pytest-cov", command: spec, reports: ["coverage.xml"] + knownReports, missing: missing)
         }
         if has("go.mod") {
             return CoverageSetup(tool: "go cover", command: CommandSpec("go", ["test", "-coverprofile=coverage.out", "./..."], in: project),
@@ -292,6 +353,28 @@ public enum CoverageDetector {
         // Pas d'outil reconnu, mais peut-être un rapport existant.
         let existing = knownReports.filter(has)
         return existing.isEmpty ? nil : CoverageSetup(tool: "Rapport existant", command: nil, reports: existing)
+    }
+
+    /// Version demandée pour un paquet dans package.json (« ^2.1.8 »).
+    static func requirement(of name: String, in json: String) -> String? {
+        guard let object = try? JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any] else { return nil }
+        for key in ["devDependencies", "dependencies"] {
+            if let value = (object[key] as? [String: Any])?[name] as? String { return value }
+        }
+        return nil
+    }
+
+    /// Ajout de l'outil manquant, avec ou sans mesure juste après.
+    public static func installPlan(project: URL, setup: CoverageSetup, thenRun: Bool) -> ActionPlan? {
+        guard let missing = setup.missing else { return nil }
+        var commands = [missing.install]
+        if thenRun, let command = setup.command { commands.append(command) }
+        return ActionPlan(
+            title: thenRun ? "Ajouter \(missing.package) et mesurer la couverture" : "Ajouter \(missing.package) à \(project.lastPathComponent)",
+            summary: missing.why + (missing.global ? " L’outil est installé pour votre compte, pas dans le projet."
+                                                   : " Le manifeste et le lockfile du projet seront modifiés."),
+            kind: .commande, risk: .caution, reversible: false, commands: commands
+        )
     }
 
     /// Lit le rapport le plus récent parmi les emplacements connus.

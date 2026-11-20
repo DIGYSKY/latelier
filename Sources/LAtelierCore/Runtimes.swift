@@ -13,6 +13,8 @@ public struct RuntimeVersion: Sendable, Hashable, Identifiable {
     public var remove: CommandSpec?
     /// Version fournie par le système ou par Xcode : on n'y touche pas.
     public var isSystem: Bool
+    /// Paquets Homebrew qui en dépendent (`brew uses --installed`) : Homebrew refuserait de la supprimer.
+    public var requiredBy: [String] = []
 
     public init(
         version: String, isDefault: Bool = false, location: URL? = nil, bytes: Int64? = nil, usedBy: [String] = [],
@@ -32,7 +34,7 @@ public struct RuntimeVersion: Sendable, Hashable, Identifiable {
     public var id: String { version }
     public func isEndOfLife(now: Date = .now) -> Bool { endOfLife.map { $0 < now } ?? false }
     /// Supprimable : ni par défaut, ni utilisée par un projet, ni système (règle n° 3).
-    public var canRemove: Bool { remove != nil && !isDefault && usedBy.isEmpty && !isSystem }
+    public var canRemove: Bool { remove != nil && !isDefault && usedBy.isEmpty && !isSystem && requiredBy.isEmpty }
 }
 
 public struct RuntimeLanguage: Sendable, Identifiable {
@@ -163,11 +165,26 @@ public struct RuntimeScanner: Sendable {
         // Tailles mesurées en une passe, 8 dossiers à la fois.
         let urls = languages.flatMap(\.versions).compactMap(\.location)
         let sizes = await DiskUsage.measure(urls)
+        // Dépendants Homebrew des versions supprimables.
+        let formulas = Set(languages.flatMap(\.versions).compactMap { version -> String? in
+            guard let remove = version.remove, remove.tool == "brew", remove.arguments.first == "uninstall" else { return nil }
+            return remove.arguments.last
+        })
+        let runner = runner
+        let dependents = await withTaskGroup(of: (String, [String]).self) { group in
+            for formula in formulas { group.addTask { (formula, await Brew.dependents(of: formula, runner: runner)) } }
+            var result: [String: [String]] = [:]
+            for await (formula, users) in group { result[formula] = users }
+            return result
+        }
         return languages.map { language in
             var language = language
             language.versions = language.versions.map { version in
                 var version = version
                 if let url = version.location { version.bytes = sizes[url]?.bytes }
+                if let remove = version.remove, remove.tool == "brew", let formula = remove.arguments.last {
+                    version.requiredBy = dependents[formula] ?? []
+                }
                 return version
             }
             return language

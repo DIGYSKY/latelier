@@ -133,6 +133,9 @@ private struct VersionRow: View {
     private var usage: String {
         var parts: [String] = []
         if version.isSystem { parts.append("Fournie par Xcode") }
+        if !version.requiredBy.isEmpty {
+            parts.append("Requise par \(version.requiredBy.prefix(3).joined(separator: ", ")) (Homebrew)")
+        }
         if version.usedBy.isEmpty {
             if !version.isSystem { parts.append("Aucun projet") }
         } else {

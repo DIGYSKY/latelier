@@ -145,13 +145,34 @@ private struct CoverageDetail: View {
                     }
                 }
                 Spacer()
-                if let plan = CoverageDetector.runPlan(project: entry.project, setup: entry.setup) {
+                if entry.setup.missing != nil, let plan = CoverageDetector.installPlan(project: entry.project, setup: entry.setup, thenRun: true) {
+                    Button("Ajouter et mesurer…") { model.preview(plan) }
+                        .buttonStyle(PillButtonStyle(kind: .smallFilled))
+                } else if let plan = CoverageDetector.runPlan(project: entry.project, setup: entry.setup) {
                     Button("Lancer les tests avec couverture…") { model.preview(plan) }
                         .buttonStyle(PillButtonStyle(kind: .smallFilled))
                         .disabled(model.runner.locator.locate(entry.setup.command!.tool) == nil && !entry.setup.command!.tool.hasPrefix("./"))
                 }
             }
 
+            if let missing = entry.setup.missing {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("\(missing.package) n’est pas installé", systemImage: "puzzlepiece.extension")
+                        .font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.orange)
+                    Text(missing.why).font(.system(size: 13))
+                    HStack(spacing: 8) {
+                        Text("$ " + ([missing.install.tool] + missing.install.arguments).joined(separator: " "))
+                            .font(.system(size: 12).monospaced()).foregroundStyle(Theme.muted).textSelection(.enabled)
+                        Spacer()
+                        if let plan = CoverageDetector.installPlan(project: entry.project, setup: entry.setup, thenRun: false) {
+                            Button("Ajouter seulement…") { model.preview(plan) }.buttonStyle(PillButtonStyle(kind: .small))
+                        }
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(hex: 0xFF9500).opacity(0.12), in: .rect(cornerRadius: 14, style: .continuous))
+            }
             if let report = entry.report {
                 HStack(spacing: 10) {
                     metric("Lignes", report.lines)

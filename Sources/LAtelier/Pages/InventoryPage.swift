@@ -142,7 +142,17 @@ private struct InventoryRow: View {
                         .foregroundStyle(Theme.muted)
                 }
                 Button("Désinstaller") {
-                    if let plan = PackagePlans.uninstall(package) { model.preview(plan) }
+                    Task {
+                        // Homebrew refuse de retirer une formule dont un autre paquet dépend : on le dit avant.
+                        if package.source == .homebrew, !package.isCask {
+                            let users = await Brew.dependents(of: package.identifier, runner: model.runner)
+                            if !users.isEmpty {
+                                model.actionNotice = "\(package.name) est requis par \(users.joined(separator: ", ")). Désinstallez d’abord ces paquets, ou gardez-le."
+                                return
+                            }
+                        }
+                        if let plan = PackagePlans.uninstall(package) { model.preview(plan) }
+                    }
                 }
                 .buttonStyle(.small)
                 .disabled(!canUninstall)

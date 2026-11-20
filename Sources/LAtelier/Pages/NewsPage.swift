@@ -286,7 +286,7 @@ private struct ArticleRow: View {
         let colors = newsTopicColors(item.topic)
         return HStack(spacing: 8) {
             Tag(text: item.topic, foreground: colors.0, background: colors.1)
-            Text(model.news.source(item.sourceID)?.name ?? item.sourceID)
+            Text(model.news.sourceName(item.sourceID))
             Text("·")
             Text(FrenchDate.relative(item.date))
             if let severity = item.severity, item.category == .cyber {

@@ -56,6 +56,8 @@ final class AppModel {
     @ObservationIgnored private(set) var news: NewsStore!
     /// Demande « Ouvrir dans Claude » en attente (feuille).
     var pendingClaude: ClaudeRequest?
+    /// Action refusée avant l'aperçu, avec la raison (paquet requis par un autre…).
+    var actionNotice: String?
     /// Erreur d'ouverture d'un terminal ou d'un éditeur.
     var launchError: String?
     private static let rootsKey = "projectRoots"
@@ -236,7 +238,7 @@ final class AppModel {
             analysis.invalidate()
         }
         if entry.kind == .paquet || entry.kind == .git {
-            Task { await reloadNewsInventory() }
+            news.inventoryStale = true
         }
         if entry.kind == .paquet {
             packages.invalidate()

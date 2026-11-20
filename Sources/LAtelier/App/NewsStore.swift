@@ -53,16 +53,31 @@ final class NewsStore {
         inventory = NewsInventory(manifests: manifests, packages: packages)
         autoTopics = NewsTopics.detect(manifests: manifests, packages: packages)
         inventoryReady = true
+        inventoryStale = false
         recomputeMatches()
     }
 
+    @ObservationIgnored private var matchTask: Task<Void, Never>?
+
+    /// Croisement en arrière-plan : la fenêtre ne se fige pas pendant le calcul.
     private func recomputeMatches() {
-        var result: [String: [NewsMatch]] = [:]
-        for item in state.items {
-            let found = NewsMatcher.matches(item, in: inventory)
-            if !found.isEmpty { result[item.id] = found }
+        let items = state.items
+        let inventory = inventory
+        matchTask?.cancel()
+        rebuild()
+        matchTask = Task { [weak self] in
+            let result = await Task.detached(priority: .utility) { () -> [String: [NewsMatch]] in
+                var result: [String: [NewsMatch]] = [:]
+                for item in items {
+                    let found = NewsMatcher.matches(item, in: inventory)
+                    if !found.isEmpty { result[item.id] = found }
+                }
+                return result
+            }.value
+            guard let self, !Task.isCancelled else { return }
+            matches = result
+            rebuild()
         }
-        matches = result
     }
 
     // MARK: Sources
@@ -85,12 +100,16 @@ final class NewsStore {
 
     func setEnabled(_ source: NewsSource, _ on: Bool) {
         state.overrides[source.id] = on
+        rebuild()
         save()
         // Une source activée est lue tout de suite si elle n'a jamais été lue.
         if on, state.status[source.id]?.lastSuccess == nil { Task { await refresh(only: [source]) } }
     }
 
     func source(_ id: String) -> NewsSource? { sources.first { $0.id == id } }
+
+    /// Marque le croisement comme à refaire (paquets ou dépôts changés).
+    @ObservationIgnored var inventoryStale = true
 
     /// Vérifie que l'adresse donne un flux RSS ou Atom, puis l'ajoute.
     func addSource(_ address: String) async -> String? {
@@ -130,11 +149,13 @@ final class NewsStore {
         if state.hiddenTopics.remove(topic) == nil, !followed.contains(where: { $0.name.caseInsensitiveCompare(topic) == .orderedSame }) {
             state.manualTopics.append(topic)
         }
+        rebuild()
         save()
     }
 
     func removeTopic(_ topic: NewsTopic) {
         if topic.auto { state.hiddenTopics.insert(topic.name) } else { state.manualTopics.removeAll { $0 == topic.name } }
+        rebuild()
         save()
     }
 
@@ -162,6 +183,11 @@ final class NewsStore {
         }
         let added = state.merge(fresh, now: now)
         if only == nil { state.lastRefresh = now }
+        // Les nouveaux articles sont croisés tout de suite (notifications), le reste en arrière-plan.
+        for item in added {
+            let found = NewsMatcher.matches(item, in: inventory)
+            if !found.isEmpty { matches[item.id] = found }
+        }
         recomputeMatches()
         let failed = outcomes.filter { $0.error != nil && $0.items.isEmpty }.count
         message = failed > 0 ? "\(failed) source\(failed > 1 ? "s" : "") en erreur : voir Sources." : nil
@@ -184,75 +210,102 @@ final class NewsStore {
 
     func markRead(_ item: NewsItem) {
         guard state.read.insert(item.id).inserted else { return }
+        rebuild()
         save()
     }
 
     func markUnread(_ item: NewsItem) {
         guard state.read.remove(item.id) != nil else { return }
+        rebuild()
         save()
     }
 
     func markAllRead(_ items: [NewsItem]) {
         state.read.formUnion(items.map(\.id))
+        rebuild()
         save()
     }
 
     func toggleStar(_ item: NewsItem) {
         if state.starred.remove(item.id) == nil { state.starred.insert(item.id) }
+        rebuild()
         save()
     }
 
-    // MARK: Filtres
+    // MARK: Filtres (calculés une fois par changement, pas à chaque rendu)
 
-    /// Articles des sources actives (et favoris d'une source retirée).
-    var visibleItems: [NewsItem] {
-        let enabled = Set(enabledSources.map(\.id))
-        return state.items.filter { enabled.contains($0.sourceID) || state.starred.contains($0.id) }
+    struct Derived {
+        var visible: [NewsItem] = []
+        var forYou: [NewsItem] = []
+        var cyber: [NewsItem] = []
+        var languages: [NewsItem] = []
+        var general: [NewsItem] = []
+        var all: [NewsItem] = []
+        var favorites: [NewsItem] = []
+        var unreadForYou = 0
+        var topAlert: NewsItem?
+        /// Avis graves non lus qui touchent la machine (Accueil, barre des menus).
+        var concerningSevere = 0
     }
 
-    /// Un avis GitHub sans lien avec la machine n'est montré que s'il est critique ou élevé.
-    private func isShown(_ item: NewsItem) -> Bool {
-        item.sourceID != "gha" || item.isSevere || matches[item.id] != nil
-    }
+    private(set) var derived = Derived()
+    @ObservationIgnored private var sourceNames: [String: String] = [:]
+
+    var visibleItems: [NewsItem] { derived.visible }
+    var forYou: [NewsItem] { derived.forYou }
+    var cyber: [NewsItem] { derived.cyber }
+    var languages: [NewsItem] { derived.languages }
+    var general: [NewsItem] { derived.general }
+    var all: [NewsItem] { derived.all }
+    var favorites: [NewsItem] { derived.favorites }
+    /// Non lues de « Pour vous » : la pastille de la barre latérale.
+    var unreadForYou: Int { derived.unreadForYou }
+    /// L'alerte la plus grave qui touche la machine (bandeau rouge).
+    var topAlert: NewsItem? { derived.topAlert }
+    var concerningSevere: Int { derived.concerningSevere }
+
+    func sourceName(_ id: String) -> String { sourceNames[id] ?? id }
 
     func concerns(_ item: NewsItem) -> Bool { matches[item.id] != nil }
     func confirmed(_ item: NewsItem) -> Bool { matches[item.id]?.contains(where: \.confirmed) == true }
 
-    /// Pour vous : ce qui touche la machine, les langages suivis et les sujets ajoutés à la main.
-    /// Les autres avis de sécurité restent dans Cybersécurité.
-    var forYou: [NewsItem] {
+    /// Recalcule toutes les listes (quelques millisecondes pour 1 500 articles).
+    private func rebuild() {
+        sourceNames = Dictionary(sources.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a })
+        let enabled = Set(enabledSources.map(\.id))
+        let read = state.read, starred = state.starred
         let topics = followedNames
         let manual = state.manualTopics
-        return visibleItems.filter { item in
-            if concerns(item) { return true }
-            switch item.category {
-            case .langage: if let language = item.language, topics.contains(language) { return true }
-            case .personnel: return true
-            case .cyber, .general: break
+        var d = Derived()
+        d.visible = state.items.filter { enabled.contains($0.sourceID) || starred.contains($0.id) }
+        let shown = { (item: NewsItem) in item.sourceID != "gha" || item.isSevere || self.matches[item.id] != nil }
+        var mine: [NewsItem] = [], rest: [NewsItem] = []
+        for item in d.visible {
+            let concerned = matches[item.id] != nil
+            var include = concerned
+            if !include {
+                switch item.category {
+                case .langage: include = item.language.map(topics.contains) ?? false
+                case .personnel: include = true
+                case .cyber, .general: break
+                }
             }
-            return manual.contains { NewsTopics.mentions(item, $0) }
+            if !include, !manual.isEmpty { include = manual.contains { NewsTopics.mentions(item, $0) } }
+            guard include else { continue }
+            // Ce qui vous concerne et n'est pas lu passe devant.
+            if concerned && !read.contains(item.id) { mine.append(item) } else { rest.append(item) }
+            if !read.contains(item.id) { d.unreadForYou += 1 }
         }
-        // Ce qui vous concerne et n'est pas lu passe devant.
-        .sorted { a, b in
-            let x = concerns(a) && !isRead(a), y = concerns(b) && !isRead(b)
-            return x != y ? x : a.date > b.date
-        }
-    }
-
-    var cyber: [NewsItem] { visibleItems.filter { $0.category == .cyber && isShown($0) } }
-    var languages: [NewsItem] { visibleItems.filter { $0.category == .langage || $0.category == .personnel } }
-    var general: [NewsItem] { visibleItems.filter { $0.category == .general } }
-    var all: [NewsItem] { visibleItems.filter(isShown) }
-    var favorites: [NewsItem] { state.items.filter { state.starred.contains($0.id) } }
-
-    /// Non lues de « Pour vous » : la pastille de la barre latérale.
-    var unreadForYou: Int { forYou.filter { !isRead($0) }.count }
-
-    /// L'alerte la plus grave qui touche la machine (bandeau rouge).
-    var topAlert: NewsItem? {
-        visibleItems
-            .filter { confirmed($0) && $0.isSevere && !isRead($0) }
-            .max { a, b in (a.isCritical ? 1 : 0, a.date) < (b.isCritical ? 1 : 0, b.date) }
+        d.forYou = mine + rest
+        d.cyber = d.visible.filter { $0.category == .cyber && shown($0) }
+        d.languages = d.visible.filter { $0.category == .langage || $0.category == .personnel }
+        d.general = d.visible.filter { $0.category == .general }
+        d.all = d.visible.filter(shown)
+        d.favorites = state.items.filter { starred.contains($0.id) }
+        let severe = d.visible.filter { confirmed($0) && $0.isSevere && !read.contains($0.id) }
+        d.concerningSevere = severe.count
+        d.topAlert = severe.max { a, b in (a.isCritical ? 1 : 0, a.date) < (b.isCritical ? 1 : 0, b.date) }
+        derived = d
     }
 
     // MARK: Notifications
@@ -301,7 +354,10 @@ extension AppModel {
         return (manifests, scanned)
     }
 
-    func reloadNewsInventory() async {
+    /// Relit les manifestes et paquets seulement si quelque chose a changé depuis.
+    func reloadNewsInventory(force: Bool = false) async {
+        guard force || news.inventoryStale else { return }
+        news.inventoryStale = false
         let inventory = await newsInventory()
         news.updateInventory(manifests: inventory.manifests, packages: inventory.packages)
     }
