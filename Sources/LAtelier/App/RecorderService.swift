@@ -24,6 +24,7 @@ final class RecorderService {
     @ObservationIgnored private var seen: Set<String> = []
     @ObservationIgnored private var armed: [String: (label: String, until: Date)] = [:]
     @ObservationIgnored private var detectLoop: Task<Void, Never>?
+    @ObservationIgnored private let scanCache = RecorderScanCache()
     @ObservationIgnored private var sampleLoop: Task<Void, Never>?
     @ObservationIgnored private let store = RecordingStore()
     @ObservationIgnored private let preferences: ToolPreferences
@@ -60,7 +61,7 @@ final class RecorderService {
             if !detected.isEmpty { detected = [] }
             return
         }
-        let found = RecorderDetector.scan(projects: list)
+        let found = RecorderDetector.scan(projects: list, cache: scanCache)
         detected = found
         pending.removeAll { p in !found.contains { $0.id == p.id } }
         armed = armed.filter { $0.value.until > Date() }

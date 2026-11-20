@@ -30,6 +30,23 @@ public struct DetectedProcess: Sendable, Identifiable, Hashable {
     public var target: ProcessTarget { ProcessTarget(pid: pid, name: name, started: started) }
 }
 
+/// Mémoire de la détection : processus déjà écartés, oubliés quand ils se terminent
+/// ou quand la liste des projets change.
+public final class RecorderScanCache: @unchecked Sendable {
+    var rejected: [Int32: UInt64] = [:]
+    private var projectsKey: [String] = []
+
+    public init() {}
+
+    func reset(ifProjectsChanged projects: [URL]) {
+        let key = projects.map(\.path).sorted()
+        if key != projectsKey {
+            projectsKey = key
+            rejected = [:]
+        }
+    }
+}
+
 public enum RecorderDetector {
     static let ignored: Set<String> = [
         "zsh", "-zsh", "bash", "-bash", "fish", "sh", "login", "tmux", "screen", "git", "ssh", "less", "vim", "nvim", "nano",
@@ -39,33 +56,51 @@ public enum RecorderDetector {
     static let helperDirectories = [".claude/", ".vscode/", ".cursor/", ".windsurf/", ".zed/", "Library/Application Support/"]
 
     /// Processus de l'utilisateur dont le dossier de travail est dans un projet, lancés depuis au moins `minimumAge` s.
-    public static func scan(projects: [URL], now: Date = Date(), minimumAge: TimeInterval = 5) -> [DetectedProcess] {
+    /// `cache` retient les processus déjà écartés (PID + date de lancement) : à chaque passage, seuls
+    /// les nouveaux processus sont examinés en détail (dossier de travail, chemin, arguments).
+    public static func scan(projects: [URL], now: Date = Date(), minimumAge: TimeInterval = 5, cache: RecorderScanCache? = nil) -> [DetectedProcess] {
         guard !projects.isEmpty else { return [] }
         let me = getpid()
         let uid = getuid()
         struct Candidate { var pid: Int32; var ppid: Int32; var started: UInt64; var name: String; var path: String?; var project: URL }
         var all: [Int32: (ppid: Int32, started: UInt64)] = [:]
         var candidates: [Int32: Candidate] = [:]
-        for pid in ProcessSampler.allPIDs() where pid > 1 && pid != me {
-            guard let bsd = ProcessSampler.bsdInfo(pid) else { continue }
-            all[pid] = (bsd.ppid, bsd.started)
-            guard bsd.uid == uid, let cwd = ProcessSampler.cwd(pid),
-                  let project = ProjectMatcher.project(for: cwd, in: projects) else { continue }
-            var buffer = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
-            let length = proc_pidpath(pid, &buffer, UInt32(buffer.count))
-            let path = length > 0 ? String(nulTerminated: buffer) : nil
-            let name = path.map { ($0 as NSString).lastPathComponent } ?? bsd.name
-            guard !ignored.contains(name) else { continue }
-            let dev = ProcessRules.isDev(name: name, path: path)
-            // Les apps graphiques ouvertes dans un dossier ne sont pas des processus du projet (sauf Python.app & co).
-            if path?.contains(".app/Contents/") == true && !dev { continue }
-            guard dev || bsd.ppid == me || isDescendant(bsd.ppid, of: me, all: all) else { continue }
-            // Assistants d'éditeurs et d'outils (serveurs de langage, plugins) : pas du projet.
-            if let args = ProcessTree.arguments(of: pid), args.dropFirst().prefix(2).contains(where: { arg in
-                helperDirectories.contains { arg.hasPrefix(NSHomeDirectory() + "/" + $0) } || arg.contains("/node_modules/typescript/lib/tsserver")
-            }) { continue }
-            candidates[pid] = Candidate(pid: pid, ppid: bsd.ppid, started: bsd.started, name: name, path: path, project: project)
+        cache?.reset(ifProjectsChanged: projects)
+        var rejected: [Int32: UInt64] = [:]
+        // D'abord tout l'arbre (un parent peut avoir un PID plus grand que son enfant), puis l'examen.
+        let infos = ProcessSampler.allPIDs().filter { $0 > 1 && $0 != me }.compactMap { pid in ProcessSampler.bsdInfo(pid).map { (pid, $0) } }
+        for (pid, bsd) in infos { all[pid] = (bsd.ppid, bsd.started) }
+        for (pid, bsd) in infos {
+            if let cache, cache.rejected[pid] == bsd.started {
+                rejected[pid] = bsd.started
+                continue
+            }
+            func evaluate() -> Candidate? {
+                guard bsd.uid == uid, let cwd = ProcessSampler.cwd(pid),
+                      let project = ProjectMatcher.project(for: cwd, in: projects) else { return nil }
+                var buffer = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
+                let length = proc_pidpath(pid, &buffer, UInt32(buffer.count))
+                let path = length > 0 ? String(nulTerminated: buffer) : nil
+                let name = path.map { ($0 as NSString).lastPathComponent } ?? bsd.name
+                guard !ignored.contains(name) else { return nil }
+                let dev = ProcessRules.isDev(name: name, path: path)
+                // Les apps graphiques ouvertes dans un dossier ne sont pas des processus du projet (sauf Python.app & co).
+                if path?.contains(".app/Contents/") == true && !dev { return nil }
+                guard dev || bsd.ppid == me || isDescendant(bsd.ppid, of: me, all: all) else { return nil }
+                // Assistants d'éditeurs et d'outils (serveurs de langage, plugins) : pas du projet.
+                if let args = ProcessTree.arguments(of: pid), args.dropFirst().prefix(2).contains(where: { arg in
+                    helperDirectories.contains { arg.hasPrefix(NSHomeDirectory() + "/" + $0) } || arg.contains("/node_modules/typescript/lib/tsserver")
+                }) { return nil }
+                return Candidate(pid: pid, ppid: bsd.ppid, started: bsd.started, name: name, path: path, project: project)
+            }
+            if let candidate = evaluate() {
+                candidates[pid] = candidate
+            } else {
+                rejected[pid] = bsd.started
+            }
         }
+        // Les processus terminés sortent du cache.
+        cache?.rejected = rejected
         // Racines : processus dont le parent n'est pas lui-même un candidat du même projet.
         var result: [DetectedProcess] = []
         for candidate in candidates.values {
