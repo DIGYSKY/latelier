@@ -15,6 +15,8 @@ struct RootView: View {
         }
         .toolbar(removing: .title)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        // Plein écran : la barre d'outils (opaque) se cache et n'apparaît qu'au survol du haut de l'écran.
+        .windowToolbarFullScreenVisibility(.onHover)
         .background { Backdrop(glass: model.preferences.glass) }
         .onAppear { applyAppearance(model.preferences.appearance) }
         .onChange(of: model.preferences.appearance) { _, value in applyAppearance(value) }
