@@ -116,18 +116,18 @@ final class NewsStore {
         var text = address.trimmingCharacters(in: .whitespacesAndNewlines)
         if !text.contains("://") { text = "https://" + text }
         guard let url = URL(string: text), let scheme = url.scheme?.lowercased(), ["https", "http"].contains(scheme), url.host != nil else {
-            return "Adresse invalide."
+            return String(localized: "Adresse invalide.")
         }
         guard !sources.contains(where: { $0.url == url }) else { return "Ce flux est déjà dans la liste." }
         do {
             let feed = try await fetcher.probe(url)
             let id = "custom-" + UUID().uuidString.prefix(8).lowercased()
-            let source = NewsSource(id: id, name: feed.title ?? url.host ?? "Flux", url: url, category: .personnel, builtIn: false)
+            let source = NewsSource(id: id, name: feed.title ?? url.host ?? String(localized: "Flux"), url: url, category: .personnel, builtIn: false)
             state.custom.insert(source, at: 0)
             await refresh(only: [source])
             return nil
         } catch {
-            return "Lecture impossible : \(error.localizedDescription)"
+            return String(localized: "Lecture impossible : \(error.localizedDescription)")
         }
     }
 
@@ -190,7 +190,7 @@ final class NewsStore {
         }
         recomputeMatches()
         let failed = outcomes.filter { $0.error != nil && $0.items.isEmpty }.count
-        message = failed > 0 ? "\(failed) source\(failed > 1 ? "s" : "") en erreur : voir Sources." : nil
+        message = failed > 0 ? (failed > 1 ? String(localized: "\(failed) sources en erreur : voir Sources.") : String(localized: "\(failed) source en erreur : voir Sources.")) : nil
         if !first {
             notify(added)
         } else {
@@ -322,7 +322,7 @@ final class NewsStore {
         let first = alerts[0]
         let match = matches[first.id]?.first
         let content = UNMutableNotificationContent()
-        content.title = alerts.count == 1 ? (first.isCritical ? "Faille critique qui vous concerne" : "Une news vous concerne") : "\(alerts.count) avis vous concernent"
+        content.title = alerts.count == 1 ? (first.isCritical ? String(localized: "Faille critique qui vous concerne") : String(localized: "Une news vous concerne")) : String(localized: "\(alerts.count) avis vous concernent")
         content.body = first.title + (match.map { " · \($0.package) \($0.version ?? "") (\($0.project?.lastPathComponent ?? $0.place))" } ?? "")
         content.sound = .default
         let request = UNNotificationRequest(identifier: first.id, content: content, trigger: nil)
@@ -383,7 +383,7 @@ extension AppModel {
 
     /// Libellé du bouton « Corriger » selon l'endroit visé.
     static func fixLabel(_ match: NewsMatch) -> String {
-        if let project = match.project { return "Corriger dans \(project.lastPathComponent) →" }
-        return match.source == .runtimes ? "Voir dans Runtimes →" : "Voir dans Paquets →"
+        if let project = match.project { return String(localized: "Corriger dans \(project.lastPathComponent) →") }
+        return match.source == .runtimes ? String(localized: "Voir dans Runtimes →") : String(localized: "Voir dans Paquets →")
     }
 }

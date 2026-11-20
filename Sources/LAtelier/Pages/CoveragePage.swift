@@ -10,9 +10,9 @@ struct CoveragePage: View {
     var body: some View {
         @Bindable var preferences = model.preferences
         let store = model.coverage
-        PageScaffold(page: .couverture, subtitle: "Lue depuis les rapports existants (lcov, Cobertura, JaCoCo, llvm-cov) ou générée en lançant les tests") {
+        PageScaffold(page: .couverture, subtitle: String(localized: "Lue depuis les rapports existants (lcov, Cobertura, JaCoCo, llvm-cov) ou générée en lançant les tests")) {
             if store.loading { ProgressView().controlSize(.small) }
-            Picker("Seuil", selection: $preferences.coverageThreshold) {
+            Picker(String(localized: "Seuil"), selection: $preferences.coverageThreshold) {
                 ForEach([60, 70, 80, 90], id: \.self) { Text("\($0) %").tag($0) }
             }
             .fixedSize()
@@ -22,10 +22,10 @@ struct CoveragePage: View {
                 if scope != nil, let entry = entries.first {
                     CoverageDetail(entry: entry, threshold: preferences.coverageThreshold)
                 } else if scope != nil {
-                    Card { EmptyState(symbol: "checkmark.seal", title: "Pas de couverture pour ce projet",
-                                      message: "Aucun outil de test reconnu (Vitest, Jest, pytest, cargo, go, JaCoCo, swift test).") }
+                    Card { EmptyState(symbol: "checkmark.seal", title: String(localized: "Pas de couverture pour ce projet"),
+                                      message: String(localized: "Aucun outil de test reconnu (Vitest, Jest, pytest, cargo, go, JaCoCo, swift test).")) }
                 } else if entries.isEmpty {
-                    Card { EmptyState(symbol: "checkmark.seal", title: "Aucun projet testable", message: "Aucun outil de test reconnu dans les projets détectés.") }
+                    Card { EmptyState(symbol: "checkmark.seal", title: String(localized: "Aucun projet testable"), message: String(localized: "Aucun outil de test reconnu dans les projets détectés.")) }
                 } else {
                     let current = entries.first { $0.project == selected } ?? entries[0]
                     HStack(alignment: .top, spacing: 14) {
@@ -37,7 +37,7 @@ struct CoveragePage: View {
                     summary(entries, threshold: preferences.coverageThreshold)
                 }
             } else {
-                ScanningCard(label: "Recherche des rapports de couverture…")
+                ScanningCard(label: String(localized: "Recherche des rapports de couverture…"))
             }
         }
         .onAppear {
@@ -51,7 +51,7 @@ struct CoveragePage: View {
     private func summary(_ entries: [CoverageEntry], threshold: Int) -> some View {
         let measured = entries.filter { $0.report != nil }
         let below = measured.filter { $0.report!.lines < Double(threshold) }.count
-        return Text("\(measured.count) projet\(measured.count > 1 ? "s" : "") mesuré\(measured.count > 1 ? "s" : "") sur \(entries.count) · \(below) sous le seuil de \(threshold) % · historique des mesures gardé sur ce Mac")
+        return Text((measured.count > 1 ? String(localized: "\(measured.count) projets mesurés sur \(entries.count) · \(below) sous le seuil de \(threshold) % · historique des mesures gardé sur ce Mac") : String(localized: "\(measured.count) projet mesuré sur \(entries.count) · \(below) sous le seuil de \(threshold) % · historique des mesures gardé sur ce Mac")))
             .font(.system(size: 12)).foregroundStyle(Theme.muted)
     }
 }
@@ -79,7 +79,7 @@ private struct ProjectList: View {
                         Ring(value: entry.report?.lines, threshold: threshold)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(model.projectName(entry.project)).font(.system(size: 13, weight: .semibold)).lineLimit(1)
-                            Text("\(entry.setup.tool) · " + (entry.report.map { FrenchDate.relative($0.date) } ?? "jamais mesuré"))
+                            Text("\(entry.setup.tool) · " + (entry.report.map { FrenchDate.relative($0.date) } ?? String(localized: "jamais mesuré")))
                                 .font(.system(size: 11)).foregroundStyle(Theme.muted).lineLimit(1)
                         }
                         Spacer(minLength: 4)
@@ -103,7 +103,7 @@ private struct ProjectList: View {
         if entry.report == nil {
             Text("aucun rapport").font(.system(size: 11)).foregroundStyle(Theme.muted)
         } else if let delta = entry.trend, abs(delta) >= 0.5 {
-            Text(delta > 0 ? "▲ \(Int(delta.rounded())) pts" : "▼ \(Int((-delta).rounded())) pts")
+            Text(delta > 0 ? String(localized: "▲ \(Int(delta.rounded())) pts") : String(localized: "▼ \(Int((-delta).rounded())) pts"))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(delta > 0 ? Tag.green.0 : Tag.red.0)
         } else {
@@ -131,7 +131,7 @@ private struct Ring: View {
                 .monospacedDigit()
         }
         .frame(width: 40, height: 40)
-        .accessibilityLabel(value.map { "\(Int($0)) % de lignes couvertes" } ?? "Pas de rapport")
+        .accessibilityLabel(value.map { String(localized: "\(Int($0)) % de lignes couvertes") } ?? String(localized: "Pas de rapport"))
     }
 }
 
@@ -153,10 +153,10 @@ private struct CoverageDetail: View {
                 }
                 Spacer()
                 if entry.setup.missing != nil, let plan = CoverageDetector.installPlan(project: entry.project, setup: entry.setup, thenRun: true) {
-                    Button("Ajouter et mesurer…") { model.preview(plan) }
+                    Button(String(localized: "Ajouter et mesurer…")) { model.preview(plan) }
                         .buttonStyle(PillButtonStyle(kind: .smallFilled))
                 } else if let plan = CoverageDetector.runPlan(project: entry.project, setup: entry.setup) {
-                    Button("Lancer les tests avec couverture…") { model.preview(plan) }
+                    Button(String(localized: "Lancer les tests avec couverture…")) { model.preview(plan) }
                         .buttonStyle(PillButtonStyle(kind: .smallFilled))
                         .disabled(model.runner.locator.locate(entry.setup.command!.tool) == nil && !entry.setup.command!.tool.hasPrefix("./"))
                 }
@@ -172,7 +172,7 @@ private struct CoverageDetail: View {
                             .font(.system(size: 12).monospaced()).foregroundStyle(Theme.muted).textSelection(.enabled)
                         Spacer()
                         if let plan = CoverageDetector.installPlan(project: entry.project, setup: entry.setup, thenRun: false) {
-                            Button("Ajouter seulement…") { model.preview(plan) }.buttonStyle(PillButtonStyle(kind: .small))
+                            Button(String(localized: "Ajouter seulement…")) { model.preview(plan) }.buttonStyle(PillButtonStyle(kind: .small))
                         }
                     }
                 }
@@ -182,27 +182,27 @@ private struct CoverageDetail: View {
             }
             if let report = entry.report {
                 HStack(spacing: 10) {
-                    metric("Lignes", report.lines)
+                    metric(String(localized: "Lignes"), report.lines)
                     if let branches = report.branches { metric("Branches", branches) }
-                    if let functions = report.functions { metric("Fonctions", functions) }
+                    if let functions = report.functions { metric(String(localized: "Fonctions"), functions) }
                 }
                 weakest(report)
                 HStack(spacing: 8) {
-                    Text("Rapport \(report.format.label) · \(report.file) · \(FrenchDate.relative(report.date))")
+                    Text(String(localized: "Rapport \(report.format.label) · \(report.file) · \(FrenchDate.relative(report.date))"))
                         .font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.middle)
                     Spacer()
                     if report.lines < Double(threshold) {
                         Button("Demander à Claude d’ajouter des tests", systemImage: "sparkles") {
                             model.askClaude(entry.project, prompt: ClaudePrompts.coverage(weakest: report.weakest(), threshold: threshold),
-                                            context: "Couverture de \(entry.project.lastPathComponent) : \(Int(report.lines)) %")
+                                            context: String(localized: "Couverture de \(entry.project.lastPathComponent) : \(Int(report.lines)) %"))
                         }
                         .buttonStyle(.small)
                     }
                 }
             } else {
                 Text(entry.setup.command == nil
-                     ? "Aucun outil de couverture reconnu pour ce projet."
-                     : "Aucun rapport de couverture trouvé. Lancez les tests avec couverture pour en générer un : la commande est montrée avant d’être exécutée.")
+                     ? String(localized: "Aucun outil de couverture reconnu pour ce projet.")
+                     : String(localized: "Aucun rapport de couverture trouvé. Lancez les tests avec couverture pour en générer un : la commande est montrée avant d’être exécutée."))
                     .font(.system(size: 13)).foregroundStyle(Theme.muted)
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)

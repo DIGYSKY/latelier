@@ -231,9 +231,9 @@ final class AppModel {
             let entry = await runQuietly(GitClient.fetchPlan(targets))
             repos.fetching = false
             repos.message = switch entry.outcome {
-            case .success: "Fetch terminé · \(targets.count) dépôt(s) à jour"
+            case .success: String(localized: "Fetch terminé · \(targets.count) dépôt(s) à jour")
             case .partial(let text), .failure(let text): text
-            case .cancelled: "Fetch annulé"
+            case .cancelled: String(localized: "Fetch annulé")
             }
         }
     }
@@ -249,7 +249,7 @@ final class AppModel {
             history = try await historyStore.all()
             historyError = nil
         } catch {
-            historyError = "Historique illisible : \(error.localizedDescription)"
+            historyError = String(localized: "Historique illisible : \(error.localizedDescription)")
         }
     }
 
@@ -258,7 +258,7 @@ final class AppModel {
         do {
             try await historyStore.append(entry)
         } catch {
-            historyError = "Impossible d’enregistrer l’historique : \(error.localizedDescription)"
+            historyError = String(localized: "Impossible d’enregistrer l’historique : \(error.localizedDescription)")
         }
         if entry.kind == .nettoyage {
             recorder.reload()
@@ -303,7 +303,7 @@ final class AppModel {
         do {
             try await historyStore.clear()
         } catch {
-            historyError = "Impossible de vider l’historique : \(error.localizedDescription)"
+            historyError = String(localized: "Impossible de vider l’historique : \(error.localizedDescription)")
         }
         await reloadHistory()
     }

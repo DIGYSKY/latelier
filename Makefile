@@ -1,10 +1,14 @@
-.PHONY: build test smoke app run dmg release install cert icon clean
+.PHONY: build test smoke l10n app run dmg release install cert icon clean
 
 build:
 	swift build
 
 test:
 	scripts/test.sh
+
+# Traductions : phrases de l'app sans traduction anglaise (Support/Localization/en.json).
+l10n:
+	scripts/l10n.py
 
 # De bout en bout : chaque écran de la vraie app s'ouvre sans planter (quitte L’Atelier s'il est ouvert).
 smoke: app

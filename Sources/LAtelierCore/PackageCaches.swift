@@ -36,12 +36,12 @@ public struct PackageCacheScanner: Sendable {
         }
 
         let groups: [(String, String, String, CleanupGroup.Tone, [Candidate])] = [
-            ("managers", "Gestionnaires de paquets", "Re-téléchargés à la demande au prochain install", .normal,
+            ("managers", String(localized: "Gestionnaires de paquets"), String(localized: "Re-téléchargés à la demande au prochain install"), .normal,
              candidates.filter { $0.group == "managers" }),
             ("xcode", "Xcode", "~/Library/Developer", .normal, candidates.filter { $0.group == "xcode" }),
-            ("dotcache", "~/.cache · au cas par cas", "Chaque dossier est décrit ; rien n’est coché sans explication", .neutral,
+            ("dotcache", "~/.cache · au cas par cas", String(localized: "Chaque dossier est décrit ; rien n’est coché sans explication"), .neutral,
              candidates.filter { $0.group == "dotcache" }),
-            ("toolchains", "Toolchains · protégées", "Les supprimer casserait vos outils", .neutral, toolchains),
+            ("toolchains", String(localized: "Toolchains · protégées"), String(localized: "Les supprimer casserait vos outils"), .neutral, toolchains),
         ]
         return groups.compactMap { id, title, detail, tone, list in
             let rows = items(list)
@@ -91,24 +91,24 @@ public struct PackageCacheScanner: Sendable {
         var list: [Candidate] = []
         let npm = command("npm", ["cache", "clean", "--force"])
         list.append(Candidate(group: "managers", name: "npm", url: path(".npm/_cacache"), commands: npm,
-                              lockReason: npm.isEmpty ? "npm introuvable : à nettoyer avec npm" : nil))
+                              lockReason: npm.isEmpty ? String(localized: "npm introuvable : à nettoyer avec npm") : nil))
         let pnpmPrune = command("pnpm", ["store", "prune"])
-        list.append(Candidate(group: "managers", name: "pnpm", url: pnpm, meta: "paquets non référencés seulement",
-                              commands: pnpmPrune, lockReason: pnpmPrune.isEmpty ? "pnpm introuvable : à nettoyer avec pnpm" : nil))
+        list.append(Candidate(group: "managers", name: "pnpm", url: pnpm, meta: String(localized: "paquets non référencés seulement"),
+                              commands: pnpmPrune, lockReason: pnpmPrune.isEmpty ? String(localized: "pnpm introuvable : à nettoyer avec pnpm") : nil))
         let bun = command("bun", ["pm", "cache", "rm"])
         list.append(Candidate(group: "managers", name: "Bun", url: path(".bun/install/cache"), commands: bun))
         let go = command("go", ["clean", "-modcache"])
         list.append(Candidate(group: "managers", name: "Go (modules)", url: gomod, commands: go,
-                              lockReason: go.isEmpty ? "go introuvable : les fichiers sont en lecture seule" : nil))
-        list.append(Candidate(group: "managers", name: "Cargo (registre)", url: path(".cargo/registry/cache"),
-                              meta: "archives des crates téléchargées"))
-        list.append(Candidate(group: "managers", name: "Cargo (sources)", url: path(".cargo/registry/src"),
-                              meta: "sources décompressées, recréées au build"))
+                              lockReason: go.isEmpty ? String(localized: "go introuvable : les fichiers sont en lecture seule") : nil))
+        list.append(Candidate(group: "managers", name: String(localized: "Cargo (registre)"), url: path(".cargo/registry/cache"),
+                              meta: String(localized: "archives des crates téléchargées")))
+        list.append(Candidate(group: "managers", name: String(localized: "Cargo (sources)"), url: path(".cargo/registry/src"),
+                              meta: String(localized: "sources décompressées, recréées au build")))
         list.append(Candidate(group: "managers", name: "Maven", url: path(".m2/repository"),
-                              meta: "Build suivant plus long", risk: .caution, selected: false))
+                              meta: String(localized: "Build suivant plus long"), risk: .caution, selected: false))
         list.append(Candidate(group: "managers", name: "Gradle", url: path(".gradle/caches"),
-                              meta: "Build suivant plus long", risk: .caution, selected: false))
-        list.append(Candidate(group: "managers", name: "Composer", url: path(".composer/cache"), meta: "cache PHP"))
+                              meta: String(localized: "Build suivant plus long"), risk: .caution, selected: false))
+        list.append(Candidate(group: "managers", name: "Composer", url: path(".composer/cache"), meta: String(localized: "cache PHP")))
         // Les caches rangés dans ~/Library/Caches (yarn, pip, Homebrew, CocoaPods, Deno) sont dans Stockage › Système.
         return list.filter { Self.exists($0.url) }
     }
@@ -119,16 +119,16 @@ public struct PackageCacheScanner: Sendable {
             .filter { !$0.hasPrefix(".") && $0 != "ModuleCache.noindex" }.count
         var list = [
             Candidate(group: "xcode", name: "DerivedData", url: derived, meta: projects > 0 ? "\(projects) projet\(projects > 1 ? "s" : "")" : nil),
-            Candidate(group: "xcode", name: "Supports d’appareils iOS", url: path("Library/Developer/Xcode/iOS DeviceSupport"),
-                      meta: "recréés à la connexion d’un appareil"),
-            Candidate(group: "xcode", name: "Caches des simulateurs", url: path("Library/Developer/CoreSimulator/Caches")),
+            Candidate(group: "xcode", name: String(localized: "Supports d’appareils iOS"), url: path("Library/Developer/Xcode/iOS DeviceSupport"),
+                      meta: String(localized: "recréés à la connexion d’un appareil")),
+            Candidate(group: "xcode", name: String(localized: "Caches des simulateurs"), url: path("Library/Developer/CoreSimulator/Caches")),
             Candidate(group: "xcode", name: "Archives", url: path("Library/Developer/Xcode/Archives"),
-                      meta: "vos builds archivés (dSYM pour les rapports de plantage)", risk: .caution, selected: false),
+                      meta: String(localized: "vos builds archivés (dSYM pour les rapports de plantage)"), risk: .caution, selected: false),
         ]
         if let xcrun = runner.locator.locate("xcrun"),
            FileManager.default.fileExists(atPath: "/Applications/Xcode.app") {
-            list.append(Candidate(group: "xcode", name: "Simulateurs indisponibles", url: path("Library/Developer/CoreSimulator/Devices"),
-                                  meta: "seuls ceux d’un runtime absent sont supprimés", risk: .caution, selected: false,
+            list.append(Candidate(group: "xcode", name: String(localized: "Simulateurs indisponibles"), url: path("Library/Developer/CoreSimulator/Devices"),
+                                  meta: String(localized: "seuls ceux d’un runtime absent sont supprimés"), risk: .caution, selected: false,
                                   commands: [CommandSpec(xcrun.path, ["simctl", "delete", "unavailable"])]))
         }
         return list.filter { Self.exists($0.url) }
@@ -136,28 +136,28 @@ public struct PackageCacheScanner: Sendable {
 
     /// Dossiers connus de `~/.cache` : (nom, description, risque, commande).
     static let knownDotCache: [String: (String, String, Risk)] = [
-        "pip": ("pip", "Paquets Python téléchargés", .safe),
-        "uv": ("uv", "Paquets Python téléchargés par uv", .safe),
-        "pypoetry": ("Poetry", "Paquets Python téléchargés", .safe),
-        "pre-commit": ("pre-commit", "Environnements des hooks, recréés au besoin", .safe),
-        "node": ("Corepack", "Versions de pnpm / yarn téléchargées par Corepack", .safe),
-        "node-gyp": ("node-gyp", "En-têtes Node pour compiler les modules natifs", .safe),
-        "typescript": ("TypeScript", "Types téléchargés par l’éditeur", .safe),
-        "yarn": ("Yarn", "Paquets téléchargés", .safe),
-        "deno": ("Deno", "Modules téléchargés", .safe),
-        "prisma": ("Prisma", "Moteurs Prisma, re-téléchargés au prochain generate", .safe),
-        "giget": ("giget", "Modèles de projets téléchargés", .safe),
-        "puppeteer": ("Puppeteer", "Navigateurs téléchargés pour les tests (long à re-télécharger)", .caution),
-        "selenium": ("Selenium", "Pilotes de navigateurs", .safe),
-        "huggingface": ("Hugging Face", "Modèles téléchargés : longs à re-télécharger", .caution),
-        "torch": ("PyTorch", "Modèles téléchargés", .caution),
-        "whisper": ("Whisper", "Modèles de transcription", .caution),
-        "gitstatus": ("gitstatus", "Binaire du prompt Powerlevel10k : re-téléchargé au prochain shell", .caution),
-        "gh": ("GitHub CLI", "Extensions et données de gh", .caution),
-        "codex-runtimes": ("Codex", "Environnements d’exécution de Codex (OpenAI), re-téléchargés au besoin", .caution),
-        "claude": ("Claude Code", "Cache de Claude Code", .caution),
-        "opencode": ("opencode", "Cache d’opencode", .caution),
-        "outlines": ("Outlines", "Grammaires compilées (bibliothèque Python outlines)", .safe),
+        "pip": ("pip", String(localized: "Paquets Python téléchargés"), .safe),
+        "uv": ("uv", String(localized: "Paquets Python téléchargés par uv"), .safe),
+        "pypoetry": ("Poetry", String(localized: "Paquets Python téléchargés"), .safe),
+        "pre-commit": ("pre-commit", String(localized: "Environnements des hooks, recréés au besoin"), .safe),
+        "node": ("Corepack", String(localized: "Versions de pnpm / yarn téléchargées par Corepack"), .safe),
+        "node-gyp": ("node-gyp", String(localized: "En-têtes Node pour compiler les modules natifs"), .safe),
+        "typescript": ("TypeScript", String(localized: "Types téléchargés par l’éditeur"), .safe),
+        "yarn": ("Yarn", String(localized: "Paquets téléchargés"), .safe),
+        "deno": ("Deno", String(localized: "Modules téléchargés"), .safe),
+        "prisma": ("Prisma", String(localized: "Moteurs Prisma, re-téléchargés au prochain generate"), .safe),
+        "giget": ("giget", String(localized: "Modèles de projets téléchargés"), .safe),
+        "puppeteer": ("Puppeteer", String(localized: "Navigateurs téléchargés pour les tests (long à re-télécharger)"), .caution),
+        "selenium": ("Selenium", String(localized: "Pilotes de navigateurs"), .safe),
+        "huggingface": ("Hugging Face", String(localized: "Modèles téléchargés : longs à re-télécharger"), .caution),
+        "torch": ("PyTorch", String(localized: "Modèles téléchargés"), .caution),
+        "whisper": ("Whisper", String(localized: "Modèles de transcription"), .caution),
+        "gitstatus": ("gitstatus", String(localized: "Binaire du prompt Powerlevel10k : re-téléchargé au prochain shell"), .caution),
+        "gh": ("GitHub CLI", String(localized: "Extensions et données de gh"), .caution),
+        "codex-runtimes": ("Codex", String(localized: "Environnements d’exécution de Codex (OpenAI), re-téléchargés au besoin"), .caution),
+        "claude": ("Claude Code", String(localized: "Cache de Claude Code"), .caution),
+        "opencode": ("opencode", String(localized: "Cache d’opencode"), .caution),
+        "outlines": ("Outlines", String(localized: "Grammaires compilées (bibliothèque Python outlines)"), .safe),
     ]
 
     func dotCacheCandidates() -> [Candidate] {
@@ -170,24 +170,24 @@ public struct PackageCacheScanner: Sendable {
             if name.hasPrefix("p10k") { return nil }
             if let known = Self.knownDotCache[name] {
                 return Candidate(group: "dotcache", name: known.0, url: url, detail: "~/.cache/\(name) · \(known.1)",
-                                 meta: known.2 == .safe ? "recréable" : "à vérifier", risk: known.2, selected: known.2 == .safe)
+                                 meta: known.2 == .safe ? String(localized: "recréable") : String(localized: "à vérifier"), risk: known.2, selected: known.2 == .safe)
             }
             return Candidate(group: "dotcache", name: name, url: url, detail: "~/.cache/\(name) · outil non identifié",
-                             meta: "à vérifier", risk: .caution, selected: false)
+                             meta: String(localized: "à vérifier"), risk: .caution, selected: false)
         }
     }
 
     func toolchainCandidates() -> [Candidate] {
         [
-            (".rustup", "Toolchains Rust installées"), (".cargo/bin", "Binaires installés via cargo install"),
-            (".nvm/versions", "Versions de Node.js"), (".pyenv/versions", "Versions de Python"),
-            (".volta", "Versions de Node.js (Volta)"), (".local/share/mise/installs", "Versions installées par mise"),
-            (".sdkman/candidates", "JDK et outils Java"), (".bun/bin", "Bun"), (".deno/bin", "Deno"),
-            ("go/bin", "Binaires installés via go install"),
+            (".rustup", String(localized: "Toolchains Rust installées")), (".cargo/bin", String(localized: "Binaires installés via cargo install")),
+            (".nvm/versions", String(localized: "Versions de Node.js")), (".pyenv/versions", String(localized: "Versions de Python")),
+            (".volta", String(localized: "Versions de Node.js (Volta)")), (".local/share/mise/installs", String(localized: "Versions installées par mise")),
+            (".sdkman/candidates", String(localized: "JDK et outils Java")), (".bun/bin", "Bun"), (".deno/bin", "Deno"),
+            ("go/bin", String(localized: "Binaires installés via go install")),
         ]
         .map { relative, detail in
             Candidate(group: "toolchains", name: "~/" + relative, url: path(relative), detail: detail, meta: "—",
-                      risk: .protected, selected: false, lockReason: "toolchain : jamais supprimée")
+                      risk: .protected, selected: false, lockReason: String(localized: "toolchain : jamais supprimée"))
         }
         .filter { Self.exists($0.url) }
     }

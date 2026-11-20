@@ -19,8 +19,8 @@ struct CommandsPage: View {
             if let current, let set {
                 if set.commands.isEmpty {
                     Card {
-                        EmptyState(symbol: "terminal", title: "Aucune commande détectée",
-                                   message: "Ni package.json, Makefile, justfile, Taskfile, compose, Cargo, Maven, Gradle, pyproject ou Package.swift dans ce projet.")
+                        EmptyState(symbol: "terminal", title: String(localized: "Aucune commande détectée"),
+                                   message: String(localized: "Ni package.json, Makefile, justfile, Taskfile, compose, Cargo, Maven, Gradle, pyproject ou Package.swift dans ce projet."))
                     }
                 } else {
                     HStack(alignment: .top, spacing: 14) {
@@ -34,9 +34,9 @@ struct CommandsPage: View {
                     }
                 }
             } else if model.repos.scanning {
-                ScanningCard(label: "Recherche des projets…")
+                ScanningCard(label: String(localized: "Recherche des projets…"))
             } else {
-                Card { EmptyState(symbol: "folder", title: "Aucun projet", message: "Ajoutez un dossier de projets dans Réglages › Projets.") }
+                Card { EmptyState(symbol: "folder", title: String(localized: "Aucun projet"), message: String(localized: "Ajoutez un dossier de projets dans Réglages › Projets.")) }
             }
         }
         .onAppear { model.ensureRepos() }
@@ -49,8 +49,8 @@ struct CommandsPage: View {
     }
 
     private func subtitle(_ set: ProjectCommandSet?) -> String {
-        guard let set, !set.sources.isEmpty else { return "Les commandes de vos projets, lancées dans leur dossier" }
-        return "Détectées dans \(set.sources.joined(separator: ", ")) · lancées dans le dossier du projet"
+        guard let set, !set.sources.isEmpty else { return String(localized: "Les commandes de vos projets, lancées dans leur dossier") }
+        return String(localized: "Détectées dans \(set.sources.joined(separator: ", ")) · lancées dans le dossier du projet")
     }
 
     @ViewBuilder
@@ -89,7 +89,7 @@ private struct CommandGroups: View {
         let center = model.commandCenter!
         let pinned = set.commands.filter { center.isPinned(project, $0) }
         VStack(spacing: 14) {
-            if !pinned.isEmpty { group("Épinglées", pinned) }
+            if !pinned.isEmpty { group(String(localized: "Épinglées"), pinned) }
             ForEach(CommandCategory.allCases, id: \.self) { category in
                 let commands = set.commands.filter { $0.category == category && !center.isPinned(project, $0) }
                 if !commands.isEmpty { group(category.title, commands) }
@@ -137,7 +137,7 @@ private struct CommandRow: View {
                     .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(pinned ? "Désépingler \(command.name)" : "Épingler \(command.name)")
+            .accessibilityLabel(pinned ? String(localized: "Désépingler \(command.name)") : String(localized: "Épingler \(command.name)"))
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
@@ -150,7 +150,7 @@ private struct CommandRow: View {
                         .overlay(Capsule().strokeBorder(Theme.hairline))
                     if command.isSensitive {
                         Tag(text: "sensible", foreground: Tag.orange.0, background: Tag.orange.1)
-                            .help("Déploiement, migration ou suppression : un aperçu est demandé avant de lancer.")
+                            .help(String(localized: "Déploiement, migration ou suppression : un aperçu est demandé avant de lancer."))
                     }
                 }
                 Text("$ \(command.commandLine)")
@@ -171,7 +171,7 @@ private struct CommandRow: View {
             Button {
                 if running { center.stop(key) } else { run() }
             } label: {
-                Label(running ? "Arrêter" : "Exécuter", systemImage: running ? "stop.fill" : "play.fill")
+                Label(running ? String(localized: "Arrêter") : String(localized: "Exécuter"), systemImage: running ? "stop.fill" : "play.fill")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 12)
@@ -188,19 +188,19 @@ private struct CommandRow: View {
         .contentShape(.rect)
         .onTapGesture { if center.runs[key] != nil { center.focus = key } }
         .contextMenu {
-            Button("Exécuter et enregistrer les performances") {
+            Button(String(localized: "Exécuter et enregistrer les performances")) {
                 model.recorder.arm(project: project, label: command.name)
                 run()
             }
             .disabled(running)
-            Button("Copier la commande") {
+            Button(String(localized: "Copier la commande")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(command.spec.displayString, forType: .string)
             }
             if let last, !last.errorTail.isEmpty {
-                Button("Demander à Claude de corriger") {
+                Button(String(localized: "Demander à Claude de corriger")) {
                     model.askClaude(project, prompt: ClaudePrompts.failedCommand(command.commandLine, tail: last.errorTail),
-                                    context: "« \(command.name) » échoue")
+                                    context: String(localized: "« \(command.name) » échoue"))
                 }
             }
         }
@@ -215,7 +215,7 @@ private struct CommandRow: View {
     }
 
     private func lastLabel(_ record: CommandRunRecord?) -> String {
-        guard let record else { return "jamais lancée" }
+        guard let record else { return String(localized: "jamais lancée") }
         let when = FrenchDate.relative(record.date)
         guard let status = record.status else { return "■ \(when)" }
         if status == 0 { return "✓ \(when) · \(Format.duration(record.duration))" }
@@ -238,7 +238,7 @@ private struct OutputPanel: View {
             HStack(spacing: 8) {
                 Circle().fill(run?.running == true ? Tag.green.0 : (run.map { $0.status == 0 || $0.stopped } ?? true ? Theme.muted : Tag.red.0))
                     .frame(width: 8, height: 8)
-                Text(run.map { "$ \($0.command.commandLine)" } ?? "Sortie")
+                Text(run.map { "$ \($0.command.commandLine)" } ?? String(localized: "Sortie"))
                     .font(.system(size: 12, weight: .semibold).monospaced())
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -247,7 +247,7 @@ private struct OutputPanel: View {
                     Text(run.stateLabel).font(.system(size: 12)).foregroundStyle(Theme.muted)
                 }
             }
-            ConsoleBlock(text: run?.lines.suffix(300).joined(separator: "\n") ?? "Lancez une commande : sa sortie s’affiche ici en direct.", maxHeight: 300)
+            ConsoleBlock(text: run?.lines.suffix(300).joined(separator: "\n") ?? String(localized: "Lancez une commande : sa sortie s’affiche ici en direct."), maxHeight: 300)
             if let run, let key {
                 HStack(spacing: 8) {
                     if run.running {
@@ -255,12 +255,12 @@ private struct OutputPanel: View {
                     } else if run.status != 0 && !run.stopped {
                         Button("Demander à Claude", systemImage: "sparkles") {
                             model.askClaude(project, prompt: ClaudePrompts.failedCommand(run.command.commandLine, tail: Array(run.lines.suffix(40))),
-                                            context: "« \(run.command.name) » échoue")
+                                            context: String(localized: "« \(run.command.name) » échoue"))
                         }
                         .buttonStyle(.small)
                     }
                     Spacer()
-                    Button("Copier la sortie") {
+                    Button(String(localized: "Copier la sortie")) {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(run.lines.joined(separator: "\n"), forType: .string)
                     }
@@ -291,24 +291,24 @@ private struct SuggestionsCard: View {
                 Text("Rien à suggérer pour ce projet.").font(.system(size: 13)).foregroundStyle(Theme.muted)
             }
             if let port, !center.isDismissed(project, "port") {
-                item(title: "Le port \(port.port) est occupé",
-                     why: "« \(port.command) » a échoué : un autre processus écoute déjà sur ce port.",
-                     preview: "lsof -iTCP:\(port.port) -sTCP:LISTEN") {
-                    Button("Voir dans Réseau") { model.selection = .reseau }.buttonStyle(.small)
-                    claudeButton("Le port \(port.port) est occupé", "« \(port.command) » échoue sur EADDRINUSE. Rends le port configurable ou libère-le proprement.")
-                    Button("Ignorer") { center.dismiss(project, id: "port") }
+                item(title: String(localized: "Le port \(String(port.port)) est occupé"),
+                     why: String(localized: "« \(port.command) » a échoué : un autre processus écoute déjà sur ce port."),
+                     preview: String(localized: "lsof -iTCP:\(String(port.port)) -sTCP:LISTEN")) {
+                    Button(String(localized: "Voir dans Réseau")) { model.selection = .reseau }.buttonStyle(.small)
+                    claudeButton(String(localized: "Le port \(String(port.port)) est occupé"), String(localized: "« \(port.command) » échoue sur EADDRINUSE. Rends le port configurable ou libère-le proprement."))
+                    Button(String(localized: "Ignorer")) { center.dismiss(project, id: "port") }
                         .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Theme.muted)
                 }
             }
             ForEach(suggestions) { suggestion in
                 item(title: suggestion.title, why: suggestion.why, preview: suggestion.preview) {
                     if let plan = CommandCenter.suggestionPlan(suggestion, project: project) {
-                        Button("Ajouter au projet…") { model.preview(plan) }
+                        Button(String(localized: "Ajouter au projet…")) { model.preview(plan) }
                             .buttonStyle(PillButtonStyle(kind: .smallFilled))
                             .fixedSize()
                     }
                     claudeButton(suggestion.title, suggestion.why)
-                    Button("Ignorer") { center.dismiss(project, id: suggestion.id) }
+                    Button(String(localized: "Ignorer")) { center.dismiss(project, id: suggestion.id) }
                         .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Theme.muted)
                 }
             }
@@ -319,7 +319,7 @@ private struct SuggestionsCard: View {
     }
 
     private func claudeButton(_ title: String, _ why: String) -> some View {
-        Button("Demander à Claude") {
+        Button(String(localized: "Demander à Claude")) {
             model.askClaude(project, prompt: ClaudePrompts.suggestion(title: title, why: why), context: title)
         }
         .buttonStyle(.small)
@@ -347,9 +347,9 @@ extension FrenchDate {
     /// « il y a 3 j », « hier », « à l’instant ».
     static func relative(_ date: Date, now: Date = Date()) -> String {
         let seconds = now.timeIntervalSince(date)
-        if seconds < 60 { return "à l’instant" }
+        if seconds < 60 { return String(localized: "à l’instant") }
         let formatter = RelativeDateTimeFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.locale = Locale.current
         formatter.unitsStyle = .short
         formatter.dateTimeStyle = .named
         return formatter.localizedString(for: date, relativeTo: now)

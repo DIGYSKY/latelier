@@ -184,14 +184,14 @@ final class RemoteBrowser {
             let bytes = urls.reduce(Int64(0)) { $0 + DiskUsage.measure($1).bytes }
             let summary: String
             if !verified {
-                summary = "Copie dans \(target) (\(Format.bytes(bytes))). L’absence de fichiers du même nom n’a pas pu être vérifiée : un fichier existant serait remplacé."
+                summary = String(localized: "Copie dans \(target) (\(Format.bytes(bytes))). L’absence de fichiers du même nom n’a pas pu être vérifiée : un fichier existant serait remplacé.")
             } else if conflicts.isEmpty {
-                summary = "Copie dans \(target) (\(Format.bytes(bytes)))."
+                summary = String(localized: "Copie dans \(target) (\(Format.bytes(bytes))).")
             } else {
-                summary = "Remplacera sur le serveur : \(conflicts.joined(separator: ", ")). L’ancienne version sera perdue ; un dossier envoyé se mélange au dossier existant."
+                summary = String(localized: "Remplacera sur le serveur : \(conflicts.joined(separator: ", ")). L’ancienne version sera perdue ; un dossier envoyé se mélange au dossier existant.")
             }
             let plan = ActionPlan(
-                title: "Envoyer \(names.count == 1 ? "« \(names[0]) »" : "\(names.count) éléments") sur \(alias)",
+                title: String(localized: "Envoyer \(names.count == 1 ? "« \(names[0]) »" : String(localized: "\(names.count) éléments")) sur \(alias)"),
                 summary: summary, kind: .serveur, risk: verified && conflicts.isEmpty ? .safe : .caution, reversible: false,
                 steps: [.command(commands.upload(urls, to: target))], estimatedBytes: bytes
             )
@@ -210,10 +210,10 @@ final class RemoteBrowser {
         let conflicts = files.map(\.name).filter { FileManager.default.fileExists(atPath: destination.appendingPathComponent($0).path) }
         let bytes = files.filter { !$0.isDirectory }.reduce(Int64(0)) { $0 + $1.size }
         let plan = ActionPlan(
-            title: "Télécharger \(files.count == 1 ? "« \(files[0].name) »" : "\(files.count) éléments") depuis \(alias)",
+            title: String(localized: "Télécharger \(files.count == 1 ? "« \(files[0].name) »" : String(localized: "\(files.count) éléments")) depuis \(alias)"),
             summary: conflicts.isEmpty
-                ? "Copie dans \(destination.abbreviatingHome())."
-                : "Remplacera sur ce Mac, dans \(destination.abbreviatingHome()) : \(conflicts.joined(separator: ", ")).",
+                ? String(localized: "Copie dans \(destination.abbreviatingHome()).")
+                : String(localized: "Remplacera sur ce Mac, dans \(destination.abbreviatingHome()) : \(conflicts.joined(separator: ", "))."),
             kind: .serveur, risk: conflicts.isEmpty ? .safe : .caution, reversible: false,
             steps: [.command(commands.download(files.map(\.path), to: destination))]
         )
@@ -229,7 +229,7 @@ final class RemoteBrowser {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
-        panel.prompt = "Télécharger ici"
+        panel.prompt = String(localized: "Télécharger ici")
         panel.directoryURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
         if panel.runModal() == .OK, let folder = panel.url { download(files, to: folder) }
     }
@@ -239,8 +239,8 @@ final class RemoteBrowser {
         panel.canChooseDirectories = true
         panel.canChooseFiles = true
         panel.allowsMultipleSelection = true
-        panel.prompt = "Importer"
-        panel.message = "Fichiers ou dossiers à envoyer dans \(path ?? "le dossier courant")"
+        panel.prompt = String(localized: "Importer")
+        panel.message = String(localized: "Fichiers ou dossiers à envoyer dans \(path ?? String(localized: "le dossier courant"))")
         if panel.runModal() == .OK { upload(panel.urls) }
     }
 
@@ -268,18 +268,18 @@ final class RemoteBrowser {
     // MARK: Dossiers, renommage, suppression
 
     func makeDirectory(_ name: String) {
-        guard let path, RemotePath.isValidName(name) else { notice = "Nom invalide."; return }
+        guard let path, RemotePath.isValidName(name) else { notice = String(localized: "Nom invalide."); return }
         guard !files.contains(where: { $0.name == name }) else { notice = "« \(name) » existe déjà ici."; return }
-        run(ActionPlan(title: "Nouveau dossier « \(name) » sur \(alias)", summary: "Dans \(path).", kind: .serveur, risk: .safe,
+        run(ActionPlan(title: String(localized: "Nouveau dossier « \(name) » sur \(alias)"), summary: String(localized: "Dans \(path)."), kind: .serveur, risk: .safe,
                        reversible: true, steps: [.command(commands.makeDirectory(RemotePath.join(path, name)))]))
     }
 
     /// Renommer ne remplace jamais : la commande refuse si le nom est pris.
     func rename(_ file: RemoteFile, to name: String) {
         guard name != file.name else { return }
-        guard RemotePath.isValidName(name) else { notice = "Nom invalide."; return }
+        guard RemotePath.isValidName(name) else { notice = String(localized: "Nom invalide."); return }
         let target = RemotePath.join(RemotePath.parent(file.path), name)
-        run(ActionPlan(title: "Renommer « \(file.name) » en « \(name) » sur \(alias)", summary: "Dans \(RemotePath.parent(file.path)).",
+        run(ActionPlan(title: String(localized: "Renommer « \(file.name) » en « \(name) » sur \(alias)"), summary: String(localized: "Dans \(RemotePath.parent(file.path))."),
                        kind: .serveur, risk: .safe, reversible: true, steps: [.command(commands.rename(file.path, to: target))]))
     }
 
@@ -288,8 +288,8 @@ final class RemoteBrowser {
         guard !files.isEmpty else { return }
         let stamp = Date.now.formatted(.iso8601.year().month().day().time(includingFractionalSeconds: false)).replacingOccurrences(of: ":", with: "-")
         store?.present(ActionPlan(
-            title: "Mettre \(Self.describe(files)) dans la corbeille du serveur",
-            summary: "Déplacé sur \(alias) dans ~/.latelier-corbeille/\(stamp)/ : récupérable tant que ce dossier n’est pas vidé. Rien n’est supprimé définitivement.",
+            title: String(localized: "Mettre \(Self.describe(files)) dans la corbeille du serveur"),
+            summary: String(localized: "Déplacé sur \(alias) dans ~/.latelier-corbeille/\(stamp)/ : récupérable tant que ce dossier n’est pas vidé. Rien n’est supprimé définitivement."),
             kind: .serveur, risk: .caution, reversible: true, steps: [.command(commands.trash(files.map(\.path), stamp: stamp))]
         ))
     }
@@ -297,14 +297,14 @@ final class RemoteBrowser {
     func deletePermanently(_ files: [RemoteFile]) {
         guard !files.isEmpty else { return }
         store?.present(ActionPlan(
-            title: "Supprimer définitivement \(Self.describe(files)) sur \(alias)",
-            summary: "Les fichiers sont effacés du serveur, sans corbeille. Impossible de revenir en arrière.",
+            title: String(localized: "Supprimer définitivement \(Self.describe(files)) sur \(alias)"),
+            summary: String(localized: "Les fichiers sont effacés du serveur, sans corbeille. Impossible de revenir en arrière."),
             kind: .serveur, risk: .danger, reversible: false, steps: [.command(commands.delete(files.map(\.path)))]
         ))
     }
 
     static func describe(_ files: [RemoteFile]) -> String {
-        files.count == 1 ? "« \(files[0].name) »" : "\(files.count) éléments"
+        files.count == 1 ? "« \(files[0].name) »" : String(localized: "\(files.count) éléments")
     }
 
     func copyPath(_ file: RemoteFile) {
@@ -323,7 +323,7 @@ final class RemoteBrowser {
     /// Ouvre dans l'éditeur intégré (texte de moins de 2 Mo).
     func edit(_ file: RemoteFile) {
         guard file.size <= Self.editorLimit else {
-            notice = "« \(file.name) » fait \(Format.bytes(file.size)) : trop gros pour l’éditeur intégré. Ouvrez-le dans votre éditeur."
+            notice = String(localized: "« \(file.name) » fait \(Format.bytes(file.size)) : trop gros pour l’éditeur intégré. Ouvrez-le dans votre éditeur.")
             return
         }
         fetchForEdit(file) { [weak self] edit in
@@ -365,14 +365,14 @@ final class RemoteBrowser {
             loading = false
             guard let result, result.succeeded, let data = try? Data(contentsOf: local) else {
                 let output = result.map { ($0.stderr + $0.stdout).joined(separator: "\n") } ?? "timed out"
-                notice = "Impossible d’ouvrir « \(file.name) » : \(SSHFailure.explain(output).title)."
+                notice = String(localized: "Impossible d’ouvrir « \(file.name) » : \(SSHFailure.explain(output).title).")
                 then(nil)
                 return
             }
             try? data.write(to: original)
             let text = String(data: data, encoding: .utf8)
             if requireText, text == nil || data.contains(0) {
-                notice = "« \(file.name) » n’est pas un fichier texte. Ouvrez-le dans votre éditeur ou téléchargez-le."
+                notice = String(localized: "« \(file.name) » n’est pas un fichier texte. Ouvrez-le dans votre éditeur ou téléchargez-le.")
                 then(nil)
                 return
             }
@@ -389,27 +389,29 @@ final class RemoteBrowser {
                 do {
                     try edit.text.write(to: edit.local, atomically: true, encoding: .utf8)
                 } catch {
-                    notice = "Impossible de préparer l’envoi : \(error.localizedDescription)"
+                    notice = String(localized: "Impossible de préparer l’envoi : \(error.localizedDescription)")
                     return
                 }
             }
             let now = (try? await runner.run(stat, timeout: .seconds(20)))?.stdout.first ?? ""
             if !edit.remoteStamp.isEmpty, !now.isEmpty, now != edit.remoteStamp {
-                notice = "« \(edit.file.name) » a été modifié sur le serveur depuis que vous l’avez ouvert. Rouvrez-le pour repartir de la version actuelle (votre texte reste dans l’éditeur)."
+                notice = String(localized: "« \(edit.file.name) » a été modifié sur le serveur depuis que vous l’avez ouvert. Rouvrez-le pour repartir de la version actuelle (votre texte reste dans l’éditeur).")
                 return
             }
             let newText = (try? String(contentsOf: edit.local, encoding: .utf8)) ?? ""
             let (removed, added) = SSHConfig.diff(edit.originalText, newText)
             let change = edit.external && newText.isEmpty && edit.originalText.isEmpty
-                ? "fichier modifié"
-                : "\(added.count) ligne\(added.count > 1 ? "s" : "") ajoutée\(added.count > 1 ? "s" : "") ou modifiée\(added.count > 1 ? "s" : ""), \(removed.count) retirée\(removed.count > 1 ? "s" : "")"
+                ? String(localized: "fichier modifié")
+                : String(localized: "lignes ajoutées ou modifiées : \(added.count) · retirées : \(removed.count)")
             savingPath = edit.file.path
             // Envoi à côté, puis remplacement seulement si le fichier n'a pas changé entre-temps
             // (vérifié au moment de l'exécution, pas à l'ouverture de l'aperçu).
             let staged = RemotePath.join(RemotePath.parent(edit.file.path), ".\(edit.file.name).latelier-\(UUID().uuidString.prefix(8))")
+            let title = String(localized: "Enregistrer « \(edit.file.name) » sur \(alias)")
+            savingTitle = title
             store?.present(ActionPlan(
-                title: "Enregistrer « \(edit.file.name) » sur \(alias)",
-                summary: "Remplace \(edit.file.path) (\(change)), en gardant ses droits. Refusé si le fichier change sur le serveur d’ici là. L’original reçu reste sur ce Mac : \(edit.original.abbreviatingHome()).",
+                title: title,
+                summary: String(localized: "Remplace \(edit.file.path) (\(change)), en gardant ses droits. Refusé si le fichier change sur le serveur d’ici là. L’original reçu reste sur ce Mac : \(edit.original.abbreviatingHome())."),
                 kind: .serveur, risk: .caution, reversible: false,
                 steps: [.command(commands.put(edit.local, as: staged)),
                         .command(commands.replace(edit.file.path, with: staged, ifUnchanged: now.isEmpty ? edit.remoteStamp : now))]
@@ -419,14 +421,15 @@ final class RemoteBrowser {
 
     /// Fichier en cours d'enregistrement (aperçu ouvert).
     @ObservationIgnored private var savingPath: String?
+    @ObservationIgnored private var savingTitle: String?
 
     /// Une action vient d'être faite : on relit le dossier ; un enregistrement réussi devient la référence.
     func didRecord(_ entry: HistoryEntry) {
-        if let path = savingPath, entry.outcome == .success, entry.title.hasPrefix("Enregistrer") {
+        if let path = savingPath, entry.outcome == .success, entry.title == savingTitle {
             markSaved(path)
             if editing?.file.path == path, let text = editing?.text {
                 editing = nil
-                notice = "« \((path as NSString).lastPathComponent) » enregistré sur \(alias)."
+                notice = String(localized: "« \((path as NSString).lastPathComponent) » enregistré sur \(alias).")
                 _ = text
             }
             savingPath = nil

@@ -6,10 +6,10 @@ public enum Risk: String, Sendable, Codable, CaseIterable, Comparable {
 
     public var label: String {
         switch self {
-        case .safe: "Sans risque"
-        case .caution: "À vérifier"
-        case .danger: "Données"
-        case .protected: "Protégé"
+        case .safe: String(localized: "Sans risque")
+        case .caution: String(localized: "À vérifier")
+        case .danger: String(localized: "Données")
+        case .protected: String(localized: "Protégé")
         }
     }
 
@@ -33,13 +33,13 @@ public enum ActionStep: Sendable, Hashable {
         switch self {
         case .command(let spec): spec.displayString
         case .remove(let url, _, _): url.path
-        case .appendLine(let line, let file): "echo \(ShellQuote.quote(line)) >> \(ShellQuote.quote(file.path))"
+        case .appendLine(let line, let file): String(localized: "echo \(ShellQuote.quote(line)) >> \(ShellQuote.quote(file.path))")
         case .editFile(let edit):
-            "modifier \(edit.file.lastPathComponent) : " + (edit.removed.map { "− \($0)" } + edit.added.map { "+ \($0)" }).joined(separator: "  ")
+            String(localized: "modifier \(edit.file.lastPathComponent) : ") + (edit.removed.map { "− \($0)" } + edit.added.map { "+ \($0)" }).joined(separator: "  ")
         case .signal(let target, let force):
             target.isApp && !force
-                ? "quitter « \(target.name) » (PID \(target.pid))"
-                : "kill -\(force ? "KILL" : "TERM") \(target.pid)   # \(target.name)"
+                ? String(localized: "quitter « \(target.name) » (PID \(String(target.pid)))")
+                : (force ? "kill -KILL \(target.pid)   # \(target.name)" : "kill -TERM \(target.pid)   # \(target.name)")
         }
     }
 
@@ -182,16 +182,16 @@ public struct PlanExecutor: Sendable {
                     break stepLoop
                 }
                 if status != 0, !plan.stopOnFailure {
-                    commandFailures.append(launchError ?? "« \(spec.displayString) » a échoué (code \(status.map(String.init) ?? "?")).")
+                    commandFailures.append(launchError ?? String(localized: "« \(spec.displayString) » a échoué (code \(status.map(String.init) ?? "?"))."))
                     continue
                 }
                 if status != 0 {
                     let reason = launchError
-                        ?? status.map { "« \(spec.displayString) » a échoué (code \($0))." }
-                        ?? "« \(spec.displayString) » s’est arrêtée de façon inattendue."
+                        ?? status.map { String(localized: "« \(spec.displayString) » a échoué (code \($0)).") }
+                        ?? String(localized: "« \(spec.displayString) » s’est arrêtée de façon inattendue.")
                     outcome = completed == 0
                         ? .failure(reason)
-                        : .partial("\(reason) \(completed) étape(s) sur \(total) avaient été faites.")
+                        : .partial(String(localized: "\(reason) \(completed) étape(s) sur \(total) avaient été faites."))
                     break stepLoop
                 }
                 completed += 1
@@ -210,12 +210,12 @@ public struct PlanExecutor: Sendable {
                     onEvent(index, .stderr(reason))
                     onEvent(index, .exited(status: 1, uncaughtSignal: false))
                     logs.append(CommandLog(command: step.displayString, exitStatus: 1, output: reason, duration: Date().timeIntervalSince(start)))
-                    let message = "Impossible de modifier \(file.lastPathComponent) : \(reason)"
+                    let message = String(localized: "Impossible de modifier \(file.lastPathComponent) : \(reason)")
                     if !plan.stopOnFailure {
                         commandFailures.append(message)
                         continue
                     }
-                    outcome = completed == 0 ? .failure(message) : .partial("\(message) \(completed) étape(s) sur \(total) avaient été faites.")
+                    outcome = completed == 0 ? .failure(message) : .partial(String(localized: "\(message) \(completed) étape(s) sur \(total) avaient été faites."))
                     break stepLoop
                 }
 
@@ -239,7 +239,7 @@ public struct PlanExecutor: Sendable {
                         commandFailures.append(reason)
                         continue
                     }
-                    outcome = completed == 0 ? .failure(reason) : .partial("\(reason) \(completed) étape(s) sur \(total) avaient été faites.")
+                    outcome = completed == 0 ? .failure(reason) : .partial(String(localized: "\(reason) \(completed) étape(s) sur \(total) avaient été faites."))
                     break stepLoop
                 }
 
@@ -261,7 +261,7 @@ public struct PlanExecutor: Sendable {
                         commandFailures.append(reason)
                         continue
                     }
-                    outcome = completed == 0 ? .failure(reason) : .partial("\(reason) \(completed) étape(s) sur \(total) avaient été faites.")
+                    outcome = completed == 0 ? .failure(reason) : .partial(String(localized: "\(reason) \(completed) étape(s) sur \(total) avaient été faites."))
                     break stepLoop
                 }
             }
@@ -274,12 +274,12 @@ public struct PlanExecutor: Sendable {
             if stoppedEarly {
                 outcome = completed == 0
                     ? .cancelled
-                    : .partial("Arrêté par l’utilisateur après \(completed) étape(s) sur \(total).")
+                    : .partial(String(localized: "Arrêté par l’utilisateur après \(completed) étape(s) sur \(total)."))
             } else if !commandFailures.isEmpty {
-                let message = commandFailures.count == 1 ? commandFailures[0] : "\(commandFailures.count) commandes sur \(total) ont échoué, voir le détail."
+                let message = commandFailures.count == 1 ? commandFailures[0] : String(localized: "\(commandFailures.count) commandes sur \(total) ont échoué, voir le détail.")
                 outcome = completed == 0 ? .failure(message) : .partial(message)
             } else if removalFailures > 0 {
-                let message = "\(removalFailures) élément(s) n’ont pas pu être retirés, voir le détail."
+                let message = String(localized: "\(removalFailures) élément(s) n’ont pas pu être retirés, voir le détail.")
                 outcome = removalSuccesses == 0 && plan.commands.isEmpty ? .failure(message) : .partial(message)
             }
         }
@@ -397,10 +397,10 @@ private struct RemovalLog {
     /// Rend l'entrée et remet à zéro.
     mutating func flush() -> CommandLog? {
         guard successes + failures > 0 else { return nil }
-        let verb = permanently ? "Suppression définitive" : "Mise à la corbeille"
+        let verb = permanently ? String(localized: "Suppression définitive") : String(localized: "Mise à la corbeille")
         let count = successes + failures
         let log = CommandLog(
-            command: "\(verb) de \(count) élément(s)",
+            command: String(localized: "\(verb) de \(count) élément(s)"),
             exitStatus: failures == 0 ? 0 : 1,
             output: output.text,
             duration: Date().timeIntervalSince(start)
@@ -436,5 +436,5 @@ struct OutputTail {
 /// Le fichier a été modifié entre l'aperçu et l'exécution : on n'écrase rien.
 struct EditConflict: Error, LocalizedError {
     let file: String
-    var errorDescription: String? { "« \(file) » a changé depuis l’aperçu : rien n’a été modifié. Rouvrez la suggestion." }
+    var errorDescription: String? { String(localized: "« \(file) » a changé depuis l’aperçu : rien n’a été modifié. Rouvrez la suggestion.") }
 }

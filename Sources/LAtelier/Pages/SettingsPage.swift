@@ -10,13 +10,13 @@ struct SettingsPage: View {
 
         var label: String {
             switch self {
-            case .general: "Général"
-            case .stockage: "Stockage"
-            case .projets: "Projets"
-            case .verifs: "Vérifications"
+            case .general: String(localized: "Général")
+            case .stockage: String(localized: "Stockage")
+            case .projets: String(localized: "Projets")
+            case .verifs: String(localized: "Vérifications")
             case .notifs: "Notifications"
-            case .privacy: "Confidentialité"
-            case .about: "À propos"
+            case .privacy: String(localized: "Confidentialité")
+            case .about: String(localized: "À propos")
             }
         }
     }
@@ -25,7 +25,7 @@ struct SettingsPage: View {
     @ViewState private var section = ProcessInfo.processInfo.environment["LATELIER_SETTINGS"].flatMap(Section.init(rawValue:)) ?? .general
 
     var body: some View {
-        PageScaffold(page: .reglages, subtitle: "L’Atelier · version \(Self.version)") {
+        PageScaffold(page: .reglages, subtitle: String(localized: "L’Atelier · version \(Self.version)")) {
             EmptyView()
         } content: {
             GlassSegments(selection: $section, items: Section.allCases.map { ($0, $0.label) })
@@ -149,13 +149,13 @@ struct FolderList: View {
                             .background(Theme.hairline, in: .circle)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Retirer \(folder)")
+                    .accessibilityLabel(String(localized: "Retirer \(folder)"))
                 }
                 .padding(.leading, 10).padding(.trailing, 4)
                 .frame(minHeight: 28)
                 .background(Theme.raised, in: .capsule)
             }
-            Button("+ Ajouter un dossier…") {
+            Button(String(localized: "+ Ajouter un dossier…")) {
                 let panel = NSOpenPanel()
                 panel.canChooseDirectories = true
                 panel.canChooseFiles = false
@@ -181,23 +181,33 @@ private struct GeneralSettings: View {
     var body: some View {
         @Bindable var preferences = model.preferences
         SettingsCard {
-            SettingRow(label: "Apparence", help: "Suit le réglage du système par défaut") {
-                Choice(selection: $preferences.appearance, options: [("system", "Système"), ("light", "Clair"), ("dark", "Sombre")])
+            SettingRow(label: String(localized: "Langue"), help: preferences.language != preferences.launchLanguage
+                       ? String(localized: "Redémarrez L’Atelier pour changer de langue")
+                       : String(localized: "Celle de macOS par défaut")) {
+                HStack(spacing: 8) {
+                    if preferences.language != preferences.launchLanguage {
+                        Button(String(localized: "Redémarrer")) { model.relaunch() }.buttonStyle(PillButtonStyle(kind: .smallFilled))
+                    }
+                    Choice(selection: $preferences.language, options: [("system", String(localized: "Système")), ("fr", "Français"), ("en", "English")])
+                }
             }
-            SettingRow(label: "Transparence", help: "Intensité de l’effet verre") {
-                Choice(selection: $preferences.glass, options: [("reduced", "Réduite"), ("normal", "Normale"), ("max", "Maximale")])
+            SettingRow(label: String(localized: "Apparence"), help: String(localized: "Suit le réglage du système par défaut")) {
+                Choice(selection: $preferences.appearance, options: [("system", String(localized: "Système")), ("light", String(localized: "Clair")), ("dark", String(localized: "Sombre"))])
             }
-            SettingRow(label: "Ouvrir à la connexion", help: loginError ?? loginHelp) {
-                Switch(label: "Ouvrir à la connexion", isOn: Binding(get: { loginStatus == .enabled }, set: setLogin))
+            SettingRow(label: String(localized: "Transparence"), help: String(localized: "Intensité de l’effet verre")) {
+                Choice(selection: $preferences.glass, options: [("reduced", String(localized: "Réduite")), ("normal", String(localized: "Normale")), ("max", String(localized: "Maximale"))])
             }
-            SettingRow(label: "Icône dans la barre des menus",
-                       help: "CPU, mémoire, disque et alertes en un coup d’œil ; fermer la fenêtre laisse L’Atelier tourner") {
-                Switch(label: "Icône dans la barre des menus", isOn: $preferences.menuBarIcon)
+            SettingRow(label: String(localized: "Ouvrir à la connexion"), help: loginError ?? loginHelp) {
+                Switch(label: String(localized: "Ouvrir à la connexion"), isOn: Binding(get: { loginStatus == .enabled }, set: setLogin))
             }
-            SettingRow(label: "Accès complet au disque",
-                       help: fullDiskAccess ? "Accordé : la corbeille et tout ~/Library peuvent être mesurés"
-                           : "Non accordé : la corbeille et certaines données d’apps ne sont pas mesurées") {
-                Button("Ouvrir Réglages Système") {
+            SettingRow(label: String(localized: "Icône dans la barre des menus"),
+                       help: String(localized: "CPU, mémoire, disque et alertes en un coup d’œil ; fermer la fenêtre laisse L’Atelier tourner")) {
+                Switch(label: String(localized: "Icône dans la barre des menus"), isOn: $preferences.menuBarIcon)
+            }
+            SettingRow(label: String(localized: "Accès complet au disque"),
+                       help: fullDiskAccess ? String(localized: "Accordé : la corbeille et tout ~/Library peuvent être mesurés")
+                           : String(localized: "Non accordé : la corbeille et certaines données d’apps ne sont pas mesurées")) {
+                Button(String(localized: "Ouvrir Réglages Système")) {
                     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
                 }
                 .buttonStyle(PillButtonStyle(kind: .small))
@@ -205,9 +215,9 @@ private struct GeneralSettings: View {
         }
         .onAppear { fullDiskAccess = FullDiskAccess.granted }
 
-        Card(title: "Outils de développement") {
+        Card(title: String(localized: "Outils de développement")) {
             if tools.isEmpty {
-                ProgressView("Recherche des outils…").frame(maxWidth: .infinity).padding()
+                ProgressView(String(localized: "Recherche des outils…")).frame(maxWidth: .infinity).padding()
             } else {
                 Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
                     ForEach(tools) { status in
@@ -215,14 +225,14 @@ private struct GeneralSettings: View {
                             Image(systemName: status.installed ? "checkmark.circle.fill" : "minus.circle")
                                 .foregroundStyle(status.installed ? .green : .secondary)
                             Text(status.tool.name).font(.body.monospaced())
-                            Text(status.version ?? (status.installed ? "version inconnue" : "non installé"))
+                            Text(status.version ?? (status.installed ? String(localized: "version inconnue") : String(localized: "non installé")))
                                 .foregroundStyle(status.installed ? .primary : .secondary).lineLimit(1)
                             Text(status.path ?? "").font(.caption.monospaced()).foregroundStyle(.tertiary)
                                 .lineLimit(1).truncationMode(.middle)
                         }
                     }
                 }
-                Text("\(tools.filter(\.installed).count) sur \(tools.count) installés · ceux qui manquent désactivent seulement les fonctions qui en dépendent")
+                Text(String(localized: "\(tools.filter(\.installed).count) sur \(tools.count) installés · ceux qui manquent désactivent seulement les fonctions qui en dépendent"))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -232,8 +242,8 @@ private struct GeneralSettings: View {
 
     private var loginHelp: String {
         switch loginStatus {
-        case .requiresApproval: "À approuver dans Réglages Système › Général › Ouverture"
-        default: "Lance L’Atelier à l’ouverture de session"
+        case .requiresApproval: String(localized: "À approuver dans Réglages Système › Général › Ouverture")
+        default: String(localized: "Lance L’Atelier à l’ouverture de session")
         }
     }
 
@@ -242,7 +252,7 @@ private struct GeneralSettings: View {
             if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
             loginError = nil
         } catch {
-            loginError = "Impossible : \(error.localizedDescription) (une app signée est nécessaire)"
+            loginError = String(localized: "Impossible : \(error.localizedDescription) (une app signée est nécessaire)")
         }
         loginStatus = SMAppService.mainApp.status
     }
@@ -263,17 +273,17 @@ private struct StorageSettings: View {
     var body: some View {
         @Bindable var preferences = model.preferences
         SettingsCard {
-            SettingRow(label: "Méthode de suppression par défaut",
-                       help: "Proposée d’abord dans l’aperçu ; la corbeille permet d’annuler. Le Sonar n’utilise que la corbeille") {
-                Choice(selection: $preferences.permanentByDefault, options: [(false, "Corbeille"), (true, "Définitive")])
+            SettingRow(label: String(localized: "Méthode de suppression par défaut"),
+                       help: String(localized: "Proposée d’abord dans l’aperçu ; la corbeille permet d’annuler. Le Sonar n’utilise que la corbeille")) {
+                Choice(selection: $preferences.permanentByDefault, options: [(false, String(localized: "Corbeille")), (true, String(localized: "Définitive"))])
             }
-            SettingRow(label: "Projet considéré inactif après", help: "Ses artefacts de build sont cochés par défaut") {
+            SettingRow(label: String(localized: "Projet considéré inactif après"), help: String(localized: "Ses artefacts de build sont cochés par défaut")) {
                 Choice(selection: Binding(get: { preferences.inactiveMonths }, set: {
                     preferences.inactiveMonths = $0
                     model.devScan.invalidate()
-                }), options: [(1, "1 mois"), (3, "3 mois"), (6, "6 mois"), (12, "1 an")])
+                }), options: [(1, String(localized: "1 mois")), (3, String(localized: "3 mois")), (6, String(localized: "6 mois")), (12, String(localized: "1 an"))])
             }
-            SettingRow(label: "Dossiers exclus", help: "Jamais proposés au nettoyage (Développement, Sonar)") {
+            SettingRow(label: String(localized: "Dossiers exclus"), help: String(localized: "Jamais proposés au nettoyage (Développement, Sonar)")) {
                 FolderList(folders: preferences.excludedFolders.map { ($0 as NSString).abbreviatingWithTildeInPath }) { folder in
                     let full = (folder as NSString).expandingTildeInPath
                     preferences.excludedFolders.removeAll { $0 == full }
@@ -284,13 +294,13 @@ private struct StorageSettings: View {
                     model.devScan.invalidate()
                 }
             }
-            SettingRow(label: "Inclure Docker", help: "Lit docker system df dans la vue d’ensemble ; nécessite que Docker Desktop soit lancé") {
-                Switch(label: "Inclure Docker", isOn: $preferences.includeDocker)
+            SettingRow(label: String(localized: "Inclure Docker"), help: String(localized: "Lit docker system df dans la vue d’ensemble ; nécessite que Docker Desktop soit lancé")) {
+                Switch(label: String(localized: "Inclure Docker"), isOn: $preferences.includeDocker)
             }
-            SettingRow(label: "Bureau, Documents, Téléchargements",
-                       help: preferences.allowPersonalFolders ? "Inclus dans les analyses (autorisation de macOS)"
-                           : "Exclus : macOS demandera l’autorisation si vous les incluez") {
-                Switch(label: "Inclure Bureau, Documents, Téléchargements", isOn: Binding(get: { preferences.allowPersonalFolders }, set: { on in
+            SettingRow(label: String(localized: "Bureau, Documents, Téléchargements"),
+                       help: preferences.allowPersonalFolders ? String(localized: "Inclus dans les analyses (autorisation de macOS)")
+                           : String(localized: "Exclus : macOS demandera l’autorisation si vous les incluez")) {
+                Switch(label: String(localized: "Inclure Bureau, Documents, Téléchargements"), isOn: Binding(get: { preferences.allowPersonalFolders }, set: { on in
                     if on {
                         model.allowPersonalFolders()
                     } else {
@@ -312,50 +322,50 @@ private struct ProjectSettings: View {
     var body: some View {
         @Bindable var preferences = model.preferences
         SettingsCard {
-            SettingRow(label: "Dossiers de projets", help: "Où chercher les dépôts git") {
+            SettingRow(label: String(localized: "Dossiers de projets"), help: String(localized: "Où chercher les dépôts git")) {
                 FolderList(folders: model.projectRoots.map { $0.abbreviatingHome() }) { folder in
                     if let url = model.projectRoots.first(where: { $0.abbreviatingHome() == folder }) { model.removeProjectRoot(url) }
                 } add: { url in
                     model.addProjectRoot(url)
                 }
             }
-            SettingRow(label: "Profondeur de recherche", help: "Sous-dossiers parcourus depuis chaque racine") {
+            SettingRow(label: String(localized: "Profondeur de recherche"), help: String(localized: "Sous-dossiers parcourus depuis chaque racine")) {
                 Choice(selection: Binding(get: { preferences.repoDepth }, set: {
                     preferences.repoDepth = $0
                     model.repos.invalidate()
                 }), options: [(2, "2"), (4, "4"), (6, "6"), (8, "8")])
             }
-            SettingRow(label: "Fetch automatique", help: "git fetch toutes les heures sur les dépôts avec un distant (noté dans l’Historique)") {
-                Switch(label: "Fetch automatique", isOn: $preferences.autoFetch)
+            SettingRow(label: String(localized: "Fetch automatique"), help: String(localized: "git fetch toutes les heures sur les dépôts avec un distant (noté dans l’Historique)")) {
+                Switch(label: String(localized: "Fetch automatique"), isOn: $preferences.autoFetch)
             }
-            SettingRow(label: "Détecter les secrets commités", help: "Analyse locale, rien n’est envoyé") {
-                Switch(label: "Détecter les secrets commités", isOn: Binding(get: { preferences.detectSecrets }, set: {
+            SettingRow(label: String(localized: "Détecter les secrets commités"), help: String(localized: "Analyse locale, rien n’est envoyé")) {
+                Switch(label: String(localized: "Détecter les secrets commités"), isOn: Binding(get: { preferences.detectSecrets }, set: {
                     preferences.detectSecrets = $0
                     model.analysis.invalidate()
                 }))
             }
-            SettingRow(label: "Seuil de couverture", help: "En dessous, le projet est signalé") {
+            SettingRow(label: String(localized: "Seuil de couverture"), help: String(localized: "En dessous, le projet est signalé")) {
                 Choice(selection: $preferences.coverageThreshold, options: [60, 70, 80, 90].map { ($0, "\($0) %") })
             }
-            SettingRow(label: "Terminal", help: "Pour « Ouvrir dans Claude » et « Terminal »") {
+            SettingRow(label: "Terminal", help: String(localized: "Pour « Ouvrir dans Claude » et « Terminal »")) {
                 Picker("Terminal", selection: $preferences.terminal) {
                     ForEach(TerminalApp.allCases, id: \.self) { app in
-                        Text(app.label + (app.installedURL == nil ? " (non installé)" : "")).tag(app)
+                        Text(app.label + (app.installedURL == nil ? String(localized: " (non installé)") : "")).tag(app)
                     }
                 }
                 .labelsHidden().fixedSize()
             }
-            SettingRow(label: "Éditeur", help: "Pour « Ouvrir dans l’éditeur »") {
-                Picker("Éditeur", selection: $preferences.editor) {
+            SettingRow(label: String(localized: "Éditeur"), help: String(localized: "Pour « Ouvrir dans l’éditeur »")) {
+                Picker(String(localized: "Éditeur"), selection: $preferences.editor) {
                     Text("App par défaut du Finder").tag(EditorApp?.none)
                     ForEach(EditorApp.installed, id: \.self) { Text($0.label).tag(EditorApp?.some($0)) }
                 }
                 .labelsHidden().fixedSize()
             }
-            SettingRow(label: "Claude Code", help: model.runner.locator.locate("claude")?.path ?? "non trouvé : npm install -g @anthropic-ai/claude-code") {
+            SettingRow(label: "Claude Code", help: model.runner.locator.locate("claude")?.path ?? String(localized: "non trouvé : npm install -g @anthropic-ai/claude-code")) {
                 EmptyView()
             }
-            SettingRow(label: "Enregistreur", help: "Quand un processus de dev démarre dans un projet") {
+            SettingRow(label: String(localized: "Enregistreur"), help: String(localized: "Quand un processus de dev démarre dans un projet")) {
                 Choice(selection: $preferences.recorderPolicy, options: RecorderPolicy.allCases.map { ($0, $0.label) })
             }
         }
@@ -370,22 +380,22 @@ private struct CheckSettings: View {
     var body: some View {
         @Bindable var preferences = model.preferences
         SettingsCard {
-            SettingRow(label: "Vérifier les mises à jour et failles",
-                       help: "Paquets, dépendances des projets, OSV.dev — en arrière-plan tant que l’app tourne") {
-                Choice(selection: $preferences.checkInterval, options: [("hourly", "Toutes les heures"), ("daily", "Chaque jour"), ("manual", "Manuellement")])
+            SettingRow(label: String(localized: "Vérifier les mises à jour et failles"),
+                       help: String(localized: "Paquets, dépendances des projets, OSV.dev — en arrière-plan tant que l’app tourne")) {
+                Choice(selection: $preferences.checkInterval, options: [("hourly", String(localized: "Toutes les heures")), ("daily", String(localized: "Chaque jour")), ("manual", String(localized: "Manuellement"))])
             }
-            SettingRow(label: "Rafraîchir les news", help: "Le bouton ↻ de News relit tout de suite") {
-                Choice(selection: $preferences.newsIntervalHours, options: [(1, "1 h"), (3, "3 h"), (6, "6 h"), (24, "1 jour")])
+            SettingRow(label: String(localized: "Rafraîchir les news"), help: String(localized: "Le bouton ↻ de News relit tout de suite")) {
+                Choice(selection: $preferences.newsIntervalHours, options: [(1, String(localized: "1 h")), (3, String(localized: "3 h")), (6, String(localized: "6 h")), (24, String(localized: "1 jour"))])
             }
-            SettingRow(label: "Tout analyser au démarrage",
-                       help: "Stockage, Docker, apps, paquets, runtimes, dépôts, sécurité, couverture et démarrage sont calculés dès l’ouverture de L’Atelier") {
-                Switch(label: "Tout analyser au démarrage", isOn: $preferences.scanAtLaunch)
+            SettingRow(label: String(localized: "Tout analyser au démarrage"),
+                       help: String(localized: "Stockage, Docker, apps, paquets, runtimes, dépôts, sécurité, couverture et démarrage sont calculés dès l’ouverture de L’Atelier")) {
+                Switch(label: String(localized: "Tout analyser au démarrage"), isOn: $preferences.scanAtLaunch)
             }
-            SettingRow(label: "Suspendre sur batterie", help: "Aucune vérification ni lecture de news hors secteur") {
-                Switch(label: "Suspendre sur batterie", isOn: $preferences.pauseOnBattery)
+            SettingRow(label: String(localized: "Suspendre sur batterie"), help: String(localized: "Aucune vérification ni lecture de news hors secteur")) {
+                Switch(label: String(localized: "Suspendre sur batterie"), isOn: $preferences.pauseOnBattery)
             }
-            SettingRow(label: "Proposer les mises à jour majeures", help: "Jamais cochées par défaut ; désactivé, elles sont masquées") {
-                Switch(label: "Proposer les mises à jour majeures", isOn: Binding(get: { preferences.offerMajors }, set: {
+            SettingRow(label: String(localized: "Proposer les mises à jour majeures"), help: String(localized: "Jamais cochées par défaut ; désactivé, elles sont masquées")) {
+                Switch(label: String(localized: "Proposer les mises à jour majeures"), isOn: Binding(get: { preferences.offerMajors }, set: {
                     preferences.offerMajors = $0
                     model.packages.offerMajors = $0
                 }))
@@ -402,20 +412,20 @@ private struct NotificationSettings: View {
     var body: some View {
         @Bindable var preferences = model.preferences
         SettingsCard {
-            SettingRow(label: "Failles critiques", help: "Quand une faille critique touche un paquet ou un projet de la machine (version vérifiée)") {
-                Switch(label: "Failles critiques", isOn: $preferences.newsNotifications)
+            SettingRow(label: String(localized: "Failles critiques"), help: String(localized: "Quand une faille critique touche un paquet ou un projet de la machine (version vérifiée)")) {
+                Switch(label: String(localized: "Failles critiques"), isOn: $preferences.newsNotifications)
             }
-            SettingRow(label: "Espace disque faible", help: "Sous 10 % d’espace libre, une fois par jour au plus") {
-                Switch(label: "Espace disque faible", isOn: $preferences.notifyLowSpace)
+            SettingRow(label: String(localized: "Espace disque faible"), help: String(localized: "Sous 10 % d’espace libre, une fois par jour au plus")) {
+                Switch(label: String(localized: "Espace disque faible"), isOn: $preferences.notifyLowSpace)
             }
-            SettingRow(label: "News « Vous concerne »", help: "Toute news qui touche la machine, même non critique") {
-                Switch(label: "News « Vous concerne »", isOn: $preferences.notifyNews)
+            SettingRow(label: String(localized: "News « Vous concerne »"), help: String(localized: "Toute news qui touche la machine, même non critique")) {
+                Switch(label: String(localized: "News « Vous concerne »"), isOn: $preferences.notifyNews)
             }
-            SettingRow(label: "Processus gourmand", help: "Plus de 80 % de CPU pendant 5 minutes (vos processus)") {
-                Switch(label: "Processus gourmand", isOn: $preferences.notifyHeavyProcess)
+            SettingRow(label: String(localized: "Processus gourmand"), help: String(localized: "Plus de 80 % de CPU pendant 5 minutes (vos processus)")) {
+                Switch(label: String(localized: "Processus gourmand"), isOn: $preferences.notifyHeavyProcess)
             }
         }
-        Text("macOS demande l’autorisation d’afficher des notifications la première fois qu’une alerte est envoyée.")
+        Text(String(localized: "macOS demande l’autorisation d’afficher des notifications la première fois qu’une alerte est envoyée."))
             .font(.system(size: 12)).foregroundStyle(Theme.muted)
     }
 }
@@ -435,36 +445,36 @@ private struct AboutSettings: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("L’Atelier").font(.system(size: 22, weight: .bold))
                     Text("Version \(SettingsPage.version)").font(.system(size: 13)).foregroundStyle(Theme.muted)
-                    Text("La boîte à outils macOS des développeurs : une machine propre, à jour et sûre.")
+                    Text(String(localized: "La boîte à outils macOS des développeurs : une machine propre, à jour et sûre."))
                         .font(.system(size: 13)).foregroundStyle(Theme.muted)
                 }
                 Spacer()
             }
             FlowLayout(spacing: 8) {
-                link("Dépôt GitHub", "chevron.left.forwardslash.chevron.right", "https://github.com/\(repository)")
-                link("Nouveautés", "sparkles", "https://github.com/\(repository)/releases")
+                link(String(localized: "Dépôt GitHub"), "chevron.left.forwardslash.chevron.right", "https://github.com/\(repository)")
+                link(String(localized: "Nouveautés"), "sparkles", "https://github.com/\(repository)/releases")
                 Button("Signaler un problème…", systemImage: "ladybug") { model.reportIssue(.bug) }.buttonStyle(.small)
                 Button("Proposer une idée…", systemImage: "lightbulb") { model.reportIssue(.idea) }.buttonStyle(.small)
-                Button(copied ? "Copié" : "Copier les infos de diagnostic", systemImage: copied ? "checkmark" : "doc.on.doc") {
+                Button(copied ? String(localized: "Copié") : String(localized: "Copier les infos de diagnostic"), systemImage: copied ? "checkmark" : "doc.on.doc") {
                     model.copyDiagnostics()
                     copied = true
                 }
                 .buttonStyle(.small)
                 .help(model.issueEnvironment.summary)
             }
-            Text("« Signaler un problème » ouvre une page GitHub pré-remplie avec la version de L’Atelier et de macOS : vous relisez avant de publier, rien n’est envoyé par l’app.")
+            Text(String(localized: "« Signaler un problème » ouvre une page GitHub pré-remplie avec la version de L’Atelier et de macOS : vous relisez avant de publier, rien n’est envoyé par l’app."))
                 .font(.system(size: 12)).foregroundStyle(Theme.muted)
         }
 
         UpdateSettings()
 
-        Card(title: "Licence") {
-            Text("L’Atelier est un logiciel libre, distribué sous licence GNU GPL v3 : vous pouvez l’utiliser, l’étudier, le modifier et le redistribuer, à condition de garder la même licence. Il est fourni sans aucune garantie.")
+        Card(title: String(localized: "Licence")) {
+            Text(String(localized: "L’Atelier est un logiciel libre, distribué sous licence GNU GPL v3 : vous pouvez l’utiliser, l’étudier, le modifier et le redistribuer, à condition de garder la même licence. Il est fourni sans aucune garantie."))
                 .font(.system(size: 13)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
-            link("Lire la licence", "doc.text", "https://github.com/\(repository)/blob/main/LICENSE")
+            link(String(localized: "Lire la licence"), "doc.text", "https://github.com/\(repository)/blob/main/LICENSE")
         }
 
-        Card(title: "Données de L’Atelier sur ce Mac") {
+        Card(title: String(localized: "Données de L’Atelier sur ce Mac")) {
             ForEach(model.ownData, id: \.url) { item in
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 1) {
@@ -473,11 +483,11 @@ private struct AboutSettings: View {
                     }
                     Spacer()
                     if let size = sizes[item.url.path] { Text(Format.bytes(size)).font(.system(size: 12)).foregroundStyle(Theme.muted) }
-                    Button("Afficher") { NSWorkspace.shared.activateFileViewerSelecting([item.url]) }.buttonStyle(.small)
+                    Button(String(localized: "Afficher")) { NSWorkspace.shared.activateFileViewerSelecting([item.url]) }.buttonStyle(.small)
                 }
             }
             HStack {
-                Text("Votre ~/.ssh/config, vos projets, vos serveurs et le certificat de signature (~/.latelier-signing) ne sont jamais touchés.")
+                Text(String(localized: "Votre ~/.ssh/config, vos projets, vos serveurs et le certificat de signature (~/.latelier-signing) ne sont jamais touchés."))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
                 Spacer()
                 Button("Désinstaller L’Atelier…", systemImage: "trash") { model.preview(model.uninstallPlan()) }
@@ -488,12 +498,12 @@ private struct AboutSettings: View {
             for item in model.ownData { sizes[item.url.path] = DiskUsage.measure(item.url).bytes }
         }
 
-        Card(title: "Premier lancement") {
+        Card(title: String(localized: "Premier lancement")) {
             HStack {
-                Text("Revoir l’accueil : accès au disque, dossiers de projets, terminal, éditeur et langue.")
+                Text(String(localized: "Revoir l’accueil : accès au disque, dossiers de projets, terminal, éditeur et langue."))
                     .font(.system(size: 13)).foregroundStyle(Theme.muted)
                 Spacer()
-                Button("Revoir l’accueil…") { model.showOnboarding = true }.buttonStyle(.small)
+                Button(String(localized: "Revoir l’accueil…")) { model.showOnboarding = true }.buttonStyle(.small)
             }
         }
     }
@@ -513,39 +523,39 @@ private struct UpdateSettings: View {
         @Bindable var preferences = model.preferences
         let updates = model.updates
         SettingsCard {
-            SettingRow(label: "L’Atelier \(updates.currentVersion)", help: status) {
+            SettingRow(label: String(localized: "L’Atelier \(updates.currentVersion)"), help: status) {
                 HStack(spacing: 8) {
                     if updates.state == .checking { ProgressView().controlSize(.small) }
                     if let release = updates.available {
                         if let page = release.page {
-                            Button("Nouveautés") { NSWorkspace.shared.open(page) }.buttonStyle(PillButtonStyle(kind: .small))
+                            Button(String(localized: "Nouveautés")) { NSWorkspace.shared.open(page) }.buttonStyle(PillButtonStyle(kind: .small))
                         }
-                        Button("Mettre à jour vers \(release.version)…") { updates.install(release) }
+                        Button(String(localized: "Mettre à jour vers \(release.version)…")) { updates.install(release) }
                             .buttonStyle(PillButtonStyle(kind: .smallFilled))
                     } else {
-                        Button("Rechercher") { updates.check() }
+                        Button(String(localized: "Rechercher")) { updates.check() }
                             .buttonStyle(PillButtonStyle(kind: .small))
                             .disabled(updates.state == .checking || updates.repository == nil)
                     }
                 }
             }
-            SettingRow(label: "Rechercher les mises à jour automatiquement",
-                       help: "Une fois par jour, une seule requête à GitHub (\(updates.repository ?? "dépôt non configuré")) ; rien d’autre n’est envoyé") {
-                Switch(label: "Rechercher les mises à jour automatiquement", isOn: $preferences.checkAppUpdates)
+            SettingRow(label: String(localized: "Rechercher les mises à jour automatiquement"),
+                       help: String(localized: "Une fois par jour, une seule requête à GitHub (\(updates.repository ?? String(localized: "dépôt non configuré"))) ; rien d’autre n’est envoyé")) {
+                Switch(label: String(localized: "Rechercher les mises à jour automatiquement"), isOn: $preferences.checkAppUpdates)
             }
         }
     }
 
     private var status: String {
         let updates = model.updates
-        let source = updates.installedFromSource ? "Installée depuis les sources : la mise à jour recompile le tag publié. " : ""
-        let last = updates.lastCheck.map { " · vérifié \(RelativeDate.french($0))" } ?? ""
+        let source = updates.installedFromSource ? String(localized: "Installée depuis les sources : la mise à jour recompile le tag publié. ") : ""
+        let last = updates.lastCheck.map { String(localized: " · vérifié \(RelativeDate.french($0))") } ?? ""
         switch updates.state {
         case .checking: return source + "Recherche en cours…"
         case .available(let release): return source + "La version \(release.version) est disponible" + (release.published.map { ", publiée \(RelativeDate.french($0))" } ?? "") + "."
-        case .upToDate: return source + "À jour" + last
+        case .upToDate: return source + String(localized: "À jour") + last
         case .failed(let reason): return reason
-        case .idle: return source + (updates.repository == nil ? "Compilée sans dépôt GitHub : les mises à jour automatiques sont désactivées." : "Mises à jour depuis github.com/\(updates.repository!)\(last)")
+        case .idle: return source + (updates.repository == nil ? String(localized: "Compilée sans dépôt GitHub : les mises à jour automatiques sont désactivées.") : "Mises à jour depuis github.com/\(updates.repository!)\(last)")
         }
     }
 }
@@ -560,17 +570,17 @@ private struct PrivacySettings: View {
     var body: some View {
         @Bindable var preferences = model.preferences
         SettingsCard {
-            SettingRow(label: "Interroger OSV.dev et GitHub Advisories",
-                       help: "Envoie uniquement des noms et versions de paquets ; désactivé, les failles des dépendances ne sont plus vérifiées") {
-                Switch(label: "Interroger OSV.dev et GitHub Advisories", isOn: Binding(get: { preferences.remoteAdvisories }, set: {
+            SettingRow(label: String(localized: "Interroger OSV.dev et GitHub Advisories"),
+                       help: String(localized: "Envoie uniquement des noms et versions de paquets ; désactivé, les failles des dépendances ne sont plus vérifiées")) {
+                Switch(label: String(localized: "Interroger OSV.dev et GitHub Advisories"), isOn: Binding(get: { preferences.remoteAdvisories }, set: {
                     preferences.remoteAdvisories = $0
                     model.analysis.invalidate()
                 }))
             }
-            SettingRow(label: "Statistiques d’utilisation", help: "L’Atelier n’envoie aucune statistique ni télémétrie : il n’y a rien à activer") {
+            SettingRow(label: String(localized: "Statistiques d’utilisation"), help: String(localized: "L’Atelier n’envoie aucune statistique ni télémétrie : il n’y a rien à activer")) {
                 Text("Aucune").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.muted)
             }
-            SettingRow(label: "Historique des actions", help: "Conservé \(preferences.historyDays) jours sur cette machine · \(model.history.count) entrées") {
+            SettingRow(label: String(localized: "Historique des actions"), help: String(localized: "Conservé \(preferences.historyDays) jours sur cette machine · \(model.history.count) entrées")) {
                 HStack(spacing: 8) {
                     Choice(selection: Binding(get: { preferences.historyDays }, set: { days in
                         preferences.historyDays = days
@@ -578,26 +588,26 @@ private struct PrivacySettings: View {
                             try? await model.historyStore.prune(olderThan: days)
                             await model.reloadHistory()
                         }
-                    }), options: [(30, "30 j"), (90, "90 j"), (365, "1 an")])
-                    Button("Effacer l’historique…") { confirmClear = true }
+                    }), options: [(30, String(localized: "30 j")), (90, String(localized: "90 j")), (365, String(localized: "1 an"))])
+                    Button(String(localized: "Effacer l’historique…")) { confirmClear = true }
                         .buttonStyle(PillButtonStyle(kind: .small))
                         .foregroundStyle(Theme.red)
                 }
             }
-            SettingRow(label: "Données de L’Atelier",
-                       help: "Cache des analyses (registres, OSV, fin de vie) et scripts de lancement" + (cacheBytes.map { " · \(Format.bytes($0))" } ?? "")) {
-                Button("Vider le cache…") { if let plan = clearCachePlan { model.preview(plan) } }
+            SettingRow(label: String(localized: "Données de L’Atelier"),
+                       help: String(localized: "Cache des analyses (registres, OSV, fin de vie) et scripts de lancement") + (cacheBytes.map { " · \(Format.bytes($0))" } ?? "")) {
+                Button(String(localized: "Vider le cache…")) { if let plan = clearCachePlan { model.preview(plan) } }
                     .buttonStyle(PillButtonStyle(kind: .small))
                     .disabled(clearCachePlan == nil)
             }
         }
-        .confirmationDialog("Effacer tout l’historique des actions ?", isPresented: $confirmClear) {
-            Button("Effacer l’historique", role: .destructive) { Task { await model.clearHistory() } }
+        .confirmationDialog(String(localized: "Effacer tout l’historique des actions ?"), isPresented: $confirmClear) {
+            Button(String(localized: "Effacer l’historique"), role: .destructive) { Task { await model.clearHistory() } }
         } message: {
-            Text("Le journal des suppressions, mises à jour et commandes sera vidé. Cela ne défait aucune action.")
+            Text(String(localized: "Le journal des suppressions, mises à jour et commandes sera vidé. Cela ne défait aucune action."))
         }
         .task { cacheBytes = cacheTargets.reduce(0) { $0 + DiskUsage.measure($1).bytes } }
-        Text("Réseau : uniquement les registres de paquets, OSV.dev, GitHub Advisories, les sources de news, les releases GitHub de L’Atelier et vos serveurs SSH (quand vous les ouvrez). Aucun code, chemin ni nom de projet n’est envoyé.")
+        Text(String(localized: "Réseau : uniquement les registres de paquets, OSV.dev, GitHub Advisories, les sources de news, les releases GitHub de L’Atelier et vos serveurs SSH (quand vous les ouvrez). Aucun code, chemin ni nom de projet n’est envoyé."))
             .font(.system(size: 12)).foregroundStyle(Theme.muted)
     }
 
@@ -611,8 +621,8 @@ private struct PrivacySettings: View {
         let targets = cacheTargets
         guard !targets.isEmpty else { return nil }
         return ActionPlan(
-            title: "Vider le cache de L’Atelier",
-            summary: "Les versions et failles seront redemandées à la prochaine analyse. L’historique, les news, les réglages et les sessions de l’Enregistreur sont gardés.",
+            title: String(localized: "Vider le cache de L’Atelier"),
+            summary: String(localized: "Les versions et failles seront redemandées à la prochaine analyse. L’historique, les news, les réglages et les sessions de l’Enregistreur sont gardés."),
             kind: .nettoyage, risk: .safe, reversible: true,
             steps: targets.map { .remove($0, bytes: DiskUsage.measure($0).bytes, permanently: false) }
         )

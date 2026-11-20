@@ -28,49 +28,49 @@ public enum FailureAdvisor {
             let actual = capture(#"Actual:\s*\{"node":"v?([^"]+)""#, in: output)
             let package = capture(#"Not compatible with your version of node/npm: (\S+)"#, in: output)
             let major = actual.flatMap { $0.split(separator: ".").first.map(String.init) } ?? "lts/*"
-            var text = "Le projet"
-            if let package { text += " (via \(package))" }
-            text += " demande Node \(required ?? "plus récent")"
-            if let actual { text += ", mais Node \(actual) est utilisé" }
+            var text = String(localized: "Le projet")
+            if let package { text += String(localized: " (via \(package))") }
+            text += String(localized: " demande Node \(required ?? String(localized: "plus récent"))")
+            if let actual { text += String(localized: ", mais Node \(actual) est utilisé") }
             text += ". Le fichier .npmrc du projet (engine-strict) transforme cet avertissement en erreur."
-            text += " Installez une version compatible, puis relancez L’Atelier pour qu’il l’utilise."
+            text += String(localized: " Installez une version compatible, puis relancez L’Atelier pour qu’il l’utilise.")
             return FailureHint(
-                title: "Version de Node trop ancienne", explanation: text,
-                fixLabel: "Installer la dernière Node \(major)…", fix: Nvm.command(["install", major], root: nvmRoot), page: "runtimes"
+                title: String(localized: "Version de Node trop ancienne"), explanation: text,
+                fixLabel: String(localized: "Installer la dernière Node \(major)…"), fix: Nvm.command(["install", major], root: nvmRoot), page: "runtimes"
             )
         }
         // Vitest sans module de couverture, et autres dépendances absentes.
         if let missing = capture(#"Cannot find (?:dependency|module) '([^']+)'"#, in: output) {
-            return FailureHint(title: "Dépendance manquante : \(missing)",
-                               explanation: "Le projet utilise \(missing) sans l’avoir dans ses dépendances (ou node_modules n’est pas installé). Ajoutez-la, ou lancez l’installation des dépendances du projet.")
+            return FailureHint(title: String(localized: "Dépendance manquante : \(missing)"),
+                               explanation: String(localized: "Le projet utilise \(missing) sans l’avoir dans ses dépendances (ou node_modules n’est pas installé). Ajoutez-la, ou lancez l’installation des dépendances du projet."))
         }
         // Homebrew refuse de retirer une formule requise par une autre.
         if let users = capture(#"because it is required by ([^,]+), which (?:is|are) currently installed"#, in: output) {
-            return FailureHint(title: "Requis par \(users)",
-                               explanation: "Homebrew garde ce paquet parce que \(users) en dépend. Désinstallez d’abord \(users), ou gardez-le.",
+            return FailureHint(title: String(localized: "Requis par \(users)"),
+                               explanation: String(localized: "Homebrew garde ce paquet parce que \(users) en dépend. Désinstallez d’abord \(users), ou gardez-le."),
                                page: "inventaire")
         }
         if output.contains("command not found") || output.contains("No such file or directory") && output.contains("env:") {
             let tool = capture(#"(?:zsh|bash|env): (?:command not found: )?([^\s:]+)"#, in: output)
-            return FailureHint(title: "Outil introuvable" + (tool.map { " : \($0)" } ?? ""),
-                               explanation: "La commande n’existe pas sur cette machine, ou pas dans les dossiers où L’Atelier la cherche. Vérifiez Réglages › Général › Outils de développement.",
+            return FailureHint(title: String(localized: "Outil introuvable") + (tool.map { " : \($0)" } ?? ""),
+                               explanation: String(localized: "La commande n’existe pas sur cette machine, ou pas dans les dossiers où L’Atelier la cherche. Vérifiez Réglages › Général › Outils de développement."),
                                page: "reglages")
         }
         if output.contains("EACCES") || output.contains("Permission denied") || output.contains("Operation not permitted") {
-            return FailureHint(title: "Accès refusé",
-                               explanation: "macOS ou les droits du fichier ont bloqué l’opération. Un dossier protégé (Documents, conteneur d’app) demande l’accès complet au disque ; un dossier système demande les droits administrateur.")
+            return FailureHint(title: String(localized: "Accès refusé"),
+                               explanation: String(localized: "macOS ou les droits du fichier ont bloqué l’opération. Un dossier protégé (Documents, conteneur d’app) demande l’accès complet au disque ; un dossier système demande les droits administrateur."))
         }
         if output.contains("Please commit your changes or stash them") || output.contains("would be overwritten by merge") {
-            return FailureHint(title: "Modifications locales en cours",
-                               explanation: "Git refuse pour ne pas écraser vos fichiers modifiés. Committez-les ou mettez-les de côté (stash), puis recommencez.")
+            return FailureHint(title: String(localized: "Modifications locales en cours"),
+                               explanation: String(localized: "Git refuse pour ne pas écraser vos fichiers modifiés. Committez-les ou mettez-les de côté (stash), puis recommencez."))
         }
         if output.contains("Could not resolve host") || output.contains("ENOTFOUND") || output.contains("getaddrinfo") || output.contains("Network is unreachable") {
-            return FailureHint(title: "Pas de connexion",
-                               explanation: "Le serveur n’a pas pu être joint. Vérifiez la connexion (ou le VPN), puis recommencez.")
+            return FailureHint(title: String(localized: "Pas de connexion"),
+                               explanation: String(localized: "Le serveur n’a pas pu être joint. Vérifiez la connexion (ou le VPN), puis recommencez."))
         }
         if output.contains("ERESOLVE") {
-            return FailureHint(title: "Conflit de versions npm",
-                               explanation: "npm ne trouve pas de combinaison de versions compatible (peer dependencies). Alignez les versions concernées, ou relancez avec --legacy-peer-deps dans un terminal si vous savez ce que vous faites.")
+            return FailureHint(title: String(localized: "Conflit de versions npm"),
+                               explanation: String(localized: "npm ne trouve pas de combinaison de versions compatible (peer dependencies). Alignez les versions concernées, ou relancez avec --legacy-peer-deps dans un terminal si vous savez ce que vous faites."))
         }
         return nil
     }

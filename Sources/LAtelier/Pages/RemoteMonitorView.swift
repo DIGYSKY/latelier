@@ -31,7 +31,7 @@ struct RemoteMonitorView: View {
                     Card {
                         HStack(spacing: 10) {
                             ProgressView().controlSize(.small)
-                            Text(monitor.paused ? "En pause." : "Connexion à \(host.alias) et première mesure…")
+                            Text(monitor.paused ? String(localized: "En pause.") : String(localized: "Connexion à \(host.alias) et première mesure…"))
                                 .font(.system(size: 13)).foregroundStyle(Theme.muted)
                         }
                         .frame(maxWidth: .infinity, minHeight: 120)
@@ -57,9 +57,9 @@ struct RemoteMonitorView: View {
         .scrollContentBackground(.hidden)
         .onAppear { monitor.attach() }
         .onDisappear { monitor.detach() }
-        .alert("Droits administrateur nécessaires", isPresented: Binding(get: { terminalRequest != nil }, set: { if !$0 { terminalRequest = nil } })) {
-            Button("Annuler", role: .cancel) { terminalRequest = nil }
-            Button("Ouvrir dans le terminal") {
+        .alert(String(localized: "Droits administrateur nécessaires"), isPresented: Binding(get: { terminalRequest != nil }, set: { if !$0 { terminalRequest = nil } })) {
+            Button(String(localized: "Annuler"), role: .cancel) { terminalRequest = nil }
+            Button(String(localized: "Ouvrir dans le terminal")) {
                 if let request = terminalRequest, let error = model.ssh.openTerminal(host.alias, remote: request.command) { model.launchError = error }
                 terminalRequest = nil
             }
@@ -76,12 +76,12 @@ struct RemoteMonitorView: View {
         HStack(spacing: 10) {
             if let info = monitor.info {
                 chip("server.rack", info.os)
-                chip("cpu", "\(monitor.latest?.cores.count ?? 0) cœurs")
-                chip("power", "allumé depuis \(Self.duration(info.uptime))")
+                chip("cpu", String(localized: "\(monitor.latest?.cores.count ?? 0) cœurs"))
+                chip("power", String(localized: "allumé depuis \(Self.duration(info.uptime))"))
                 chip("person.2", "\(info.users) session\(info.users > 1 ? "s" : "")")
                 chip(info.isRoot ? "lock.open" : "person", info.isRoot ? "root" : info.login + (info.canSudo ? " · sudo" : ""))
-                    .help(info.canSudo ? "Les actions administrateur passent par l’aperçu (sudo sans mot de passe ou root)."
-                          : "Les actions administrateur s’ouvrent dans le terminal, où sudo vous demandera votre mot de passe.")
+                    .help(info.canSudo ? String(localized: "Les actions administrateur passent par l’aperçu (sudo sans mot de passe ou root).")
+                          : String(localized: "Les actions administrateur s’ouvrent dans le terminal, où sudo vous demandera votre mot de passe."))
             }
             Spacer()
             if monitor.running, monitor.latest != nil {
@@ -90,7 +90,7 @@ struct RemoteMonitorView: View {
                     Text("en direct · toutes les 2 s").font(.system(size: 11)).foregroundStyle(Theme.muted)
                 }
             }
-            Button(monitor.paused ? "Reprendre" : "Pause", systemImage: monitor.paused ? "play.fill" : "pause.fill") { monitor.togglePause() }
+            Button(monitor.paused ? String(localized: "Reprendre") : "Pause", systemImage: monitor.paused ? "play.fill" : "pause.fill") { monitor.togglePause() }
                 .buttonStyle(.small).fixedSize()
         }
     }
@@ -123,7 +123,7 @@ struct RemoteMonitorView: View {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Theme.orange)
             Text("Connexion perdue : \(error.title). Les dernières valeurs restent affichées.").font(.system(size: 13))
             Spacer()
-            Button("Reconnecter") { monitor.retry() }.buttonStyle(PillButtonStyle(kind: .smallFilled))
+            Button(String(localized: "Reconnecter")) { monitor.retry() }.buttonStyle(PillButtonStyle(kind: .smallFilled))
         }
         .padding(.horizontal, 14).padding(.vertical, 9)
         .background(Theme.orange.opacity(0.12), in: .rect(cornerRadius: 14, style: .continuous))
@@ -136,29 +136,29 @@ struct RemoteMonitorView: View {
         return VStack(spacing: 14) {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 14) {
                 BigChart(
-                    title: "Processeur", value: Format.percent(sample.cpu),
-                    detail: "charge \(sample.load.map { Format.decimal($0, decimals: 2) }.joined(separator: " · ")) · attente disque \(Format.percent(sample.iowait))",
+                    title: String(localized: "Processeur"), value: Format.percent(sample.cpu),
+                    detail: String(localized: "charge \(sample.load.map { Format.decimal($0, decimals: 2) }.joined(separator: " · ")) · attente disque \(Format.percent(sample.iowait))"),
                     series: [("CPU", monitor.cpuHistory, Theme.accent)], format: { Format.percent($0) }, maximum: 100,
                     window: RemoteMonitorStore.historyLength, secondsPerPoint: 2
                 )
                 BigChart(
-                    title: "Mémoire", value: Format.ram(sample.memoryUsed),
-                    detail: "sur \(Format.ram(sample.memoryTotal)) · cache \(Format.ram(sample.memoryCached))"
-                        + (sample.swapTotal > 0 ? " · swap \(Format.ram(sample.swapUsed)) / \(Format.ram(sample.swapTotal))" : " · pas de swap"),
-                    series: [("Utilisée", monitor.memoryHistory, Color(hex: 0x6E4BD8))], format: { Format.ram(Int64($0)) },
+                    title: String(localized: "Mémoire"), value: Format.ram(sample.memoryUsed),
+                    detail: String(localized: "sur \(Format.ram(sample.memoryTotal)) · cache \(Format.ram(sample.memoryCached))")
+                        + (sample.swapTotal > 0 ? String(localized: " · swap \(Format.ram(sample.swapUsed)) / \(Format.ram(sample.swapTotal))") : String(localized: " · pas de swap")),
+                    series: [(String(localized: "Utilisée"), monitor.memoryHistory, Color(hex: 0x6E4BD8))], format: { Format.ram(Int64($0)) },
                     maximum: Double(sample.memoryTotal), ticks: MonitorPage.memoryTicks(sample.memoryTotal),
                     window: RemoteMonitorStore.historyLength, secondsPerPoint: 2
                 )
                 BigChart(
-                    title: "Réseau", value: "\(Format.rate(sample.networkIn)) ↓  \(Format.rate(sample.networkOut)) ↑",
-                    detail: "toutes les interfaces, hors Docker et boucle locale",
-                    series: [("Reçu", monitor.networkInHistory, Color(hex: 0x1E8A45)), ("Envoyé", monitor.networkOutHistory, Color(hex: 0xD6336C))],
+                    title: String(localized: "Réseau"), value: "\(Format.rate(sample.networkIn)) ↓  \(Format.rate(sample.networkOut)) ↑",
+                    detail: String(localized: "toutes les interfaces, hors Docker et boucle locale"),
+                    series: [(String(localized: "Reçu"), monitor.networkInHistory, Color(hex: 0x1E8A45)), (String(localized: "Envoyé"), monitor.networkOutHistory, Color(hex: 0xD6336C))],
                     format: { Format.rate($0) }, window: RemoteMonitorStore.historyLength, secondsPerPoint: 2
                 )
                 BigChart(
-                    title: "Disque", value: "\(Format.rate(sample.diskRead)) ↓  \(Format.rate(sample.diskWrite)) ↑",
-                    detail: "lecture et écriture, tous les disques",
-                    series: [("Lecture", monitor.diskReadHistory, Color(hex: 0x00879E)), ("Écriture", monitor.diskWriteHistory, Color(hex: 0xE8590C))],
+                    title: String(localized: "Disque"), value: "\(Format.rate(sample.diskRead)) ↓  \(Format.rate(sample.diskWrite)) ↑",
+                    detail: String(localized: "lecture et écriture, tous les disques"),
+                    series: [(String(localized: "Lecture"), monitor.diskReadHistory, Color(hex: 0x00879E)), (String(localized: "Écriture"), monitor.diskWriteHistory, Color(hex: 0xE8590C))],
                     format: { Format.rate($0) }, window: RemoteMonitorStore.historyLength, secondsPerPoint: 2
                 )
             }
@@ -167,7 +167,7 @@ struct RemoteMonitorView: View {
     }
 
     private func coresCard(_ cores: [Double]) -> some View {
-        Card(title: "Cœurs", trailing: "\(cores.count) cœurs · moyenne \(Format.percent(cores.reduce(0, +) / Double(cores.count)))") {
+        Card(title: String(localized: "Cœurs"), trailing: String(localized: "\(cores.count) cœurs · moyenne \(Format.percent(cores.reduce(0, +) / Double(cores.count)))")) {
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(Array(cores.enumerated()), id: \.offset) { index, value in
                     VStack(spacing: 3) {
@@ -191,7 +191,7 @@ struct RemoteMonitorView: View {
     // MARK: Partitions
 
     private var disksCard: some View {
-        Card(title: "Partitions", trailing: monitor.disks.isEmpty ? nil : "\(Format.bytes(monitor.disks.reduce(0) { $0 + $1.available })) libres au total") {
+        Card(title: "Partitions", trailing: monitor.disks.isEmpty ? nil : String(localized: "\(Format.bytes(monitor.disks.reduce(0) { $0 + $1.available })) libres au total")) {
             if monitor.disks.isEmpty {
                 Text("Mesure des partitions…").font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
@@ -239,18 +239,18 @@ struct RemoteMonitorView: View {
                 Text("Processus").font(.system(size: 15, weight: .semibold))
                 Text("les plus actifs et les plus gros").font(.system(size: 12)).foregroundStyle(Theme.muted)
                 Spacer()
-                SearchField(prompt: "Nom, utilisateur ou PID", text: $query).frame(width: 240)
-                GlassSegments(selection: $sortByMemory, items: [(false, "CPU"), (true, "Mémoire")], compact: true).fixedSize()
-                Toggle("Threads du noyau", isOn: Binding(get: { !hideKernel }, set: { hideKernel = !$0 }))
+                SearchField(prompt: String(localized: "Nom, utilisateur ou PID"), text: $query).frame(width: 240)
+                GlassSegments(selection: $sortByMemory, items: [(false, "CPU"), (true, String(localized: "Mémoire"))], compact: true).fixedSize()
+                Toggle(String(localized: "Threads du noyau"), isOn: Binding(get: { !hideKernel }, set: { hideKernel = !$0 }))
                     .toggleStyle(.checkbox).font(.system(size: 12))
             }
             HStack(spacing: 10) {
                 Text("PID").frame(width: 70, alignment: .leading)
-                Text("Utilisateur").frame(width: 110, alignment: .leading)
+                Text(String(localized: "Utilisateur")).frame(width: 110, alignment: .leading)
                 Text("CPU").frame(width: 60, alignment: .trailing)
-                Text("Mémoire").frame(width: 80, alignment: .trailing)
-                Text("Depuis").frame(width: 80, alignment: .trailing)
-                Text("Commande").frame(maxWidth: .infinity, alignment: .leading)
+                Text(String(localized: "Mémoire")).frame(width: 80, alignment: .trailing)
+                Text(String(localized: "Depuis")).frame(width: 80, alignment: .trailing)
+                Text(String(localized: "Commande")).frame(maxWidth: .infinity, alignment: .leading)
                 Color.clear.frame(width: 28)
             }
             .font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.muted)
@@ -260,7 +260,7 @@ struct RemoteMonitorView: View {
                 }
             }
             if monitor.processes.count > processLimit {
-                Button(processLimit > 25 ? "Afficher moins" : "Afficher plus de processus") { processLimit = processLimit > 25 ? 25 : 80 }
+                Button(processLimit > 25 ? String(localized: "Afficher moins") : String(localized: "Afficher plus de processus")) { processLimit = processLimit > 25 ? 25 : 80 }
                     .buttonStyle(.plain).font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.link)
             }
         }
@@ -305,8 +305,8 @@ struct RemoteMonitorView: View {
         let failed = monitor.services.filter(\.failed)
         let running = monitor.services.filter { !$0.failed }
         let shown = showAllServices ? running : Array(running.prefix(10))
-        return Card(title: "Services systemd", trailing: monitor.servicesAvailability == .absent ? nil
-                    : "\(running.count) actif\(running.count > 1 ? "s" : "")" + (failed.isEmpty ? "" : " · \(failed.count) en échec")) {
+        return Card(title: String(localized: "Services systemd"), trailing: monitor.servicesAvailability == .absent ? nil
+                    : "\(running.count) actif\(running.count > 1 ? "s" : "")" + (failed.isEmpty ? "" : String(localized: " · \(failed.count) en échec"))) {
             switch monitor.servicesAvailability {
             case .absent:
                 Text("systemd n’est pas utilisé sur ce serveur.").font(.system(size: 12)).foregroundStyle(Theme.muted)
@@ -315,7 +315,7 @@ struct RemoteMonitorView: View {
             default:
                 ForEach(failed + shown) { service in serviceRow(service) }
                 if running.count > 10 {
-                    Button(showAllServices ? "Afficher moins" : "Afficher les \(running.count) services") { showAllServices.toggle() }
+                    Button(showAllServices ? String(localized: "Afficher moins") : String(localized: "Afficher les \(running.count) services")) { showAllServices.toggle() }
                         .buttonStyle(.plain).font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.link)
                 }
             }
@@ -332,7 +332,7 @@ struct RemoteMonitorView: View {
                 Text(service.description).font(.system(size: 11)).foregroundStyle(Theme.muted).lineLimit(1)
             }
             Spacer(minLength: 4)
-            if service.failed { Tag(text: "en échec", foreground: Tag.red.0, background: Tag.red.1) }
+            if service.failed { Tag(text: String(localized: "en échec"), foreground: Tag.red.0, background: Tag.red.1) }
             HoverMenu(hovering: hovering) {
                 ForEach(RemoteActions.ServiceAction.allCases, id: \.self) { action in
                     if action == .start ? !service.running : (action == .stop ? service.running : true) {
@@ -353,12 +353,12 @@ struct RemoteMonitorView: View {
 
     private var dockerCard: some View {
         let running = monitor.containers.filter(\.running).count
-        return Card(title: "Conteneurs Docker", trailing: monitor.dockerAvailability == .available ? "\(running) sur \(monitor.containers.count) en marche" : nil) {
+        return Card(title: String(localized: "Conteneurs Docker"), trailing: monitor.dockerAvailability == .available ? String(localized: "\(running) sur \(monitor.containers.count) en marche") : nil) {
             switch monitor.dockerAvailability {
             case .absent:
                 Text("Docker n’est pas installé.").font(.system(size: 12)).foregroundStyle(Theme.muted)
             case .denied:
-                Text("Docker est installé, mais \(monitor.info?.login ?? "cet utilisateur") n’y a pas accès (groupe « docker »). Les actions passeront par sudo.")
+                Text(String(localized: "Docker est installé, mais \(monitor.info?.login ?? String(localized: "cet utilisateur")) n’y a pas accès (groupe « docker »). Les actions passeront par sudo."))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
             case nil:
                 Text("Lecture des conteneurs…").font(.system(size: 12)).foregroundStyle(Theme.muted)
@@ -407,7 +407,7 @@ struct RemoteMonitorView: View {
     // MARK: Ports
 
     private var portsCard: some View {
-        Card(title: "Ports en écoute (TCP)", trailing: monitor.ports.isEmpty ? nil : "\(monitor.ports.filter(\.exposed).count) ouverts sur le réseau") {
+        Card(title: String(localized: "Ports en écoute (TCP)"), trailing: monitor.ports.isEmpty ? nil : String(localized: "\(monitor.ports.filter(\.exposed).count) ouverts sur le réseau")) {
             if monitor.portsAvailability == .absent {
                 Text("ss n’est pas disponible sur ce serveur.").font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
@@ -417,10 +417,10 @@ struct RemoteMonitorView: View {
                     Text(port.process ?? "autre utilisateur (root)").font(.system(size: 12)).lineLimit(1)
                         .foregroundStyle(port.process == nil ? Theme.muted : .primary)
                     Spacer()
-                    Text(port.exposed ? "réseau" : "local seulement").font(.system(size: 11)).foregroundStyle(port.exposed ? Theme.orange : Theme.muted)
+                    Text(port.exposed ? String(localized: "réseau") : String(localized: "local seulement")).font(.system(size: 11)).foregroundStyle(port.exposed ? Theme.orange : Theme.muted)
                 }
                 .contextMenu {
-                    Button("Copier « \(host.hostName ?? host.alias):\(String(port.port)) »") { copy("\(host.hostName ?? host.alias):\(port.port)") }
+                    Button(String(localized: "Copier « \(host.hostName ?? host.alias):\(String(port.port)) »")) { copy("\(host.hostName ?? host.alias):\(String(port.port))") }
                 }
             }
         }
@@ -445,8 +445,8 @@ struct RemoteMonitorView: View {
         let s = Int(seconds)
         if s < 60 { return "\(s) s" }
         if s < 3600 { return "\(s / 60) min" }
-        if s < 86_400 { return "\(s / 3600) h \(s % 3600 / 60) min" }
-        return "\(s / 86_400) j \(s % 86_400 / 3600) h"
+        if s < 86_400 { return String(localized: "\(s / 3600) h \(s % 3600 / 60) min") }
+        return String(localized: "\(s / 86_400) j \(s % 86_400 / 3600) h")
     }
 }
 

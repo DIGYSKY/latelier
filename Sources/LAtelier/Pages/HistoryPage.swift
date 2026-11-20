@@ -9,7 +9,7 @@ struct HistoryPage: View {
     @ViewState private var confirmClear = false
 
     var body: some View {
-        PageScaffold(page: .historique, subtitle: "Tout ce que L’Atelier a fait, avec les commandes et leur sortie.") {
+        PageScaffold(page: .historique, subtitle: String(localized: "Tout ce que L’Atelier a fait, avec les commandes et leur sortie.")) {
             Button("Vider", systemImage: "trash") { confirmClear = true }
                 .buttonStyle(.secondary)
                 .disabled(model.history.isEmpty)
@@ -22,12 +22,12 @@ struct HistoryPage: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .fixedSize()
-                TextField("Rechercher", text: $search)
+                TextField(String(localized: "Rechercher"), text: $search)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 260)
                 Spacer()
                 if let freed = totalFreed, freed > 0 {
-                    Text("\(Format.bytes(freed)) libérés au total")
+                    Text(String(localized: "\(Format.bytes(freed)) libérés au total"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -41,8 +41,8 @@ struct HistoryPage: View {
                 if filtered.isEmpty {
                     EmptyState(
                         symbol: "clock",
-                        title: model.history.isEmpty ? "Aucune action pour l’instant" : "Aucun résultat",
-                        message: model.history.isEmpty ? "Nettoyages, commandes git et mises à jour apparaîtront ici." : nil
+                        title: model.history.isEmpty ? String(localized: "Aucune action pour l’instant") : String(localized: "Aucun résultat"),
+                        message: model.history.isEmpty ? String(localized: "Nettoyages, commandes git et mises à jour apparaîtront ici.") : nil
                     )
                 } else {
                     LazyVStack(alignment: .leading, spacing: 0) {
@@ -65,10 +65,10 @@ struct HistoryPage: View {
                 }
             }
         }
-        .confirmationDialog("Vider l’historique ?", isPresented: $confirmClear) {
-            Button("Vider", role: .destructive) { Task { await model.clearHistory() } }
+        .confirmationDialog(String(localized: "Vider l’historique ?"), isPresented: $confirmClear) {
+            Button(String(localized: "Vider"), role: .destructive) { Task { await model.clearHistory() } }
         } message: {
-            Text("Les \(model.history.count) entrées seront supprimées. Les actions elles-mêmes ne sont pas annulées.")
+            Text(String(localized: "Les \(model.history.count) entrées seront supprimées. Les actions elles-mêmes ne sont pas annulées."))
         }
     }
 
@@ -153,7 +153,7 @@ struct HistoryRow: View {
                             model.reportIssue(.bug, details: "\(entry.title)\n\(output)")
                         }
                         .buttonStyle(PillButtonStyle(kind: .small))
-                        .help("Ouvre une issue GitHub pré-remplie ; votre dossier personnel et votre nom de compte sont masqués. Relisez avant de publier.")
+                        .help(String(localized: "Ouvre une issue GitHub pré-remplie ; votre dossier personnel et votre nom de compte sont masqués. Relisez avant de publier."))
                     }
                 }
                 ForEach(Array(entry.commands.enumerated()), id: \.offset) { _, log in
@@ -213,10 +213,10 @@ struct OutcomeBadge: View {
 
     private var label: String {
         switch outcome {
-        case .success: "Réussi"
-        case .partial: "Partiel"
-        case .failure: "Échec"
-        case .cancelled: "Annulé"
+        case .success: String(localized: "Réussi")
+        case .partial: String(localized: "Partiel")
+        case .failure: String(localized: "Échec")
+        case .cancelled: String(localized: "Annulé")
         }
     }
 

@@ -14,7 +14,7 @@ struct DevPage: View {
         @Bindable var bindable = scan
         PageScaffold(
             page: .dev,
-            subtitle: scan.statusLine ?? "Artefacts de build recréables. Les projets inactifs depuis plus de 3 mois sont cochés par défaut."
+            subtitle: scan.statusLine ?? String(localized: "Artefacts de build recréables. Les projets inactifs depuis plus de 3 mois sont cochés par défaut.")
         ) {
             Button("Dossiers (\(model.projectRoots.count))", systemImage: "folder") { showRoots.toggle() }
                 .buttonStyle(.secondary)
@@ -26,13 +26,13 @@ struct DevPage: View {
             filters
             if model.projectRoots.isEmpty {
                 Card {
-                    EmptyState(symbol: "folder.badge.plus", title: "Aucun dossier de projets",
-                               message: "Ajoutez le dossier où vous rangez vos projets avec le bouton « Dossiers ».")
+                    EmptyState(symbol: "folder.badge.plus", title: String(localized: "Aucun dossier de projets"),
+                               message: String(localized: "Ajoutez le dossier où vous rangez vos projets avec le bouton « Dossiers »."))
                 }
             } else if scan.scanning {
-                ScanningCard(label: "Recherche des artefacts dans \(model.projectRoots.map { $0.abbreviatingHome() }.joined(separator: ", "))…")
+                ScanningCard(label: String(localized: "Recherche des artefacts dans \(model.projectRoots.map { $0.abbreviatingHome() }.joined(separator: ", "))…"))
             } else if visibleGroups.isEmpty {
-                Card { EmptyState(symbol: "sparkles", title: scan.groups.isEmpty ? "Aucun artefact trouvé" : "Aucun résultat") }
+                Card { EmptyState(symbol: "sparkles", title: scan.groups.isEmpty ? String(localized: "Aucun artefact trouvé") : String(localized: "Aucun résultat")) }
             } else {
                 CleanupList(groups: visibleGroups, selection: $bindable.selection)
             }
@@ -62,7 +62,7 @@ struct DevPage: View {
         HStack(spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundStyle(Theme.muted)
-                TextField("Filtrer les projets", text: $query).textFieldStyle(.plain)
+                TextField(String(localized: "Filtrer les projets"), text: $query).textFieldStyle(.plain)
             }
             .padding(.horizontal, 14)
             .frame(maxWidth: 280, minHeight: 40)
@@ -70,7 +70,7 @@ struct DevPage: View {
             .overlay(Capsule().strokeBorder(Theme.cardBorder))
 
             HStack(spacing: 4) {
-                chip(nil, "Tous")
+                chip(nil, String(localized: "Tous"))
                 ForEach(DevArtifactScanner.Kind.allCases, id: \.self) { chip($0, $0.label) }
             }
             .padding(4)
@@ -112,7 +112,7 @@ struct DevPage: View {
 
     private func review(_ chosen: [CleanupItem]) {
         let skipped = visibleItems.filter(\.isLocked)
-        let title = kind.map { "Nettoyer : \($0.label)" } ?? "Nettoyer : artefacts de développement"
+        let title = kind.map { String(localized: "Nettoyer : \($0.label)") } ?? String(localized: "Nettoyer : artefacts de développement")
         if let plan = CleanupPlanner.plan(title: title, items: chosen, skipped: skipped) {
             model.preview(plan)
         }
@@ -126,7 +126,7 @@ private struct RootsPopover: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Dossiers de projets").font(.headline)
-            Text("L’Atelier cherche les projets dans ces dossiers (et l’onglet Projets aussi).")
+            Text(String(localized: "L’Atelier cherche les projets dans ces dossiers (et l’onglet Projets aussi)."))
                 .font(.callout).foregroundStyle(Theme.muted)
                 .fixedSize(horizontal: false, vertical: true)
             ForEach(model.projectRoots, id: \.self) { root in
@@ -136,7 +136,7 @@ private struct RootsPopover: View {
                     Spacer()
                     Button { model.removeProjectRoot(root) } label: { Image(systemName: "minus.circle") }
                         .buttonStyle(.borderless)
-                        .help("Retirer ce dossier")
+                        .help(String(localized: "Retirer ce dossier"))
                 }
             }
             Button("Ajouter un dossier…", systemImage: "plus") { pick() }
@@ -151,7 +151,7 @@ private struct RootsPopover: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = true
-        panel.prompt = "Ajouter"
+        panel.prompt = String(localized: "Ajouter")
         if panel.runModal() == .OK { panel.urls.forEach(model.addProjectRoot) }
     }
 }

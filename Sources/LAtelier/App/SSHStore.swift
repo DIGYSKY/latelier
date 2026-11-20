@@ -9,8 +9,8 @@ enum ServerTab: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .monitor: "Moniteur"
-        case .files: "Fichiers"
+        case .monitor: String(localized: "Moniteur")
+        case .files: String(localized: "Fichiers")
         case .configuration: "Configuration"
         }
     }
@@ -154,7 +154,7 @@ final class SSHStore {
             if let result, result.succeeded {
                 status[alias] = .online(.now)
             } else {
-                let output = result.map { ($0.stderr + $0.stdout).joined(separator: "\n") } ?? "Délai dépassé (timed out)."
+                let output = result.map { ($0.stderr + $0.stdout).joined(separator: "\n") } ?? String(localized: "Délai dépassé (timed out).")
                 let failure = SSHFailure.explain(output)
                 status[alias] = .failed(title: failure.title, advice: failure.advice)
             }
@@ -237,10 +237,10 @@ final class SSHStore {
         }
         guard let after else { return }
         let (removed, added) = SSHConfig.diff(fresh.text, after)
-        let title = draft.original == nil ? "Ajouter la connexion « \(host.alias) »" : "Modifier la connexion « \(host.alias) »"
+        let title = draft.original == nil ? String(localized: "Ajouter la connexion « \(host.alias) »") : String(localized: "Modifier la connexion « \(host.alias) »")
         let plan = ActionPlan(
             title: title,
-            summary: "Écrit dans ~/.ssh/config. L’ancienne version du fichier est mise à la corbeille, pour pouvoir revenir en arrière.",
+            summary: String(localized: "Écrit dans ~/.ssh/config. L’ancienne version du fichier est mise à la corbeille, pour pouvoir revenir en arrière."),
             kind: .serveur, risk: .safe, reversible: true,
             steps: [.editFile(FileEdit(file: fresh.url, before: fresh.text, after: after, added: added, removed: removed, backup: true))]
         )
@@ -252,8 +252,8 @@ final class SSHStore {
         guard let after = fresh.removing(alias) else { return }
         let (removed, added) = SSHConfig.diff(fresh.text, after)
         let plan = ActionPlan(
-            title: "Supprimer la connexion « \(alias) »",
-            summary: "Retire le bloc de ~/.ssh/config. Le serveur, vos clés et known_hosts ne sont pas touchés. L’ancienne version du fichier va à la corbeille.",
+            title: String(localized: "Supprimer la connexion « \(alias) »"),
+            summary: String(localized: "Retire le bloc de ~/.ssh/config. Le serveur, vos clés et known_hosts ne sont pas touchés. L’ancienne version du fichier va à la corbeille."),
             kind: .serveur, risk: .caution, reversible: true,
             steps: [.editFile(FileEdit(file: fresh.url, before: fresh.text, after: after, added: added, removed: removed, backup: true))]
         )

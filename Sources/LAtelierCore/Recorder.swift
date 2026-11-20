@@ -7,9 +7,9 @@ public enum RecorderPolicy: String, Sendable, CaseIterable, Codable {
 
     public var label: String {
         switch self {
-        case .auto: "Enregistrer automatiquement"
-        case .ask: "Me demander"
-        case .off: "Désactivé"
+        case .auto: String(localized: "Enregistrer automatiquement")
+        case .ask: String(localized: "Me demander")
+        case .off: String(localized: "Désactivé")
         }
     }
 }
@@ -306,11 +306,11 @@ public enum MarkDetector {
         let window = samples.dropLast().suffix(30)
         let average = window.reduce(0) { $0 + $1.cpu } / Double(window.count)
         if last.cpu >= 50, last.cpu >= average * 2 + 10 {
-            return RecordingMark(t: last.t, label: "Pic CPU détecté (\(Int(last.cpu)) %)", auto: true)
+            return RecordingMark(t: last.t, label: String(localized: "Pic CPU détecté (\(Int(last.cpu)) %)"), auto: true)
         }
         if let before = samples.dropLast(5).last, before.memory > 50 << 20, Double(last.memory) >= Double(before.memory) * 1.3,
            last.memory - before.memory > 100 << 20 {
-            return RecordingMark(t: last.t, label: "Hausse de mémoire (+\((last.memory - before.memory) >> 20) Mo)", auto: true)
+            return RecordingMark(t: last.t, label: String(localized: "Hausse de mémoire (+\((last.memory - before.memory) >> 20) Mo)"), auto: true)
         }
         return nil
     }

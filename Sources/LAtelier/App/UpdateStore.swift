@@ -17,7 +17,7 @@ final class UpdateStore {
     @ObservationIgnored private var preferences: ToolPreferences?
     @ObservationIgnored private var timer: Timer?
     private static let lastCheckKey = "appUpdateLastCheck"
-    static let planPrefix = "Mettre à jour L’Atelier"
+    static let planPrefix = String(localized: "Mettre à jour L’Atelier")
 
     /// `propriétaire/dépôt`, écrit dans l'Info.plist à la compilation.
     let repository = Bundle.main.object(forInfoDictionaryKey: "LAtelierRepository") as? String
@@ -57,7 +57,7 @@ final class UpdateStore {
 
     func check() {
         guard let repository, let url = UpdateChecker.latestURL(repository: repository) else {
-            state = .failed("Dépôt GitHub inconnu : cette version a été compilée sans dépôt (GITHUB_REPO).")
+            state = .failed(String(localized: "Dépôt GitHub inconnu : cette version a été compilée sans dépôt (GITHUB_REPO)."))
             return
         }
         state = .checking
@@ -76,12 +76,12 @@ final class UpdateStore {
                     return
                 }
                 guard status == 200, let release = UpdateChecker.parse(data) else {
-                    state = .failed("Réponse inattendue de GitHub (code \(status)).")
+                    state = .failed(String(localized: "Réponse inattendue de GitHub (code \(String(status)))."))
                     return
                 }
                 state = UpdateChecker.isNewer(release.version, than: current) ? .available(release) : .upToDate
             } catch {
-                state = .failed("GitHub injoignable : \(error.localizedDescription)")
+                state = .failed(String(localized: "GitHub injoignable : \(error.localizedDescription)"))
             }
         }
     }
@@ -93,14 +93,14 @@ final class UpdateStore {
         let requirement = Self.designatedRequirement()
         if installedFromSource, let source = sourcePath {
             guard let steps = UpdatePlanner.fromSource(release, source: source, installed: installed, requirement: requirement) else {
-                state = .failed("Numéro de version inattendu (« \(release.tag) ») : mise à jour refusée.")
+                state = .failed(String(localized: "Numéro de version inattendu (« \(release.tag) ») : mise à jour refusée."))
                 return
             }
             present(ActionPlan(
                 title: "\(Self.planPrefix) \(release.version)",
-                summary: "Depuis les sources (\(source.abbreviatingHome())) : récupère le tag \(release.tag), compile sur ce Mac"
-                    + (requirement != nil ? ", vérifie la signature" : "")
-                    + ", puis échange les deux versions. En cas d’échec, l’actuelle reste en place ; sinon elle va à la corbeille et L’Atelier redémarre.",
+                summary: String(localized: "Depuis les sources (\(source.abbreviatingHome())) : récupère le tag \(release.tag), compile sur ce Mac")
+                    + (requirement != nil ? String(localized: ", vérifie la signature") : "")
+                    + String(localized: ", puis échange les deux versions. En cas d’échec, l’actuelle reste en place ; sinon elle va à la corbeille et L’Atelier redémarre."),
                 kind: .paquet, risk: .caution, reversible: true, steps: steps
             ))
             return
@@ -108,11 +108,11 @@ final class UpdateStore {
         // Signée ad hoc, l'app ne peut pas vérifier que la nouvelle version vient du même auteur :
         // on refuse plutôt que d'installer une image disque non authentifiée.
         guard let requirement else {
-            state = .failed("Cette copie de L’Atelier n’est pas signée par le certificat du projet : la mise à jour automatique ne peut pas vérifier l’auteur. Réinstallez avec install.sh ou depuis la page des versions.")
+            state = .failed(String(localized: "Cette copie de L’Atelier n’est pas signée par le certificat du projet : la mise à jour automatique ne peut pas vérifier l’auteur. Réinstallez avec install.sh ou depuis la page des versions."))
             return
         }
         guard let dmg = release.dmg, let checksumURL = release.checksum else {
-            state = .failed("La version \(release.version) ne contient pas d’image disque avec son empreinte (.dmg et .dmg.sha256).")
+            state = .failed(String(localized: "La version \(release.version) ne contient pas d’image disque avec son empreinte (.dmg et .dmg.sha256)."))
             return
         }
         let work = FileManager.default.temporaryDirectory.appendingPathComponent("latelier-update-\(UUID().uuidString.prefix(8))", isDirectory: true)
@@ -124,16 +124,16 @@ final class UpdateStore {
                 let (data, _) = try await URLSession.shared.data(for: request)
                 guard let sha = UpdateChecker.checksum(in: String(decoding: data, as: UTF8.self)),
                       let steps = UpdatePlanner.fromRelease(release, dmg: dmg, sha256: sha, installed: installed, requirement: requirement, work: work) else {
-                    state = .failed("Empreinte ou numéro de version illisible : mise à jour refusée.")
+                    state = .failed(String(localized: "Empreinte ou numéro de version illisible : mise à jour refusée."))
                     return
                 }
                 present(ActionPlan(
                     title: "\(Self.planPrefix) \(release.version)",
-                    summary: "Télécharge \(dmg.lastPathComponent), vérifie son empreinte SHA-256 et que l’app est signée par le même certificat que celle-ci, puis échange les deux versions. En cas d’échec, l’actuelle reste en place ; sinon elle va à la corbeille et L’Atelier redémarre.",
+                    summary: String(localized: "Télécharge \(dmg.lastPathComponent), vérifie son empreinte SHA-256 et que l’app est signée par le même certificat que celle-ci, puis échange les deux versions. En cas d’échec, l’actuelle reste en place ; sinon elle va à la corbeille et L’Atelier redémarre."),
                     kind: .paquet, risk: .caution, reversible: true, steps: steps
                 ))
             } catch {
-                state = .failed("Téléchargement de l’empreinte impossible : \(error.localizedDescription)")
+                state = .failed(String(localized: "Téléchargement de l’empreinte impossible : \(error.localizedDescription)"))
             }
         }
     }

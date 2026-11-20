@@ -108,7 +108,7 @@ final class RemoteMonitorStore {
             self.running = false
             if outcome.status != 0 || !self.hasSample {
                 let text = outcome.errors.joined(separator: "\n")
-                self.error = SSHFailure.explain(text.isEmpty ? "La connexion s’est fermée." : text)
+                self.error = SSHFailure.explain(text.isEmpty ? String(localized: "La connexion s’est fermée.") : text)
                 self.store?.noteResult(self.alias, ok: false, output: text)
             }
         }
@@ -167,16 +167,16 @@ final class RemoteMonitorStore {
 
     func stopProcess(_ process: RemoteProcess, force: Bool) -> Route {
         let own = process.user == login || isRoot
-        let verb = force ? "Forcer l’arrêt de" : "Arrêter"
+        let verb = force ? String(localized: "Forcer l’arrêt de") : String(localized: "Arrêter")
         if !own && !canSudo {
             return .terminal(command: "sudo sh -c " + ShellQuote.quote(RemoteActions.kill(process, force: force, sudo: false)),
-                             reason: "« \(process.name) » appartient à \(process.user) : il faut les droits administrateur. La commande s’ouvre dans le terminal, où sudo vous demandera votre mot de passe.")
+                             reason: String(localized: "« \(process.name) » appartient à \(process.user) : il faut les droits administrateur. La commande s’ouvre dans le terminal, où sudo vous demandera votre mot de passe."))
         }
         let command = RemoteActions.kill(process, force: force, sudo: !own && !isRoot)
         return .plan(ActionPlan(
-            title: "\(verb) « \(process.name) » (PID \(process.pid)) sur \(alias)",
-            summary: (force ? "SIGKILL : arrêt immédiat, sans laisser le programme enregistrer son travail. " : "SIGTERM : le programme est prié de s’arrêter proprement. ")
-                + "Avant d’envoyer le signal, L’Atelier vérifie que le PID désigne toujours ce processus.",
+            title: String(localized: "\(verb) « \(process.name) » (PID \(String(process.pid))) sur \(alias)"),
+            summary: (force ? String(localized: "SIGKILL : arrêt immédiat, sans laisser le programme enregistrer son travail. ") : String(localized: "SIGTERM : le programme est prié de s’arrêter proprement. "))
+                + String(localized: "Avant d’envoyer le signal, L’Atelier vérifie que le PID désigne toujours ce processus."),
             kind: .serveur, risk: force ? .danger : .caution, reversible: false,
             steps: [.command(SSHCommands(alias: alias).ssh(command))]
         ))
@@ -185,11 +185,11 @@ final class RemoteMonitorStore {
     func service(_ service: RemoteService, _ action: RemoteActions.ServiceAction) -> Route {
         if !isRoot && !canSudo {
             return .terminal(command: "sudo " + RemoteActions.service(service.name, action, sudo: false),
-                             reason: "Piloter un service systemd demande les droits administrateur. La commande s’ouvre dans le terminal, où sudo vous demandera votre mot de passe.")
+                             reason: String(localized: "Piloter un service systemd demande les droits administrateur. La commande s’ouvre dans le terminal, où sudo vous demandera votre mot de passe."))
         }
         return .plan(ActionPlan(
-            title: "\(action.label) le service « \(service.name) » sur \(alias)",
-            summary: action == .stop ? "Le service s’arrête jusqu’au prochain démarrage (ou jusqu’à ce que vous le relanciez)." : "Le service est \(action == .restart ? "relancé" : "démarré") par systemd.",
+            title: String(localized: "\(action.label) le service « \(service.name) » sur \(alias)"),
+            summary: action == .stop ? String(localized: "Le service s’arrête jusqu’au prochain démarrage (ou jusqu’à ce que vous le relanciez).") : String(localized: "Le service est \(action == .restart ? String(localized: "relancé") : String(localized: "démarré")) par systemd."),
             kind: .serveur, risk: action == .stop ? .caution : .safe, reversible: action != .stop,
             steps: [.command(SSHCommands(alias: alias).ssh(RemoteActions.service(service.name, action, sudo: !isRoot)))]
         ))
@@ -199,11 +199,11 @@ final class RemoteMonitorStore {
         let direct = dockerAvailability == .available
         if !direct && !canSudo {
             return .terminal(command: "sudo " + RemoteActions.container(container.name, action, sudo: false),
-                             reason: "\(login.isEmpty ? "Cet utilisateur" : login) n’a pas accès à Docker. La commande s’ouvre dans le terminal, où sudo vous demandera votre mot de passe.")
+                             reason: String(localized: "\(login.isEmpty ? String(localized: "Cet utilisateur") : login) n’a pas accès à Docker. La commande s’ouvre dans le terminal, où sudo vous demandera votre mot de passe."))
         }
         return .plan(ActionPlan(
-            title: "\(action.label) le conteneur « \(container.name) » sur \(alias)",
-            summary: "Image \(container.image). " + (action == .stop ? "Le conteneur s’arrête ; ses données (volumes) restent." : "Docker \(action == .restart ? "redémarre" : "démarre") le conteneur."),
+            title: String(localized: "\(action.label) le conteneur « \(container.name) » sur \(alias)"),
+            summary: String(localized: "Image \(container.image). ") + (action == .stop ? String(localized: "Le conteneur s’arrête ; ses données (volumes) restent.") : String(localized: "Docker \(action == .restart ? String(localized: "redémarre") : String(localized: "démarre")) le conteneur.")),
             kind: .serveur, risk: action == .stop ? .caution : .safe, reversible: action != .stop,
             steps: [.command(SSHCommands(alias: alias).ssh(RemoteActions.container(container.name, action, sudo: !direct)))]
         ))

@@ -9,8 +9,8 @@ public struct SafetyGuard: Sendable {
 
         public var errorDescription: String? {
             switch self {
-            case .outsideAllowedRoot(let path): "Refusé : « \(path) » est hors du dossier personnel."
-            case .protectedLocation(let path): "Refusé : « \(path) » est un emplacement protégé."
+            case .outsideAllowedRoot(let path): String(localized: "Refusé : « \(path) » est hors du dossier personnel.")
+            case .protectedLocation(let path): String(localized: "Refusé : « \(path) » est un emplacement protégé.")
             }
         }
     }

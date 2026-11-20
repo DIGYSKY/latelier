@@ -105,6 +105,20 @@ final class ToolPreferences {
 
     // MARK: Confidentialité
     /// OSV.dev et GitHub Advisories (noms et versions de paquets seulement).
+    /// Langue de l'interface : « system » (celle de macOS), « fr » ou « en ». Appliquée au prochain lancement.
+    var language: String {
+        didSet {
+            defaults.set(language, forKey: "appLanguage")
+            if language == "system" {
+                defaults.removeObject(forKey: "AppleLanguages")
+            } else {
+                defaults.set([language], forKey: "AppleLanguages")
+            }
+        }
+    }
+    /// Langue choisie au lancement : si elle diffère, il faut redémarrer.
+    let launchLanguage = UserDefaults.standard.string(forKey: "appLanguage") ?? "system"
+
     /// Vérifier une fois par jour s'il existe une nouvelle version de L’Atelier (GitHub Releases).
     var checkAppUpdates: Bool {
         didSet { defaults.set(checkAppUpdates, forKey: "checkAppUpdates") }
@@ -157,6 +171,7 @@ final class ToolPreferences {
         notifyHeavyProcess = bool("notifyHeavyProcess", false)
         remoteAdvisories = bool("remoteAdvisories", true)
         checkAppUpdates = bool("checkAppUpdates", true)
+        language = defaults.string(forKey: "appLanguage") ?? "system"
         historyDays = int("historyDays", 90)
         let hours = defaults.integer(forKey: "newsIntervalHours")
         newsIntervalHours = hours == 0 ? 3 : hours
@@ -205,9 +220,9 @@ extension AppModel {
         try Launcher.openTerminal(preferences.terminal, directory: request.project, command: command)
         let display = command.enumerated().map { $0.offset == 0 ? "claude" : ShellQuote.quote($0.element) }.joined(separator: " ")
         let entry = HistoryEntry(
-            kind: .commande, title: "Claude ouvert dans \(request.project.lastPathComponent)",
-            summary: request.context ?? "Session Claude Code dans \(preferences.terminal.label).",
-            commands: [CommandLog(command: "cd \(ShellQuote.quote(request.project.path)) && \(display)", exitStatus: 0, output: "", duration: 0)],
+            kind: .commande, title: String(localized: "Claude ouvert dans \(request.project.lastPathComponent)"),
+            summary: request.context ?? String(localized: "Session Claude Code dans \(preferences.terminal.label)."),
+            commands: [CommandLog(command: String(localized: "cd \(ShellQuote.quote(request.project.path)) && \(display)"), exitStatus: 0, output: "", duration: 0)],
             outcome: .success, bytesFreed: nil
         )
         Task { await record(entry) }
@@ -228,12 +243,12 @@ struct ClaudeSheet: View {
             HStack(spacing: 12) {
                 IconChip(symbol: "sparkles", color: Color(hex: 0xC96442), size: 38)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(request.context ?? "Ouvrir dans Claude").font(.system(size: 19, weight: .bold))
+                    Text(request.context ?? String(localized: "Ouvrir dans Claude")).font(.system(size: 19, weight: .bold))
                     Text("\(request.project.lastPathComponent) · \(request.project.abbreviatingHome())")
                         .font(.system(size: 12).monospaced()).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.middle)
                 }
             }
-            Text("Consigne (facultative) : Claude Code démarre dans le dossier du projet avec ce message.")
+            Text(String(localized: "Consigne (facultative) : Claude Code démarre dans le dossier du projet avec ce message."))
                 .font(.system(size: 13)).foregroundStyle(Theme.muted)
             TextEditor(text: $prompt)
                 .font(.system(size: 13))
@@ -242,7 +257,7 @@ struct ClaudeSheet: View {
                 .frame(minHeight: 110, maxHeight: 220)
                 .background(Theme.raised.opacity(0.8), in: .rect(cornerRadius: 12, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.hairline))
-                .accessibilityLabel("Consigne pour Claude")
+                .accessibilityLabel(String(localized: "Consigne pour Claude"))
             ConsoleBlock(text: "$ cd \(ShellQuote.quote(request.project.path))\n$ " + commandPreview, maxHeight: 120)
             HStack {
                 Picker("Terminal", selection: $preferences.terminal) {
@@ -254,14 +269,14 @@ struct ClaudeSheet: View {
                 }
                 Spacer()
                 Button("Annuler") { dismiss() }.buttonStyle(.secondary).keyboardShortcut(.cancelAction)
-                Button("Ouvrir dans \(preferences.terminal.label)") { open() }
+                Button(String(localized: "Ouvrir dans \(preferences.terminal.label)")) { open() }
                     .buttonStyle(.primary)
                     .keyboardShortcut(.defaultAction)
             }
             if let error {
                 Label(error, systemImage: "exclamationmark.triangle").font(.system(size: 12)).foregroundStyle(Tag.red.0)
             }
-            Text("Rien n’est envoyé par L’Atelier : c’est Claude Code, dans votre terminal, qui lit le projet.")
+            Text(String(localized: "Rien n’est envoyé par L’Atelier : c’est Claude Code, dans votre terminal, qui lit le projet."))
                 .font(.system(size: 11)).foregroundStyle(Theme.muted)
         }
         .padding(24)
@@ -298,7 +313,7 @@ struct OpenInMenu: View {
                 .buttonStyle(.small)
             Menu {
                 Button("\(model.preferences.terminal.label)", systemImage: "terminal") { model.openTerminal(project) }
-                Button(model.preferences.editor?.label ?? "Éditeur par défaut", systemImage: "chevron.left.forwardslash.chevron.right") { model.openEditor(project) }
+                Button(model.preferences.editor?.label ?? String(localized: "Éditeur par défaut"), systemImage: "chevron.left.forwardslash.chevron.right") { model.openEditor(project) }
                 Button("Finder", systemImage: "folder") { NSWorkspace.shared.activateFileViewerSelecting([project]) }
             } label: {
                 Label("Ouvrir", systemImage: "arrow.up.forward.app")

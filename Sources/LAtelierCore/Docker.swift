@@ -112,7 +112,7 @@ public enum DockerScanner {
         for image in object["Images"] as? [[String: Any]] ?? [] {
             let repository = image["Repository"] as? String ?? "<none>"
             let tag = image["Tag"] as? String ?? ""
-            let name = repository == "<none>" ? "image sans nom" : (tag.isEmpty || tag == "<none>" ? repository : "\(repository):\(tag)")
+            let name = repository == "<none>" ? String(localized: "image sans nom") : (tag.isEmpty || tag == "<none>" ? repository : "\(repository):\(tag)")
             let unique = bytes(image["UniqueSize"] as? String ?? image["Size"] as? String ?? "0B")
             report.images.append(.init(name: name, bytes: unique, containers: Int(image["Containers"] as? String ?? "") ?? 0,
                                        id: image["ID"] as? String ?? "", created: image["CreatedSince"] as? String ?? ""))
@@ -145,7 +145,7 @@ public enum DockerScanner {
         do {
             let result = try await runner.run(CommandSpec(docker.path, ["system", "df", "-v", "--format", "{{json .}}"]), timeout: .seconds(60))
             guard result.succeeded, let report = parse(Data(result.stdout.joined(separator: "\n").utf8)) else {
-                let message = result.stderr.first { !$0.isEmpty } ?? "Le moteur Docker ne répond pas."
+                let message = result.stderr.first { !$0.isEmpty } ?? String(localized: "Le moteur Docker ne répond pas.")
                 return DockerReport(state: .notRunning(message))
             }
             return report
@@ -162,21 +162,21 @@ public enum DockerScanner {
         for image in report.images.sorted(by: { $0.bytes > $1.bytes }) {
             let users = report.containers.filter { $0.image == image.name || image.name.hasPrefix($0.image + ":") || $0.image == image.id }
             let shortID = String(image.id.replacingOccurrences(of: "sha256:", with: "").prefix(12))
-            let reference = image.name == "image sans nom" ? shortID : image.name
+            let reference = image.name == String(localized: "image sans nom") ? shortID : image.name
             if image.containers > 0 {
                 let names = users.map(\.name).joined(separator: ", ")
                 images.append(CleanupItem(
                     id: "docker:image:\(image.id)", name: image.name,
-                    detail: "Utilisée par " + (names.isEmpty ? "\(image.containers) conteneur\(image.containers > 1 ? "s" : "")" : names)
-                        + (image.created.isEmpty ? "" : " · créée \(image.created)"),
+                    detail: String(localized: "Utilisée par ") + (names.isEmpty ? "\(image.containers) conteneur\(image.containers > 1 ? "s" : "")" : names)
+                        + (image.created.isEmpty ? "" : String(localized: " · créée \(image.created)")),
                     meta: shortID, tag: users.contains(where: \.running) ? "Actif" : nil, risk: .protected,
-                    lockReason: "image utilisée par un conteneur : supprimez d’abord le conteneur", selectedByDefault: false,
+                    lockReason: String(localized: "image utilisée par un conteneur : supprimez d’abord le conteneur"), selectedByDefault: false,
                     entries: [], action: .remove, displayBytes: image.bytes
                 ))
             } else {
                 images.append(CleanupItem(
                     id: "docker:image:\(image.id)", name: image.name,
-                    detail: "Aucun conteneur · re-téléchargée au prochain docker pull" + (image.created.isEmpty ? "" : " · créée \(image.created)"),
+                    detail: String(localized: "Aucun conteneur · re-téléchargée au prochain docker pull") + (image.created.isEmpty ? "" : String(localized: " · créée \(image.created)")),
                     meta: shortID, entries: [], action: .commands([CommandSpec(docker, ["image", "rm", reference])]),
                     displayBytes: image.bytes
                 ))
@@ -184,15 +184,15 @@ public enum DockerScanner {
         }
         if report.buildCache > 0 {
             safe.append(CleanupItem(
-                id: "docker:build", name: "Build cache", detail: "BuildKit, recréé au prochain build", meta: "docker builder prune",
+                id: "docker:build", name: "Build cache", detail: String(localized: "BuildKit, recréé au prochain build"), meta: "docker builder prune",
                 entries: [], action: .commands([CommandSpec(docker, ["builder", "prune", "-f"])]), displayBytes: report.buildCache
             ))
         }
         let stopped = report.containers.filter { !$0.running }
         if !stopped.isEmpty {
             safe.append(CleanupItem(
-                id: "docker:containers", name: "Conteneurs arrêtés",
-                detail: "\(stopped.count) conteneur\(stopped.count > 1 ? "s" : "") · " + stopped.prefix(4).map(\.name).joined(separator: ", "),
+                id: "docker:containers", name: String(localized: "Conteneurs arrêtés"),
+                detail: (stopped.count > 1 ? String(localized: "\(stopped.count) conteneurs · ") : String(localized: "\(stopped.count) conteneur · ")) + stopped.prefix(4).map(\.name).joined(separator: ", "),
                 meta: "docker container prune",
                 entries: [], action: .commands([CommandSpec(docker, ["container", "prune", "-f"])]),
                 displayBytes: stopped.reduce(0) { $0 + $1.bytes }
@@ -207,8 +207,8 @@ public enum DockerScanner {
             if volume.links > 0 {
                 safe.append(CleanupItem(
                     id: "docker:volume:\(volume.name)", name: volume.name,
-                    detail: "Ignoré : utilisé par \(volume.links) conteneur\(volume.links > 1 ? "s" : "")", meta: "—",
-                    tag: "Utilisé", risk: .protected, lockReason: "volume utilisé par un conteneur", selectedByDefault: false,
+                    detail: (volume.links > 1 ? String(localized: "Ignoré : utilisé par \(volume.links) conteneurs") : String(localized: "Ignoré : utilisé par \(volume.links) conteneur")), meta: "—",
+                    tag: String(localized: "Utilisé"), risk: .protected, lockReason: String(localized: "volume utilisé par un conteneur"), selectedByDefault: false,
                     entries: [], action: remove, displayBytes: volume.bytes
                 ))
                 continue
@@ -217,49 +217,49 @@ public enum DockerScanner {
             case .cache:
                 safe.append(CleanupItem(
                     id: "docker:volume:\(volume.name)", name: volume.name,
-                    detail: ["Volume de cache, recréable", project].compactMap { $0 }.joined(separator: " · "),
-                    detailIsPath: false, meta: "aucun conteneur", entries: [], action: remove, displayBytes: volume.bytes
+                    detail: [String(localized: "Volume de cache, recréable"), project].compactMap { $0 }.joined(separator: " · "),
+                    detailIsPath: false, meta: String(localized: "aucun conteneur"), entries: [], action: remove, displayBytes: volume.bytes
                 ))
             case .data:
                 data.append(CleanupItem(
                     id: "docker:volume:\(volume.name)", name: volume.name,
-                    detail: ["Données (base de données ou fichiers)", project].compactMap { $0 }.joined(separator: " · "),
-                    meta: "Orphelin", metaHighlighted: true, risk: .danger, selectedByDefault: false,
+                    detail: [String(localized: "Données (base de données ou fichiers)"), project].compactMap { $0 }.joined(separator: " · "),
+                    meta: String(localized: "Orphelin"), metaHighlighted: true, risk: .danger, selectedByDefault: false,
                     entries: [], action: remove, displayBytes: volume.bytes
                 ))
             case .unknown:
                 review.append(CleanupItem(
                     id: "docker:volume:\(volume.name)", name: volume.name,
-                    detail: ["Contenu inconnu", project].compactMap { $0 }.joined(separator: " · "),
-                    meta: "aucun conteneur", risk: .caution, selectedByDefault: false,
+                    detail: [String(localized: "Contenu inconnu"), project].compactMap { $0 }.joined(separator: " · "),
+                    meta: String(localized: "aucun conteneur"), risk: .caution, selectedByDefault: false,
                     entries: [], action: remove, displayBytes: volume.bytes
                 ))
             }
         }
         for container in report.containers where container.running {
             safe.append(CleanupItem(
-                id: "docker:running:\(container.name)", name: "\(container.name) (en cours)",
-                detail: "Ignoré : conteneur en cours d’exécution · \(container.image)", meta: "—", tag: "Actif",
-                risk: .protected, lockReason: "conteneur en cours d’exécution", selectedByDefault: false,
+                id: "docker:running:\(container.name)", name: String(localized: "\(container.name) (en cours)"),
+                detail: String(localized: "Ignoré : conteneur en cours d’exécution · \(container.image)"), meta: "—", tag: String(localized: "Actif"),
+                risk: .protected, lockReason: String(localized: "conteneur en cours d’exécution"), selectedByDefault: false,
                 entries: [], action: .remove, displayBytes: container.bytes
             ))
         }
         var groups: [CleanupGroup] = []
         if !images.isEmpty {
             groups.append(CleanupGroup(id: "docker-images", title: "Images",
-                                       detail: "Sans conteneur : supprimables (re-téléchargées au besoin) · utilisées : verrouillées", items: images))
+                                       detail: String(localized: "Sans conteneur : supprimables (re-téléchargées au besoin) · utilisées : verrouillées"), items: images))
         }
         if !safe.isEmpty {
-            groups.append(CleanupGroup(id: "docker-safe", title: "Sans risque · recréable",
-                                       detail: "Conteneurs arrêtés, build cache, volumes de cache", items: safe))
+            groups.append(CleanupGroup(id: "docker-safe", title: String(localized: "Sans risque · recréable"),
+                                       detail: String(localized: "Conteneurs arrêtés, build cache, volumes de cache"), items: safe))
         }
         if !review.isEmpty {
-            groups.append(CleanupGroup(id: "docker-review", title: "À vérifier", detail: "Volumes sans conteneur dont le contenu n’est pas reconnu",
+            groups.append(CleanupGroup(id: "docker-review", title: String(localized: "À vérifier"), detail: String(localized: "Volumes sans conteneur dont le contenu n’est pas reconnu"),
                                        tone: .neutral, items: review))
         }
         if !data.isEmpty {
-            groups.append(CleanupGroup(id: "docker-data", title: "Données · jamais cochées par défaut",
-                                       detail: "Volumes de bases de données : leur suppression efface définitivement les données",
+            groups.append(CleanupGroup(id: "docker-data", title: String(localized: "Données · jamais cochées par défaut"),
+                                       detail: String(localized: "Volumes de bases de données : leur suppression efface définitivement les données"),
                                        tone: .data, items: data))
         }
         return groups

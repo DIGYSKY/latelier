@@ -7,13 +7,13 @@ public struct HistoryEntry: Sendable, Codable, Identifiable, Hashable {
 
         public var label: String {
             switch self {
-            case .nettoyage: "Nettoyage"
+            case .nettoyage: String(localized: "Nettoyage")
             case .git: "Git"
-            case .paquet: "Paquets"
-            case .commande: "Commandes"
-            case .systeme: "Système"
-            case .processus: "Processus"
-            case .serveur: "Serveurs"
+            case .paquet: String(localized: "Paquets")
+            case .commande: String(localized: "Commandes")
+            case .systeme: String(localized: "Système")
+            case .processus: String(localized: "Processus")
+            case .serveur: String(localized: "Serveurs")
             }
         }
     }

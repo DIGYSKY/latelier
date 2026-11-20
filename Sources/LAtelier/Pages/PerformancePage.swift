@@ -12,7 +12,7 @@ struct PerformancePage: View {
     var body: some View {
         let monitor = model.performance
         PageScaffold(page: .perfVue, subtitle: subtitle(monitor)) {
-            Button(monitor.paused ? "Reprendre" : "Mettre en pause") { monitor.paused.toggle() }
+            Button(monitor.paused ? String(localized: "Reprendre") : String(localized: "Mettre en pause")) { monitor.paused.toggle() }
                 .buttonStyle(.secondary)
         } content: {
             if let sample = monitor.latest {
@@ -23,7 +23,7 @@ struct PerformancePage: View {
                         .frame(width: 280)
                 }
             } else {
-                ScanningCard(label: "Première mesure…")
+                ScanningCard(label: String(localized: "Première mesure…"))
             }
         }
         .onAppear {
@@ -35,10 +35,10 @@ struct PerformancePage: View {
 
     private func subtitle(_ monitor: PerformanceMonitor) -> String {
         let m = monitor.machine
-        let cores = m.efficiencyCores > 0 ? "\(m.cores) cœurs (\(m.performanceCores) perf. + \(m.efficiencyCores) eff.)" : "\(m.cores) cœurs"
+        let cores = m.efficiencyCores > 0 ? String(localized: "\(m.cores) cœurs (\(m.performanceCores) perf. + \(m.efficiencyCores) eff.)") : String(localized: "\(m.cores) cœurs")
         var parts = [m.chip, cores, Format.memory(m.memory).replacingOccurrences(of: ",0", with: "")]
         if let power = monitor.latest?.power { parts.append(energyDetail(power)) }
-        parts.append(monitor.paused ? "en pause" : "mis à jour chaque seconde")
+        parts.append(monitor.paused ? String(localized: "en pause") : String(localized: "mis à jour chaque seconde"))
         return parts.joined(separator: " · ")
     }
 
@@ -47,45 +47,45 @@ struct PerformancePage: View {
         let memory = s.memory
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 10)], spacing: 10) {
             MetricTile(
-                label: "Processeur", value: Format.percent(s.cpu),
+                label: String(localized: "Processeur"), value: Format.percent(s.cpu),
                 detail: monitor.machine.efficiencyCores > 0
-                    ? "Perf. \(Format.percent(s.performanceLoad)) · Eff. \(Format.percent(s.efficiencyLoad))"
-                    : "\(s.cores.count) cœurs",
+                    ? String(localized: "Perf. \(Format.percent(s.performanceLoad)) · Eff. \(Format.percent(s.efficiencyLoad))")
+                    : String(localized: "\(s.cores.count) cœurs"),
                 history: monitor.cpuHistory, maxValue: 100
             )
             MetricTile(
-                label: "Mémoire",
+                label: String(localized: "Mémoire"),
                 value: "\(Format.decimal(Double(memory.used) / 1_073_741_824)) / \(Format.memory(memory.total).replacingOccurrences(of: ",0", with: ""))",
-                detail: "Pression \(memory.pressure.label) · swap \(Format.memory(memory.swapUsed))",
+                detail: String(localized: "Pression \(memory.pressure.label) · swap \(Format.memory(memory.swapUsed))"),
                 detailColor: pressureColor(memory.pressure), detailBold: true,
                 history: monitor.memoryHistory, maxValue: Double(memory.total)
             )
-            .help("Apps \(Format.memory(memory.app)) · résidente \(Format.memory(memory.wired)) · compressée \(Format.memory(memory.compressed)) · fichiers en cache \(Format.memory(memory.cached))")
+            .help(String(localized: "Apps \(Format.memory(memory.app)) · résidente \(Format.memory(memory.wired)) · compressée \(Format.memory(memory.compressed)) · fichiers en cache \(Format.memory(memory.cached))"))
             if let gpu = s.gpu {
                 MetricTile(
                     label: "GPU", value: Format.percent(gpu.utilization),
-                    detail: gpu.memoryInUse.map { "Mémoire GPU \(Format.memory($0))" } ?? "Mémoire partagée",
+                    detail: gpu.memoryInUse.map { String(localized: "Mémoire GPU \(Format.memory($0))") } ?? String(localized: "Mémoire partagée"),
                     history: monitor.gpuHistory, maxValue: 100
                 )
             }
             MetricTile(
-                label: "Réseau", value: "↓ \(Format.rate(s.networkIn))",
+                label: String(localized: "Réseau"), value: "↓ \(Format.rate(s.networkIn))",
                 detail: "↑ \(Format.rate(s.networkOut))" + (s.network.primaryName.map { " · \($0)" } ?? ""),
                 history: monitor.networkHistory
             )
             MetricTile(
-                label: "Disque", value: Format.rate(s.diskRead + s.diskWrite),
-                detail: "Lecture + écriture" + (s.diskFree.map { " · \($0 / 1_000_000_000) Go libres" } ?? ""),
+                label: String(localized: "Disque"), value: Format.rate(s.diskRead + s.diskWrite),
+                detail: String(localized: "Lecture + écriture") + (s.diskFree.map { String(localized: " · \($0 / 1_000_000_000) Go libres") } ?? ""),
                 history: monitor.diskHistory
             )
         }
     }
 
     private func energyDetail(_ power: PowerSnapshot) -> String {
-        let thermal = power.thermal == .nominal ? "" : " · température \(power.thermalLabel)"
+        let thermal = power.thermal == .nominal ? "" : String(localized: " · température \(power.thermalLabel)")
         guard let level = power.batteryLevel else { return "secteur" + thermal }
-        let state = power.charging ? " en charge" : power.onBattery ? "" : " · branché"
-        return "batterie \(level) %\(state)" + thermal
+        let state = power.charging ? String(localized: " en charge") : power.onBattery ? "" : String(localized: " · branché")
+        return String(localized: "batterie \(level) %\(state)") + thermal
     }
 
     private func pressureColor(_ pressure: MemoryPressure) -> Color {
@@ -110,8 +110,8 @@ struct PerformancePage: View {
 
         return VStack(spacing: 0) {
             HStack(spacing: 10) {
-                GlassSegments(selection: $filter, items: [(.all, "Tous"), (.dev, "Dev"), (.big, "Gros consommateurs")], compact: true)
-                SearchField(prompt: "Rechercher", text: $query)
+                GlassSegments(selection: $filter, items: [(.all, String(localized: "Tous")), (.dev, "Dev"), (.big, String(localized: "Gros consommateurs"))], compact: true)
+                SearchField(prompt: String(localized: "Rechercher"), text: $query)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .padding(.horizontal, 14)
@@ -119,12 +119,12 @@ struct PerformancePage: View {
             Rectangle().fill(Theme.hairline).frame(height: 1)
 
             HStack(spacing: 0) {
-                Text("Processus").frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 14)
+                Text(String(localized: "Processus")).frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 14)
                 Text("PID").frame(width: 62, alignment: .leading)
                 SortHeader(label: "% CPU", active: !sortByMemory) { sortByMemory = false }.frame(width: 84, alignment: .leading)
-                SortHeader(label: "Mémoire", active: sortByMemory) { sortByMemory = true }.frame(width: 92, alignment: .leading)
-                Text("Réseau").frame(width: 86, alignment: .leading)
-                Text("Projet").frame(width: 110, alignment: .leading)
+                SortHeader(label: String(localized: "Mémoire"), active: sortByMemory) { sortByMemory = true }.frame(width: 92, alignment: .leading)
+                Text(String(localized: "Réseau")).frame(width: 86, alignment: .leading)
+                Text(String(localized: "Projet")).frame(width: 110, alignment: .leading)
             }
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(Theme.muted)
@@ -138,7 +138,7 @@ struct PerformancePage: View {
                 }
             }
             if list.isEmpty {
-                EmptyState(symbol: "magnifyingglass", title: "Aucun processus ne correspond")
+                EmptyState(symbol: "magnifyingglass", title: String(localized: "Aucun processus ne correspond"))
             }
             if let selection {
                 SelectionBar(process: selection, project: selection.cwd.flatMap { ProjectMatcher.project(for: $0, in: projects) })
@@ -187,7 +187,7 @@ private struct OverviewRow: View {
                 ProcessIcon(name: process.displayName, bundle: process.appBundle)
                 Text(process.displayName).font(.system(size: 13, weight: .semibold)).lineLimit(1)
                 if process.isSystem {
-                    Text("système")
+                    Text(String(localized: "système"))
                         .font(.system(size: 10))
                         .foregroundStyle(Theme.muted)
                         .padding(.horizontal, 5)
@@ -241,20 +241,20 @@ private struct SelectionBar: View {
     var body: some View {
         HStack(spacing: 10) {
             (Text(process.displayName).bold()
-                + Text(" · PID \(process.pid)" + (project.map { " · lancé depuis \($0.lastPathComponent)" } ?? "")).foregroundStyle(Theme.muted))
+                + Text(String(localized: " · PID \(String(process.pid))") + (project.map { String(localized: " · lancé depuis \($0.lastPathComponent)") } ?? "")).foregroundStyle(Theme.muted))
                 .font(.system(size: 13))
                 .lineLimit(1)
             Spacer()
-            Button("Détails…") { model.processDetail = ProcessDetailRequest(pid: process.pid) }
+            Button(String(localized: "Détails…")) { model.processDetail = ProcessDetailRequest(pid: process.pid) }
                 .buttonStyle(.small)
             if process.canQuit {
-                Button("Quitter") { model.quit([process.target], label: process.displayName, force: false) }
+                Button(String(localized: "Quitter")) { model.quit([process.target], label: process.displayName, force: false) }
                     .buttonStyle(.small)
-                Button("Forcer à quitter…") { model.quit([process.target], label: process.displayName, force: true) }
+                Button(String(localized: "Forcer à quitter…")) { model.quit([process.target], label: process.displayName, force: true) }
                     .buttonStyle(.small)
                     .foregroundStyle(Tag.red.0)
             } else {
-                Text(process.isMine ? "Processus système : lecture seule" : "Processus d’un autre compte : lecture seule")
+                Text(process.isMine ? String(localized: "Processus système : lecture seule") : String(localized: "Processus d’un autre compte : lecture seule"))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
         }
@@ -276,7 +276,7 @@ private struct PortsCard: View {
             HStack {
                 Text("Ports en écoute").font(.system(size: 15, weight: .semibold))
                 Spacer()
-                Button("Tout voir") { model.selection = .reseau }
+                Button(String(localized: "Tout voir")) { model.selection = .reseau }
                     .buttonStyle(.plain)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Theme.accent)
@@ -290,7 +290,7 @@ private struct PortsCard: View {
                     Text(":\(String(port.port))").font(.system(size: 13, weight: .bold).monospaced()).frame(minWidth: 52, alignment: .leading)
                     VStack(alignment: .leading, spacing: 0) {
                         Text(info.process).font(.system(size: 13, weight: .semibold)).lineLimit(1)
-                            .help("\(info.process) · PID \(port.pid)")
+                            .help(String(localized: "\(info.process) · PID \(String(port.pid))"))
                         Text(info.note).font(.system(size: 11)).foregroundStyle(port.exposed ? Tag.orange.0 : Theme.muted).lineLimit(1)
                     }
                     Spacer(minLength: 0)
@@ -331,12 +331,12 @@ struct PortDescriber {
         let project = process?.cwd.flatMap { ProjectMatcher.project(for: $0, in: model.knownProjects) }
         if let project { parts.append(project.lastPathComponent) }
         if let service = model.services.value?.first(where: { $0.pid == port.pid }) {
-            parts.append("Services › \(service.name)")
+            parts.append(String(localized: "Services › \(service.name)"))
         } else if project == nil, let bundle = process?.appBundle {
             let app = ((bundle as NSString).lastPathComponent as NSString).deletingPathExtension
             if app != name { parts.append(app) }
         }
-        if withScope { parts.append(port.exposed ? "exposé au réseau local" : "local uniquement") }
+        if withScope { parts.append(port.exposed ? String(localized: "exposé au réseau local") : String(localized: "local uniquement")) }
         if parts.isEmpty { parts.append(process?.path.map { ($0 as NSString).deletingLastPathComponent } ?? "") }
         return Info(process: name, note: parts.joined(separator: " · "), project: project)
     }

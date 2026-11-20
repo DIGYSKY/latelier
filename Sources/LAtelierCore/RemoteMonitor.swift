@@ -473,9 +473,9 @@ public enum RemoteActions {
 
         public var label: String {
             switch self {
-            case .restart: "Redémarrer"
-            case .stop: "Arrêter"
-            case .start: "Démarrer"
+            case .restart: String(localized: "Redémarrer")
+            case .stop: String(localized: "Arrêter")
+            case .start: String(localized: "Démarrer")
             }
         }
     }
@@ -490,10 +490,10 @@ public enum RemoteActions {
 
     /// Les journaux, à suivre dans le terminal.
     public static func serviceLogs(_ name: String) -> String {
-        "journalctl -u \(ShellQuote.quote(name + ".service")) -n 200 -f"
+        String(localized: "journalctl -u \(ShellQuote.quote(name + ".service")) -n 200 -f")
     }
 
     public static func containerLogs(_ name: String) -> String {
-        "docker logs -f --tail 200 \(ShellQuote.quote(name))"
+        String(localized: "docker logs -f --tail 200 \(ShellQuote.quote(name))")
     }
 }

@@ -9,9 +9,9 @@ public enum NewsCategory: String, Codable, Sendable, CaseIterable {
     public var label: String {
         switch self {
         case .cyber: "Cyber"
-        case .langage: "Langage"
-        case .general: "Général"
-        case .personnel: "Personnel"
+        case .langage: String(localized: "Langage")
+        case .general: String(localized: "Général")
+        case .personnel: String(localized: "Personnel")
         }
     }
 }
@@ -120,7 +120,7 @@ public enum NewsCatalog {
         source("gha", "GitHub Advisories", "https://api.github.com/advisories", .cyber, .githubAdvisories),
         source("kev", "CISA KEV", "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json", .cyber, .cisaKEV),
         source("certfr", "CERT-FR", "https://www.cert.cyber.gouv.fr/feed/", .cyber),
-        source("nodesec", "Node.js · sécurité", "https://nodejs.org/en/feed/vulnerability.xml", .cyber, topic: "JS / TS"),
+        source("nodesec", String(localized: "Node.js · sécurité"), "https://nodejs.org/en/feed/vulnerability.xml", .cyber, topic: "JS / TS"),
         source("rust", "Rust Blog", "https://blog.rust-lang.org/feed.xml", .langage, topic: "Rust"),
         source("go", "Go Blog", "https://go.dev/blog/feed.atom", .langage, topic: "Go"),
         source("python", "Python Insider", "https://blog.python.org/feeds/posts/default", .langage, topic: "Python"),
@@ -651,9 +651,9 @@ public struct NewsFetcher: Sendable {
 
         public var errorDescription: String? {
             switch self {
-            case .http(403), .http(429): "Limite de requêtes atteinte"
-            case .http(let code): "Erreur \(code)"
-            case .unreadable: "Format non reconnu"
+            case .http(403), .http(429): String(localized: "Limite de requêtes atteinte")
+            case .http(let code): String(localized: "Erreur \(String(code))")
+            case .unreadable: String(localized: "Format non reconnu")
             case .network(let text): text
             }
         }
@@ -767,10 +767,10 @@ public struct NewsFetcher: Sendable {
         if let error = error as? FetchError { return error.localizedDescription }
         let code = (error as? URLError)?.code
         return switch code {
-        case .timedOut: "Délai dépassé"
-        case .notConnectedToInternet, .networkConnectionLost: "Pas de connexion"
-        case .cannotFindHost, .dnsLookupFailed: "Adresse introuvable"
-        case .secureConnectionFailed, .serverCertificateUntrusted: "Connexion sécurisée impossible"
+        case .timedOut: String(localized: "Délai dépassé")
+        case .notConnectedToInternet, .networkConnectionLost: String(localized: "Pas de connexion")
+        case .cannotFindHost, .dnsLookupFailed: String(localized: "Adresse introuvable")
+        case .secureConnectionFailed, .serverCertificateUntrusted: String(localized: "Connexion sécurisée impossible")
         default: error.localizedDescription
         }
     }

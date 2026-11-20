@@ -26,9 +26,9 @@ public enum CommandError: Error, LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .toolNotFound(let tool): "« \(tool) » est introuvable sur ce Mac."
-        case .launchFailed(let command, let reason): "Impossible de lancer « \(command) » : \(reason)"
-        case .timedOut(let command): "« \(command) » n’a pas répondu à temps."
+        case .toolNotFound(let tool): String(localized: "« \(tool) » est introuvable sur ce Mac.")
+        case .launchFailed(let command, let reason): String(localized: "Impossible de lancer « \(command) » : \(reason)")
+        case .timedOut(let command): String(localized: "« \(command) » n’a pas répondu à temps.")
         }
     }
 }

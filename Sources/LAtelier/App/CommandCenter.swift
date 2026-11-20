@@ -16,9 +16,9 @@ final class CommandCenter {
 
         var running: Bool { end == nil }
         var stateLabel: String {
-            if running { return "En cours" }
-            if stopped { return "Arrêté" }
-            return status == 0 ? "Terminé" : "Échec"
+            if running { return String(localized: "En cours") }
+            if stopped { return String(localized: "Arrêté") }
+            return status == 0 ? String(localized: "Terminé") : String(localized: "Échec")
         }
     }
 
@@ -130,7 +130,7 @@ final class CommandCenter {
         run.end = Date()
         run.status = status
         let duration = run.end!.timeIntervalSince(run.start)
-        run.lines.append(run.stopped ? "■ Arrêté après \(Format.duration(duration))" : (status == 0 ? "✓ Terminé en \(Format.duration(duration))" : "✗ Échec (code \(status.map(String.init) ?? "?"))"))
+        run.lines.append(run.stopped ? String(localized: "■ Arrêté après \(Format.duration(duration))") : (status == 0 ? String(localized: "✓ Terminé en \(Format.duration(duration))") : String(localized: "✗ Échec (code \(status.map(String.init) ?? "?"))")))
         runs[key] = run
         tasks[key] = nil
 
@@ -145,9 +145,9 @@ final class CommandCenter {
         let output = run.lines.dropFirst(2).suffix(400).joined(separator: "\n")
         let entry = HistoryEntry(
             kind: .commande, title: "\(run.command.name) dans \(run.project.lastPathComponent)",
-            summary: "Commande du projet (\(run.command.source)).",
+            summary: String(localized: "Commande du projet (\(run.command.source))."),
             commands: [CommandLog(command: run.command.spec.displayString, exitStatus: run.stopped ? nil : status, output: output, duration: duration)],
-            outcome: run.stopped ? .cancelled : (status == 0 ? .success : .failure("« \(run.command.commandLine) » a échoué (code \(status.map(String.init) ?? "?")).")),
+            outcome: run.stopped ? .cancelled : (status == 0 ? .success : .failure(String(localized: "« \(run.command.commandLine) » a échoué (code \(status.map(String.init) ?? "?"))."))),
             bytesFreed: nil
         )
         await onFinish(entry)
@@ -171,8 +171,8 @@ final class CommandCenter {
     /// Plan d'exécution pour une commande sensible : aperçu obligatoire.
     static func sensitivePlan(_ command: ProjectCommand, project: URL) -> ActionPlan {
         ActionPlan(
-            title: "Lancer « \(command.name) » dans \(project.lastPathComponent)",
-            summary: "Commande sensible (déploiement, migration ou suppression) : vérifiez-la avant de la lancer.",
+            title: String(localized: "Lancer « \(command.name) » dans \(project.lastPathComponent)"),
+            summary: String(localized: "Commande sensible (déploiement, migration ou suppression) : vérifiez-la avant de la lancer."),
             kind: .commande, risk: .danger, reversible: false, commands: [command.spec]
         )
     }
@@ -182,7 +182,7 @@ final class CommandCenter {
         guard let edit = suggestion.edit else { return nil }
         return ActionPlan(
             title: suggestion.title,
-            summary: "\(suggestion.why) La ligne est ajoutée au bloc « scripts » de \(edit.file.lastPathComponent), le reste du fichier ne change pas.",
+            summary: String(localized: "\(suggestion.why) La ligne est ajoutée au bloc « scripts » de \(edit.file.lastPathComponent), le reste du fichier ne change pas."),
             kind: .commande, risk: .safe, reversible: false, steps: [.editFile(edit)]
         )
     }

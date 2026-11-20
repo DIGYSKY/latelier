@@ -26,7 +26,7 @@ public struct CommandSpec: Sendable, Hashable, Codable {
     public var displayString: String {
         let command = ([tool] + arguments).map(ShellQuote.quote).joined(separator: " ")
         guard let workingDirectory else { return command }
-        return "cd \(ShellQuote.quote(workingDirectory.path)) && \(command)"
+        return String(localized: "cd \(ShellQuote.quote(workingDirectory.path)) && \(command)")
     }
 }
 

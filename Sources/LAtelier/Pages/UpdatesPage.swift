@@ -11,22 +11,22 @@ struct UpdatesPage: View {
     var body: some View {
         let store = model.packages
         PageScaffold(page: .majs, subtitle: subtitle) {
-            SearchField(prompt: "Rechercher un paquet", text: $query)
+            SearchField(prompt: String(localized: "Rechercher un paquet"), text: $query)
             Button("Vérifier", systemImage: "arrow.clockwise") { model.scanPackages() }
                 .buttonStyle(.secondary)
                 .disabled(store.scanning)
         } content: {
             if store.scanning && store.packages.isEmpty {
-                ScanningCard(label: "Interrogation de Homebrew, npm, cargo, mas et rustup…")
+                ScanningCard(label: String(localized: "Interrogation de Homebrew, npm, cargo, mas et rustup…"))
             } else if store.updates.isEmpty {
                 Card {
-                    EmptyState(symbol: "checkmark.circle", title: "Tout est à jour",
-                               message: store.sources.isEmpty ? "Aucun gestionnaire de paquets trouvé." : "\(store.packages.count) paquets vérifiés.")
+                    EmptyState(symbol: "checkmark.circle", title: String(localized: "Tout est à jour"),
+                               message: store.sources.isEmpty ? String(localized: "Aucun gestionnaire de paquets trouvé.") : String(localized: "\(store.packages.count) paquets vérifiés."))
                 }
             } else {
                 SourceChips(selection: $source, counts: chipCounts)
                 if visible.isEmpty {
-                    Card { EmptyState(symbol: "magnifyingglass", title: "Aucun paquet ne correspond") }
+                    Card { EmptyState(symbol: "magnifyingglass", title: String(localized: "Aucun paquet ne correspond")) }
                 } else {
                     VStack(spacing: 0) {
                         ForEach(Array(visible.enumerated()), id: \.element.id) { index, package in
@@ -38,7 +38,7 @@ struct UpdatesPage: View {
                     .cardBackground()
                 }
                 if showCommands {
-                    ConsoleBlock(text: chosen.isEmpty ? "Aucune mise à jour sélectionnée." : chosen.compactMap(\.upgradeCommand).map { "$ " + $0.displayString }.joined(separator: "\n"))
+                    ConsoleBlock(text: chosen.isEmpty ? String(localized: "Aucune mise à jour sélectionnée.") : chosen.compactMap(\.upgradeCommand).map { "$ " + $0.displayString }.joined(separator: "\n"))
                 }
             }
             ForEach(store.problems, id: \.self) { problem in
@@ -61,7 +61,7 @@ struct UpdatesPage: View {
 
     private var subtitle: String {
         let store = model.packages
-        if store.scanning { return "Vérification des mises à jour…" }
+        if store.scanning { return String(localized: "Vérification des mises à jour…") }
         guard let finished = store.finishedAt else { return "Homebrew, npm, cargo, Mac App Store, rustup" }
         let updates = store.updates.count
         return "\(store.packages.count) paquets installés · \(updates) mise\(updates > 1 ? "s" : "") à jour · vérifié \(RelativeDate.french(finished).replacingOccurrences(of: "aujourd’hui", with: "à \(finished.formatted(date: .omitted, time: .shortened))"))"
@@ -100,14 +100,14 @@ struct UpdatesPage: View {
     private var bottomBar: some View {
         let count = chosen.count
         return HStack(spacing: 12) {
-            (Text("\(count) mise\(count > 1 ? "s" : "") à jour sélectionnée\(count > 1 ? "s" : "")").bold()
-                + Text(" · les mises à jour majeures ne sont pas cochées par défaut").foregroundStyle(Theme.muted))
+            (Text((count > 1 ? String(localized: "\(count) mises à jour sélectionnées") : String(localized: "\(count) mise à jour sélectionnée"))).bold()
+                + Text(String(localized: " · les mises à jour majeures ne sont pas cochées par défaut")).foregroundStyle(Theme.muted))
                 .font(.system(size: 13))
                 .lineLimit(1)
             Spacer(minLength: 8)
-            Button(showCommands ? "Masquer les commandes" : "Voir les commandes") { showCommands.toggle() }
+            Button(showCommands ? String(localized: "Masquer les commandes") : String(localized: "Voir les commandes")) { showCommands.toggle() }
                 .buttonStyle(.secondary)
-            Button("Mettre à jour (\(count))") {
+            Button(String(localized: "Mettre à jour (\(count))")) {
                 let skipped = model.packages.updates.filter { $0.lockReason != nil && model.packages.selection.contains($0.id) }
                 if let plan = PackagePlans.upgrade(chosen + skipped) { model.preview(plan) }
             }
@@ -161,7 +161,7 @@ private struct UpdateRow: View {
             .frame(width: 76, alignment: .leading)
             Group {
                 if let worst = package.vulnerabilities.map(\.severity).max(), flag == nil {
-                    Tag(text: "Faille \(worst.label.lowercased())", foreground: worst.colors.ink, background: worst.colors.fill)
+                    Tag(text: String(localized: "Faille \(worst.label.lowercased())"), foreground: worst.colors.ink, background: worst.colors.fill)
                         .help(package.vulnerabilities.map { "\($0.displayID) : \($0.summary)" }.joined(separator: "\n"))
                 } else {
                     Text(flag ?? "")
@@ -181,14 +181,14 @@ private struct UpdateRow: View {
         .opacity(locked ? 0.7 : 1)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
-        .accessibilityValue(selected ? "coché" : "non coché")
-        .accessibilityAction(named: selected ? "Décocher" : "Cocher", toggle)
+        .accessibilityValue(selected ? String(localized: "coché") : String(localized: "non coché"))
+        .accessibilityAction(named: selected ? String(localized: "Décocher") : String(localized: "Cocher"), toggle)
         .help(package.upgradeCommand?.displayString ?? "")
     }
 
     private var flag: String? {
         if let reason = package.lockReason { return reason }
-        if package.pinned { return "Épinglé" }
+        if package.pinned { return String(localized: "Épinglé") }
         return nil
     }
 }

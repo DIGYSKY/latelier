@@ -20,10 +20,10 @@ struct NetworkPage: View {
     }
 
     private func subtitle(_ monitor: PerformanceMonitor) -> String {
-        guard let network = monitor.latest?.network else { return "Débit, ports ouverts et trafic par processus" }
-        var parts = [network.primaryName ?? network.primaryInterface ?? "Hors ligne"]
-        if let address = network.localAddress { parts.append("adresse locale \(address)") }
-        parts.append(network.vpnActive ? "VPN actif" : "VPN inactif")
+        guard let network = monitor.latest?.network else { return String(localized: "Débit, ports ouverts et trafic par processus") }
+        var parts = [network.primaryName ?? network.primaryInterface ?? String(localized: "Hors ligne")]
+        if let address = network.localAddress { parts.append(String(localized: "adresse locale \(address)")) }
+        parts.append(network.vpnActive ? String(localized: "VPN actif") : String(localized: "VPN inactif"))
         return parts.joined(separator: " · ")
     }
 
@@ -31,17 +31,17 @@ struct NetworkPage: View {
     private func content(_ monitor: PerformanceMonitor) -> some View {
         if let sample = monitor.latest {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 10)], spacing: 10) {
-                StatTile(label: "Réception", value: Format.rate(sample.networkIn))
-                StatTile(label: "Envoi", value: Format.rate(sample.networkOut))
-                StatTile(label: "Depuis le démarrage",
+                StatTile(label: String(localized: "Réception"), value: Format.rate(sample.networkIn))
+                StatTile(label: String(localized: "Envoi"), value: Format.rate(sample.networkOut))
+                StatTile(label: String(localized: "Depuis le démarrage"),
                          value: monitor.bootTraffic.map { "↓ \(Format.total($0.read)) · ↑ \(Format.total($0.written))" } ?? "—")
-                    .help(monitor.bootTime.map { "Démarré " + $0.formatted(.relative(presentation: .named).locale(Locale(identifier: "fr_FR"))) } ?? "")
-                StatTile(label: "Ports en écoute", value: "\(monitor.ports.count)")
+                    .help(monitor.bootTime.map { String(localized: "Démarré ") + $0.formatted(.relative(presentation: .named).locale(Locale.current)) } ?? "")
+                StatTile(label: String(localized: "Ports en écoute"), value: "\(monitor.ports.count)")
             }
             portsCard(monitor)
             trafficCard(monitor)
         } else {
-            ScanningCard(label: "Première mesure…")
+            ScanningCard(label: String(localized: "Première mesure…"))
         }
     }
 
@@ -54,7 +54,7 @@ struct NetworkPage: View {
             HStack {
                 Text("Ports en écoute").font(.system(size: 15, weight: .semibold))
                 Spacer()
-                Toggle("Seulement ceux exposés au réseau", isOn: $onlyExposed)
+                Toggle(String(localized: "Seulement ceux exposés au réseau"), isOn: $onlyExposed)
                     .toggleStyle(.checkbox)
                     .font(.system(size: 13))
             }
@@ -64,7 +64,7 @@ struct NetworkPage: View {
 
             if ports.isEmpty {
                 Rectangle().fill(Theme.hairline).frame(height: 1)
-                Text(onlyExposed ? "Aucun port exposé au réseau local." : "Aucun port ouvert par vos processus.")
+                Text(onlyExposed ? String(localized: "Aucun port exposé au réseau local.") : String(localized: "Aucun port ouvert par vos processus."))
                     .font(.system(size: 13)).foregroundStyle(Theme.muted)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(18)
@@ -74,7 +74,7 @@ struct NetworkPage: View {
                 PortRow(port: port, info: describer.describe(port, withScope: false), process: monitor.process(port.pid))
             }
             Rectangle().fill(Theme.hairline).frame(height: 1)
-            Text("Seuls vos processus sont listés : les ports ouverts par le système ou d’autres comptes demandent des droits admin.")
+            Text(String(localized: "Seuls vos processus sont listés : les ports ouverts par le système ou d’autres comptes demandent des droits admin."))
                 .font(.system(size: 12)).foregroundStyle(Theme.muted)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 18)
@@ -148,7 +148,7 @@ struct NetworkPage: View {
         guard let connections, connections.count > 0 else { return "" }
         let hosts = connections.hosts.count
         let first = connections.hosts.first.map { " · \($0)" } ?? ""
-        return "\(connections.count) connexion\(connections.count > 1 ? "s" : "") vers \(hosts) hôte\(hosts > 1 ? "s" : "")"
+        return String(localized: "\(connections.count) connexion\(connections.count > 1 ? "s" : "") vers \(hosts) hôte\(hosts > 1 ? "s" : "")")
             + (hosts == 1 ? first : "")
     }
 }
@@ -177,19 +177,19 @@ private struct PortRow: View {
                 .help(port.addresses.joined(separator: ", "))
             Group {
                 if port.exposed {
-                    Tag(text: "Exposé au réseau local", foreground: Tag.orange.0, background: Tag.orange.1)
-                        .help("Joignable par les autres appareils du réseau (adresse 0.0.0.0 ou ::). Un serveur de dev devrait écouter sur 127.0.0.1.")
+                    Tag(text: String(localized: "Exposé au réseau local"), foreground: Tag.orange.0, background: Tag.orange.1)
+                        .help(String(localized: "Joignable par les autres appareils du réseau (adresse 0.0.0.0 ou ::). Un serveur de dev devrait écouter sur 127.0.0.1."))
                 } else {
-                    Tag(text: "Local uniquement", foreground: Tag.green.0, background: Tag.green.1)
+                    Tag(text: String(localized: "Local uniquement"), foreground: Tag.green.0, background: Tag.green.1)
                 }
             }
             .frame(width: 160, alignment: .leading)
             PortActions(port: port).fixedSize().frame(width: 150, alignment: .trailing)
             Group {
                 if let process, process.canQuit {
-                    Button("Libérer le port") {
+                    Button(String(localized: "Libérer le port")) {
                         model.quit([process.target], label: info.process, force: false,
-                                   reason: "Le port \(port.port) sera libéré quand le processus aura quitté.")
+                                   reason: String(localized: "Le port \(String(port.port)) sera libéré quand le processus aura quitté."))
                     }
                     .buttonStyle(.small)
                 } else {

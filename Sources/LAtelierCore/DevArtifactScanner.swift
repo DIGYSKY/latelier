@@ -10,7 +10,7 @@ public struct DevArtifactScanner: Sendable {
             case .node: "node_modules"
             case .target: "target"
             case .python: "venv / Python"
-            case .build: "Caches de build"
+            case .build: String(localized: "Caches de build")
             }
         }
     }
@@ -64,13 +64,13 @@ public struct DevArtifactScanner: Sendable {
                 detail: "\(project.abbreviatingHome(home)) · \(shown)", detailIsPath: true,
                 meta: activity.map { RelativeDate.french($0, now: now) },
                 metaHighlighted: inactive,
-                tag: activity.map { now.timeIntervalSince($0) < 86_400 } == true ? "Actif" : nil,
+                tag: activity.map { now.timeIntervalSince($0) < 86_400 } == true ? String(localized: "Actif") : nil,
                 selectedByDefault: inactive, entries: entries
             )
             if isBusy {
-                item.lockReason = "un processus tourne dans ce projet"
+                item.lockReason = String(localized: "un processus tourne dans ce projet")
                 item.risk = .protected
-                item.tag = "En cours d’utilisation"
+                item.tag = String(localized: "En cours d’utilisation")
                 item.selectedByDefault = false
                 busy.append(item)
             } else if inactive {
@@ -81,9 +81,9 @@ public struct DevArtifactScanner: Sendable {
         }
         let bySize: (CleanupItem, CleanupItem) -> Bool = { $0.bytes > $1.bytes }
         return [
-            CleanupGroup(id: "old", title: "Projets inactifs · plus de 3 mois", detail: "Proposés en priorité", items: old.sorted(by: bySize)),
-            CleanupGroup(id: "recent", title: "Projets récents", detail: "Vous travaillez dessus : non cochés", tone: .neutral, items: recent.sorted(by: bySize)),
-            CleanupGroup(id: "busy", title: "En cours d’utilisation", detail: "Un processus tourne dans ces projets : on n’y touche pas", tone: .neutral, items: busy.sorted(by: bySize)),
+            CleanupGroup(id: "old", title: String(localized: "Projets inactifs · plus de 3 mois"), detail: String(localized: "Proposés en priorité"), items: old.sorted(by: bySize)),
+            CleanupGroup(id: "recent", title: String(localized: "Projets récents"), detail: String(localized: "Vous travaillez dessus : non cochés"), tone: .neutral, items: recent.sorted(by: bySize)),
+            CleanupGroup(id: "busy", title: String(localized: "En cours d’utilisation"), detail: String(localized: "Un processus tourne dans ces projets : on n’y touche pas"), tone: .neutral, items: busy.sorted(by: bySize)),
         ].filter { !$0.items.isEmpty }
     }
 

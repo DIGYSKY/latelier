@@ -30,8 +30,8 @@ private struct ServerListPage: View {
 
     var body: some View {
         let ssh = model.ssh
-        PageScaffold(title: "Serveurs", subtitle: subtitle) {
-            SearchField(prompt: "Rechercher un serveur", text: $query).frame(maxWidth: 260)
+        PageScaffold(title: String(localized: "Serveurs"), subtitle: subtitle) {
+            SearchField(prompt: String(localized: "Rechercher un serveur"), text: $query).frame(maxWidth: 260)
             Button("Ajouter un serveur", systemImage: "plus") { ssh.draft = HostDraft() }
                 .buttonStyle(.primary)
                 .fixedSize()
@@ -39,8 +39,8 @@ private struct ServerListPage: View {
             if ssh.hosts.isEmpty {
                 Card {
                     VStack(spacing: 14) {
-                        EmptyState(symbol: "externaldrive.connected.to.line.below", title: "Aucune connexion enregistrée",
-                                   message: "Les connexions viennent de ~/.ssh/config. Ajoutez votre premier serveur : il sera disponible ici, dans le terminal (ssh nom) et dans tous vos outils.")
+                        EmptyState(symbol: "externaldrive.connected.to.line.below", title: String(localized: "Aucune connexion enregistrée"),
+                                   message: String(localized: "Les connexions viennent de ~/.ssh/config. Ajoutez votre premier serveur : il sera disponible ici, dans le terminal (ssh nom) et dans tous vos outils."))
                         Button("Ajouter un serveur", systemImage: "plus") { ssh.draft = HostDraft() }.buttonStyle(.primary)
                     }
                     .padding(.bottom, 16)
@@ -52,7 +52,7 @@ private struct ServerListPage: View {
                     }
                 }
                 if visible.isEmpty {
-                    Card { EmptyState(symbol: "magnifyingglass", title: "Aucun serveur ne correspond") }
+                    Card { EmptyState(symbol: "magnifyingglass", title: String(localized: "Aucun serveur ne correspond")) }
                 }
                 footnote
             }
@@ -68,24 +68,24 @@ private struct ServerListPage: View {
 
     private var subtitle: String {
         let count = model.ssh.hosts.count
-        return count == 0 ? "Connexions SSH de ~/.ssh/config" : "\(count) connexion\(count > 1 ? "s" : "") dans ~/.ssh/config"
+        return count == 0 ? String(localized: "Connexions SSH de ~/.ssh/config") : (count > 1 ? String(localized: "\(count) connexions dans ~/.ssh/config") : String(localized: "\(count) connexion dans ~/.ssh/config"))
     }
 
     private var footnote: some View {
         let config = model.ssh.config
         var parts: [String] = []
         if !config.wildcardPatterns.isEmpty {
-            parts.append("Réglages communs : Host \(config.wildcardPatterns.joined(separator: ", "))")
+            parts.append(String(localized: "Réglages communs : Host \(config.wildcardPatterns.joined(separator: ", "))"))
         }
         if !config.includes.isEmpty {
-            parts.append("Fichiers inclus (lecture seule) : \(config.includes.map { $0.abbreviatingHome() }.joined(separator: ", "))")
+            parts.append(String(localized: "Fichiers inclus (lecture seule) : \(config.includes.map { $0.abbreviatingHome() }.joined(separator: ", "))"))
         }
         return HStack(spacing: 10) {
             Image(systemName: "info.circle").foregroundStyle(Theme.muted)
-            Text(parts.isEmpty ? "Chaque modification passe par un aperçu ; l’ancienne version de ~/.ssh/config va à la corbeille." : parts.joined(separator: " · "))
+            Text(parts.isEmpty ? String(localized: "Chaque modification passe par un aperçu ; l’ancienne version de ~/.ssh/config va à la corbeille.") : parts.joined(separator: " · "))
                 .font(.system(size: 12)).foregroundStyle(Theme.muted)
             Spacer()
-            Button("Ouvrir ~/.ssh/config") { NSWorkspace.shared.activateFileViewerSelecting([config.url]) }
+            Button(String(localized: "Ouvrir ~/.ssh/config")) { NSWorkspace.shared.activateFileViewerSelecting([config.url]) }
                 .buttonStyle(.plain).font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.link)
         }
         .padding(.horizontal, 4)
@@ -161,10 +161,10 @@ private struct HostCard: View {
                     Tag(text: "via \(jump)", foreground: Tag.blue.0, background: Tag.blue.1)
                 }
                 if !host.otherAliases.isEmpty {
-                    Tag(text: "aussi : " + host.otherAliases.joined(separator: ", "), foreground: Tag.grey.0, background: Tag.grey.1)
+                    Tag(text: String(localized: "aussi : ") + host.otherAliases.joined(separator: ", "), foreground: Tag.grey.0, background: Tag.grey.1)
                 }
                 if !host.editable {
-                    Tag(text: "lecture seule", foreground: Tag.orange.0, background: Tag.orange.1)
+                    Tag(text: String(localized: "lecture seule"), foreground: Tag.orange.0, background: Tag.orange.1)
                 }
             }
             HStack(spacing: 8) {
@@ -196,10 +196,10 @@ struct TerminalButton: View {
     var body: some View {
         Menu {
             ForEach(TerminalApp.installed, id: \.self) { terminal in
-                Button("Ouvrir dans \(terminal.label)") { open(terminal) }
+                Button(String(localized: "Ouvrir dans \(terminal.label)")) { open(terminal) }
             }
             Divider()
-            Button("Copier la commande") {
+            Button(String(localized: "Copier la commande")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(SSHCommands(alias: alias).interactive(directory: directory).map(ShellQuote.quote).joined(separator: " "), forType: .string)
             }
@@ -211,7 +211,7 @@ struct TerminalButton: View {
         .menuStyle(.button)
         .buttonStyle(PillButtonStyle(kind: filled ? .smallFilled : .small))
         .fixedSize()
-        .help("Se connecter dans \(model.preferences.terminal.label)")
+        .help(String(localized: "Se connecter dans \(model.preferences.terminal.label)"))
     }
 
     private func open(_ terminal: TerminalApp?) {
@@ -282,7 +282,7 @@ private struct ServerPage: View {
                             Text(host.alias).font(.system(size: 24, weight: .bold))
                             statusLabel
                         }
-                        Text(host.destination + (host.proxyJump.map { " · via \($0)" } ?? "") + (host.note.map { " · \($0)" } ?? ""))
+                        Text(host.destination + (host.proxyJump.map { String(localized: " · via \($0)") } ?? "") + (host.note.map { " · \($0)" } ?? ""))
                             .font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.middle)
                     }
                     Spacer()
@@ -349,13 +349,13 @@ private struct HostConfigurationView: View {
     var body: some View {
         let ssh = model.ssh
         VStack(alignment: .leading, spacing: 14) {
-            Card(title: "Connexion") {
-                fact("Nom", ([host.alias] + host.otherAliases).joined(separator: ", "))
-                fact("Adresse", host.hostName ?? "—")
-                fact("Utilisateur", host.user ?? "par défaut (\(ssh.effective["user"] ?? NSUserName()))")
+            Card(title: String(localized: "Connexion")) {
+                fact(String(localized: "Nom"), ([host.alias] + host.otherAliases).joined(separator: ", "))
+                fact(String(localized: "Adresse"), host.hostName ?? "—")
+                fact(String(localized: "Utilisateur"), host.user ?? String(localized: "par défaut (\(ssh.effective["user"] ?? NSUserName()))"))
                 fact("Port", host.port.map(String.init) ?? "22")
-                fact("Clé", host.identityFile ?? "clés par défaut et agent SSH")
-                if let jump = host.proxyJump { fact("Rebond", jump) }
+                fact(String(localized: "Clé"), host.identityFile ?? String(localized: "clés par défaut et agent SSH"))
+                if let jump = host.proxyJump { fact(String(localized: "Rebond"), jump) }
                 ForEach(host.extra, id: \.self) { option in fact(option.key, option.value) }
                 HStack(spacing: 8) {
                     if host.editable {
@@ -366,7 +366,7 @@ private struct HostConfigurationView: View {
                         if let error = ssh.installKey(host.alias) { model.launchError = error }
                     }
                     .buttonStyle(.small)
-                    .help("Lance ssh-copy-id dans le terminal : le mot de passe est demandé une fois, ensuite la clé suffit.")
+                    .help(String(localized: "Lance ssh-copy-id dans le terminal : le mot de passe est demandé une fois, ensuite la clé suffit."))
                 }
                 .padding(.top, 4)
             }
@@ -377,14 +377,14 @@ private struct HostConfigurationView: View {
                 }
             }
             if let block = ssh.config.blockText(host.alias) ?? (host.editable ? nil : host.render().joined(separator: "\n")) {
-                Card(title: "Dans ~/.ssh/config", trailing: host.editable ? nil : host.source.abbreviatingHome()) {
+                Card(title: String(localized: "Dans ~/.ssh/config"), trailing: host.editable ? nil : host.source.abbreviatingHome()) {
                     Text(block).font(.system(size: 12).monospaced()).textSelection(.enabled)
                         .padding(12).frame(maxWidth: .infinity, alignment: .leading)
                         .background(Theme.hairline.opacity(0.5), in: .rect(cornerRadius: 10))
                 }
             }
             if !ssh.effective.isEmpty {
-                Card(title: "Ce que ssh utilisera", trailing: "ssh -G \(host.alias)") {
+                Card(title: String(localized: "Ce que ssh utilisera"), trailing: String(localized: "ssh -G \(host.alias)")) {
                     ForEach(["hostname", "user", "port", "identityfile", "proxyjump", "forwardagent", "stricthostkeychecking", "serveraliveinterval"], id: \.self) { key in
                         if let value = ssh.effective[key] { fact(key, value) }
                     }
@@ -421,26 +421,26 @@ private struct HostEditorSheet: View {
             HStack(spacing: 12) {
                 HostAvatar(alias: draft.alias.isEmpty ? "?" : draft.alias, size: 36)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(draft.original == nil ? "Nouveau serveur" : "Modifier « \(draft.original!) »").font(.system(size: 18, weight: .bold))
-                    Text("Enregistré dans ~/.ssh/config : utilisable aussi avec « ssh \(draft.alias.isEmpty ? "nom" : draft.alias) ».")
+                    Text(draft.original == nil ? String(localized: "Nouveau serveur") : String(localized: "Modifier « \(draft.original!) »")).font(.system(size: 18, weight: .bold))
+                    Text(String(localized: "Enregistré dans ~/.ssh/config : utilisable aussi avec « ssh \(draft.alias.isEmpty ? "nom" : draft.alias) »."))
                         .font(.system(size: 12)).foregroundStyle(Theme.muted)
                 }
             }
             .padding(20)
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    field("Nom", "prod, nas, vps…", text: $draft.alias, help: "Le nom court à taper après ssh.")
-                    field("Adresse", "exemple.fr ou 203.0.113.10", text: $draft.hostName)
+                    field(String(localized: "Nom"), String(localized: "prod, nas, vps…"), text: $draft.alias, help: String(localized: "Le nom court à taper après ssh."))
+                    field(String(localized: "Adresse"), String(localized: "exemple.fr ou 203.0.113.10"), text: $draft.hostName)
                     HStack(spacing: 12) {
-                        field("Utilisateur", NSUserName(), text: $draft.user)
+                        field(String(localized: "Utilisateur"), NSUserName(), text: $draft.user)
                         field("Port", "22", text: $draft.port).frame(width: 110)
                     }
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Clé").font(.system(size: 12, weight: .semibold))
                         HStack(spacing: 6) {
-                            TextField("clés par défaut et agent SSH", text: $draft.identityFile).textFieldStyle(.roundedBorder)
-                            Menu("Choisir") {
-                                Button("Clés par défaut") { draft.identityFile = "" }
+                            TextField(String(localized: "clés par défaut et agent SSH"), text: $draft.identityFile).textFieldStyle(.roundedBorder)
+                            Menu(String(localized: "Choisir")) {
+                                Button(String(localized: "Clés par défaut")) { draft.identityFile = "" }
                                 if !ssh.keys.isEmpty { Divider() }
                                 ForEach(ssh.keys, id: \.self) { key in Button(key) { draft.identityFile = key } }
                             }
@@ -451,8 +451,8 @@ private struct HostEditorSheet: View {
                         Text("Passer par (rebond)").font(.system(size: 12, weight: .semibold))
                         HStack(spacing: 6) {
                             TextField("aucun", text: $draft.proxyJump).textFieldStyle(.roundedBorder)
-                            Menu("Choisir") {
-                                Button("Aucun") { draft.proxyJump = "" }
+                            Menu(String(localized: "Choisir")) {
+                                Button(String(localized: "Aucun")) { draft.proxyJump = "" }
                                 Divider()
                                 ForEach(ssh.hosts.filter { $0.alias != draft.original }) { host in Button(host.alias) { draft.proxyJump = host.alias } }
                             }
@@ -460,8 +460,8 @@ private struct HostEditorSheet: View {
                         }
                         Text("Un serveur intermédiaire (bastion) par lequel passer, s’il en faut un.").font(.system(size: 11)).foregroundStyle(Theme.muted)
                     }
-                    field("Note", "facultatif : à quoi sert ce serveur", text: $draft.note)
-                    DisclosureGroup("Options avancées", isExpanded: $showAdvanced) {
+                    field("Note", String(localized: "facultatif : à quoi sert ce serveur"), text: $draft.note)
+                    DisclosureGroup(String(localized: "Options avancées"), isExpanded: $showAdvanced) {
                         VStack(alignment: .leading, spacing: 5) {
                             TextEditor(text: $draft.extra)
                                 .font(.system(size: 12).monospaced())
@@ -469,7 +469,7 @@ private struct HostEditorSheet: View {
                                 .scrollContentBackground(.hidden)
                                 .padding(6)
                                 .background(Theme.hairline.opacity(0.5), in: .rect(cornerRadius: 8))
-                            Text("Une option par ligne, par exemple « ForwardAgent yes » ou « LocalForward 5433 localhost:5432 ».")
+                            Text(String(localized: "Une option par ligne, par exemple « ForwardAgent yes » ou « LocalForward 5433 localhost:5432 »."))
                                 .font(.system(size: 11)).foregroundStyle(Theme.muted)
                         }
                         .padding(.top, 6)
@@ -493,7 +493,7 @@ private struct HostEditorSheet: View {
                 HStack {
                     Spacer()
                     Button("Annuler") { dismiss() }.keyboardShortcut(.cancelAction).buttonStyle(.small)
-                    Button(draft.original == nil ? "Ajouter…" : "Enregistrer…") { ssh.save(draft) }
+                    Button(draft.original == nil ? String(localized: "Ajouter…") : String(localized: "Enregistrer…")) { ssh.save(draft) }
                         .keyboardShortcut(.defaultAction)
                         .buttonStyle(PillButtonStyle(kind: .smallFilled))
                         .disabled(!problems.isEmpty)

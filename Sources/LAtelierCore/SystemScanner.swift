@@ -47,9 +47,9 @@ public struct SystemScanner: Sendable {
             } else if running.contains(name.lowercased()) {
                 items.append(CleanupItem(
                     id: url.path, name: appName(name) ?? name,
-                    detail: "Ignoré : l’app est ouverte. Quittez-la pour nettoyer.",
-                    meta: "—", tag: "App ouverte", risk: .protected,
-                    lockReason: "l’app est ouverte", selectedByDefault: false, entries: [entry]
+                    detail: String(localized: "Ignoré : l’app est ouverte. Quittez-la pour nettoyer."),
+                    meta: "—", tag: String(localized: "App ouverte"), risk: .protected,
+                    lockReason: String(localized: "l’app est ouverte"), selectedByDefault: false, entries: [entry]
                 ))
             } else if size < smallThreshold {
                 small.append(entry)
@@ -63,23 +63,23 @@ public struct SystemScanner: Sendable {
         items.sort { ($0.bytes, $1.name) > ($1.bytes, $0.name) }
         if !small.isEmpty {
             items.append(CleanupItem(
-                id: root.path + "#small", name: "Autres caches",
-                detail: "\(small.count) dossiers de moins de \(ByteCountFormatter.string(fromByteCount: smallThreshold, countStyle: .file))",
+                id: root.path + "#small", name: String(localized: "Autres caches"),
+                detail: String(localized: "\(small.count) dossiers de moins de \(ByteCountFormatter.string(fromByteCount: smallThreshold, countStyle: .file))"),
                 meta: "\(small.count) dossiers", entries: small
             ))
         }
         if !system.isEmpty {
             items.append(CleanupItem(
-                id: root.path + "#apple", name: "Caches de macOS",
-                detail: "\(system.count) dossiers com.apple.* : gérés par le système, on n’y touche pas.",
+                id: root.path + "#apple", name: String(localized: "Caches de macOS"),
+                detail: String(localized: "\(system.count) dossiers com.apple.* : gérés par le système, on n’y touche pas."),
                 meta: "\(system.count) dossiers", risk: .protected,
-                lockReason: "géré par macOS", selectedByDefault: false, entries: system
+                lockReason: String(localized: "géré par macOS"), selectedByDefault: false, entries: system
             ))
         }
         guard !items.isEmpty else { return nil }
         return CleanupGroup(
-            id: "caches", title: "Caches utilisateur",
-            detail: "~/Library/Caches · recréés par les apps au besoin", items: items
+            id: "caches", title: String(localized: "Caches utilisateur"),
+            detail: String(localized: "~/Library/Caches · recréés par les apps au besoin"), items: items
         )
     }
 
@@ -100,11 +100,11 @@ public struct SystemScanner: Sendable {
             )
         }
         let items = [
-            item("logs", "Logs d’apps", root, appLogs, unit: "fichier"),
-            item("diagnostics", "Rapports de diagnostic", diagnostics, reports, unit: "rapport"),
+            item("logs", String(localized: "Logs d’apps"), root, appLogs, unit: "fichier"),
+            item("diagnostics", String(localized: "Rapports de diagnostic"), diagnostics, reports, unit: "rapport"),
         ].compactMap { $0 }
         guard !items.isEmpty else { return nil }
-        return CleanupGroup(id: "logs", title: "Logs", detail: "Journaux d’apps et rapports de plantage", items: items)
+        return CleanupGroup(id: "logs", title: "Logs", detail: String(localized: "Journaux d’apps et rapports de plantage"), items: items)
     }
 
     func trashGroup() async -> CleanupGroup? {
@@ -117,20 +117,20 @@ public struct SystemScanner: Sendable {
             let sizes = await DiskUsage.measure(visible)
             let total = sizes.values.reduce(Int64(0)) { $0 + $1.bytes }
             item = CleanupItem(
-                id: trash.path, name: "Vider la corbeille",
-                detail: "~/.Trash · \(visible.count) élément(s)", meta: "Définitif", metaHighlighted: true,
+                id: trash.path, name: String(localized: "Vider la corbeille"),
+                detail: "~/.Trash · \(visible.count) élément(s)", meta: String(localized: "Définitif"), metaHighlighted: true,
                 risk: .caution, selectedByDefault: false, entries: [], action: .emptyTrash, displayBytes: total
             )
         } else {
             // macOS protège ~/.Trash : sans « Accès complet au disque », on ne peut pas la mesurer.
             item = CleanupItem(
-                id: trash.path, name: "Vider la corbeille",
-                detail: "Taille inconnue : autorisez L’Atelier dans Réglages Système › Confidentialité › Accès complet au disque.",
-                meta: "Définitif", metaHighlighted: true, risk: .caution, selectedByDefault: false,
+                id: trash.path, name: String(localized: "Vider la corbeille"),
+                detail: String(localized: "Taille inconnue : autorisez L’Atelier dans Réglages Système › Confidentialité › Accès complet au disque."),
+                meta: String(localized: "Définitif"), metaHighlighted: true, risk: .caution, selectedByDefault: false,
                 entries: [], action: .emptyTrash, displayBytes: 0
             )
         }
-        return CleanupGroup(id: "trash", title: "Corbeille", detail: "Vider la corbeille est définitif", tone: .neutral, items: [item])
+        return CleanupGroup(id: "trash", title: String(localized: "Corbeille"), detail: String(localized: "Vider la corbeille est définitif"), tone: .neutral, items: [item])
     }
 
     static func children(of url: URL) -> [URL] {

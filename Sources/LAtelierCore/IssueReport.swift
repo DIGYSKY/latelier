@@ -27,7 +27,7 @@ public enum IssueReport {
 
         /// Une ligne par information, à coller dans une issue.
         public var summary: String {
-            "L’Atelier \(appVersion) (\(build)) · macOS \(macOS) · \(architecture) · \(installation) · \(language)"
+            String(localized: "L’Atelier \(appVersion) (\(build)) · macOS \(macOS) · \(architecture) · \(installation) · \(language)")
         }
     }
 

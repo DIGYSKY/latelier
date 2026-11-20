@@ -10,16 +10,16 @@ struct SystemPage: View {
         @Bindable var bindable = scan
         PageScaffold(
             page: .systeme,
-            subtitle: scan.statusLine ?? "Caches, logs et corbeille. Les caches sont recréés automatiquement par les apps."
+            subtitle: scan.statusLine ?? String(localized: "Caches, logs et corbeille. Les caches sont recréés automatiquement par les apps.")
         ) {
             Button("Analyser", systemImage: "magnifyingglass") { model.scanSystem() }
                 .buttonStyle(.primary)
                 .disabled(scan.scanning)
         } content: {
             if scan.scanning {
-                ScanningCard(label: "Analyse de ~/Library/Caches, ~/Library/Logs et de la corbeille…")
+                ScanningCard(label: String(localized: "Analyse de ~/Library/Caches, ~/Library/Logs et de la corbeille…"))
             } else if scan.groups.isEmpty {
-                Card { EmptyState(symbol: "sparkles", title: "Rien à nettoyer", message: "Les caches et les logs sont déjà vides.") }
+                Card { EmptyState(symbol: "sparkles", title: String(localized: "Rien à nettoyer"), message: String(localized: "Les caches et les logs sont déjà vides.")) }
             } else {
                 CleanupList(groups: scan.groups, selection: $bindable.selection)
             }
@@ -41,7 +41,7 @@ struct SystemPage: View {
 
     private func review(_ chosen: [CleanupItem]) {
         let skipped = model.systemScan.items.filter { $0.isLocked && $0.tag != nil }
-        if let plan = CleanupPlanner.plan(title: "Nettoyer : Système", items: chosen, skipped: skipped) {
+        if let plan = CleanupPlanner.plan(title: String(localized: "Nettoyer : Système"), items: chosen, skipped: skipped) {
             model.preview(plan)
         }
     }

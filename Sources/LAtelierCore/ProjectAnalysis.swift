@@ -180,17 +180,17 @@ public struct ProjectAnalysis: Sendable {
 public enum SecretScanner {
     /// Motifs reconnus. Le premier groupe est volontairement absent : on masque tout l'extrait.
     static let patterns: [(kind: String, regex: String)] = [
-        ("Clé AWS", "AKIA[0-9A-Z]{16}"),
-        ("Jeton GitHub", "gh[pousr]_[A-Za-z0-9]{36,}"),
-        ("Jeton GitHub", "github_pat_[A-Za-z0-9_]{60,}"),
-        ("Jeton GitLab", "glpat-[A-Za-z0-9_-]{20,}"),
-        ("Clé Anthropic", "sk-ant-[A-Za-z0-9_-]{20,}"),
-        ("Clé OpenAI", "sk-(proj-)?[A-Za-z0-9_-]{40,}"),
-        ("Jeton Slack", "xox[abprs]-[A-Za-z0-9-]{10,}"),
-        ("Clé Stripe", "[rs]k_live_[A-Za-z0-9]{20,}"),
-        ("Clé Google", "AIza[A-Za-z0-9_-]{35}"),
-        ("Jeton Discord", "[MN][A-Za-z0-9]{23,25}\\.[A-Za-z0-9_-]{6}\\.[A-Za-z0-9_-]{27,}"),
-        ("Clé privée", "-----BEGIN ([A-Z]+ )?PRIVATE KEY-----"),
+        (String(localized: "Clé AWS"), "AKIA[0-9A-Z]{16}"),
+        (String(localized: "Jeton GitHub"), "gh[pousr]_[A-Za-z0-9]{36,}"),
+        (String(localized: "Jeton GitHub"), "github_pat_[A-Za-z0-9_]{60,}"),
+        (String(localized: "Jeton GitLab"), "glpat-[A-Za-z0-9_-]{20,}"),
+        (String(localized: "Clé Anthropic"), "sk-ant-[A-Za-z0-9_-]{20,}"),
+        (String(localized: "Clé OpenAI"), "sk-(proj-)?[A-Za-z0-9_-]{40,}"),
+        (String(localized: "Jeton Slack"), "xox[abprs]-[A-Za-z0-9-]{10,}"),
+        (String(localized: "Clé Stripe"), "[rs]k_live_[A-Za-z0-9]{20,}"),
+        (String(localized: "Clé Google"), "AIza[A-Za-z0-9_-]{35}"),
+        (String(localized: "Jeton Discord"), "[MN][A-Za-z0-9]{23,25}\\.[A-Za-z0-9_-]{6}\\.[A-Za-z0-9_-]{27,}"),
+        (String(localized: "Clé privée"), "-----BEGIN ([A-Z]+ )?PRIVATE KEY-----"),
     ]
 
     /// Fichiers ignorés : lockfiles, code minifié, et jeux de test (clés factices).
@@ -210,7 +210,7 @@ public enum SecretScanner {
                 let text = (try? String(contentsOf: repo.appending(path: path), encoding: .utf8)) ?? ""
                 let names = sensitiveVariables(in: text)
                 findings.append(SecretFinding(
-                    project: repo, file: path, line: nil, kind: "Fichier .env suivi par git",
+                    project: repo, file: path, line: nil, kind: String(localized: "Fichier .env suivi par git"),
                     detail: names.prefix(4).joined(separator: ", ") + (names.count > 4 ? "…" : ""),
                     isEnvFile: true, sensitive: !names.isEmpty
                 ))
@@ -271,8 +271,8 @@ public enum SecretScanner {
     /// Ne plus suivre le fichier et l'ajouter au .gitignore. La clé reste dans l'historique : à changer.
     public static func untrackPlan(_ finding: SecretFinding) -> ActionPlan {
         ActionPlan(
-            title: "Ne plus suivre \(finding.file) dans \(finding.projectName)",
-            summary: "Le fichier reste sur le disque mais sort du dépôt au prochain commit, et il est ajouté au .gitignore. Il reste dans l’historique git : changez les clés concernées chez leurs fournisseurs.",
+            title: String(localized: "Ne plus suivre \(finding.file) dans \(finding.projectName)"),
+            summary: String(localized: "Le fichier reste sur le disque mais sort du dépôt au prochain commit, et il est ajouté au .gitignore. Il reste dans l’historique git : changez les clés concernées chez leurs fournisseurs."),
             kind: .git, risk: .caution, reversible: true,
             steps: [
                 .command(CommandSpec("git", ["rm", "--cached", "--", finding.file], in: finding.project)),
@@ -375,7 +375,7 @@ public enum DependencyFix {
         var skipped: [String] = []
         for package in packages {
             guard let command = fix(package) else {
-                skipped.append("\(package.dependency.name) (\(package.projectName)) : " + (package.fixedVersion == nil ? "pas encore de version corrigée" : "\(package.file) à modifier à la main"))
+                skipped.append("\(package.dependency.name) (\(package.projectName)) : " + (package.fixedVersion == nil ? String(localized: "pas encore de version corrigée") : String(localized: "\(package.file) à modifier à la main")))
                 continue
             }
             if seen.insert(command.displayString).inserted { commands.append(command) }
@@ -385,10 +385,10 @@ public enum DependencyFix {
         let major = packages.contains { p in p.fixedVersion.map { UpdateGap.between(p.dependency.version, $0) == .major } ?? false }
         return ActionPlan(
             title: packages.count == 1
-                ? "Mettre à jour \(first.dependency.name) vers \(first.fixedVersion ?? "") (\(first.projectName))"
-                : "Corriger \(packages.count) paquets vulnérables",
-            summary: (major ? "Changement de version majeure : des incompatibilités sont possibles. " : "")
-                + "Modifie le manifeste et le lockfile du projet ; annulable avec git. Relancez les tests du projet ensuite.",
+                ? String(localized: "Mettre à jour \(first.dependency.name) vers \(first.fixedVersion ?? "") (\(first.projectName))")
+                : String(localized: "Corriger \(packages.count) paquets vulnérables"),
+            summary: (major ? String(localized: "Changement de version majeure : des incompatibilités sont possibles. ") : "")
+                + String(localized: "Modifie le manifeste et le lockfile du projet ; annulable avec git. Relancez les tests du projet ensuite."),
             kind: .paquet, risk: .caution, reversible: true,
             steps: commands.map(ActionStep.command), skipped: skipped, stopOnFailure: false
         )
@@ -400,15 +400,15 @@ public enum DependencyFix {
         var skipped: [String] = []
         let commands = library.outdated.compactMap { use -> CommandSpec? in
             let command = upgradeDirect(library.name, to: latest, dev: use.dev, manager: use.manager, in: use.project)
-            if command == nil { skipped.append("\(use.projectName) : \(use.manifest) à modifier à la main (\(use.manager.label))") }
+            if command == nil { skipped.append(String(localized: "\(use.projectName) : \(use.manifest) à modifier à la main (\(use.manager.label))")) }
             return command
         }
         guard !commands.isEmpty else { return nil }
         let major = library.outdated.contains { $0.gap == .major }
         return ActionPlan(
-            title: "Aligner \(library.name) sur \(latest)",
-            summary: (major ? "Mise à jour majeure : des changements incompatibles sont possibles. " : "")
-                + "Modifie le manifeste et le lockfile de \(commands.count) projet(s) ; annulable avec git.",
+            title: String(localized: "Aligner \(library.name) sur \(latest)"),
+            summary: (major ? String(localized: "Mise à jour majeure : des changements incompatibles sont possibles. ") : "")
+                + String(localized: "Modifie le manifeste et le lockfile de \(commands.count) projet(s) ; annulable avec git."),
             kind: .paquet, risk: major ? .caution : .safe, reversible: true,
             steps: commands.map(ActionStep.command), skipped: skipped, stopOnFailure: false
         )

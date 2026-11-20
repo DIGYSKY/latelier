@@ -9,13 +9,13 @@ public struct SonarFile: Sendable, Identifiable, Hashable {
 
         public var label: String {
             switch self {
-            case .video: "Vidéos"
+            case .video: String(localized: "Vidéos")
             case .image: "Images"
             case .audio: "Audio"
             case .archive: "Archives"
-            case .installer: "Installeurs et images disque"
+            case .installer: String(localized: "Installeurs et images disque")
             case .document: "Documents"
-            case .vm: "Machines virtuelles"
+            case .vm: String(localized: "Machines virtuelles")
             }
         }
     }
@@ -47,16 +47,16 @@ public struct SonarFile: Sendable, Identifiable, Hashable {
     /// Pourquoi ce fichier est proposé.
     public func reason(now: Date = .now) -> String {
         let days = ageDays(now: now)
-        if let original = duplicateOf { return "Doublon exact de « \(original.lastPathComponent) » (\(original.deletingLastPathComponent().abbreviatingHome()))." }
-        if let app = installedApp { return "Installeur déjà utilisé : \(app) est installée." }
-        if days < 30, lastUsed != nil { return "Ouvert récemment : sans doute encore utile." }
+        if let original = duplicateOf { return String(localized: "Doublon exact de « \(original.lastPathComponent) » (\(original.deletingLastPathComponent().abbreviatingHome())).") }
+        if let app = installedApp { return String(localized: "Installeur déjà utilisé : \(app) est installée.") }
+        if days < 30, lastUsed != nil { return String(localized: "Ouvert récemment : sans doute encore utile.") }
         if lastUsed == nil, days >= 30 {
-            return zone == .downloads ? "Téléchargé \(Self.ago(days)) et jamais ouvert." : "Jamais ouvert depuis sa création (\(Self.ago(days)))."
+            return zone == .downloads ? String(localized: "Téléchargé \(Self.ago(days)) et jamais ouvert.") : String(localized: "Jamais ouvert depuis sa création (\(Self.ago(days))).")
         }
-        if kind == .installer { return "Image disque ou installeur ouvert \(Self.ago(days)) : l’installation est sans doute faite." }
-        if kind == .vm { return "Machine virtuelle pas démarrée depuis \(Self.ago(days, prefix: false))." }
-        if days >= 365 { return "Pas ouvert depuis \(Self.ago(days, prefix: false))." }
-        return "Gros fichier ouvert \(Self.ago(days))."
+        if kind == .installer { return String(localized: "Image disque ou installeur ouvert \(Self.ago(days)) : l’installation est sans doute faite.") }
+        if kind == .vm { return String(localized: "Machine virtuelle pas démarrée depuis \(Self.ago(days, prefix: false)).") }
+        if days >= 365 { return String(localized: "Pas ouvert depuis \(Self.ago(days, prefix: false)).") }
+        return String(localized: "Gros fichier ouvert \(Self.ago(days)).")
     }
 
     static func ago(_ days: Int, prefix: Bool = true) -> String {
@@ -65,7 +65,7 @@ public struct SonarFile: Sendable, Identifiable, Hashable {
             let years = Double(days) / 365
             text = years < 2 ? String(format: "%.1f an", years).replacingOccurrences(of: ".", with: ",") : "\(Int(years)) ans"
         }
-        return prefix ? "il y a \(text)" : text
+        return prefix ? String(localized: "il y a \(text)") : text
     }
 }
 
@@ -74,12 +74,12 @@ public enum SonarZone: String, Sendable, CaseIterable {
 
     public var label: String {
         switch self {
-        case .home: "Dossier personnel"
-        case .downloads: "Téléchargements"
+        case .home: String(localized: "Dossier personnel")
+        case .downloads: String(localized: "Téléchargements")
         case .documents: "Documents"
-        case .desktop: "Bureau"
-        case .movies: "Vidéos"
-        case .music: "Musique"
+        case .desktop: String(localized: "Bureau")
+        case .movies: String(localized: "Vidéos")
+        case .music: String(localized: "Musique")
         case .pictures: "Images"
         }
     }
@@ -272,11 +272,11 @@ public enum SonarLens: String, Sendable, CaseIterable {
 
     public var label: String {
         switch self {
-        case .all: "Tout"
-        case .old: "Plus d’un an"
-        case .big: "Plus d’1 Go"
-        case .duplicates: "Doublons"
-        case .downloads: "Téléchargements oubliés"
+        case .all: String(localized: "Tout")
+        case .old: String(localized: "Plus d’un an")
+        case .big: String(localized: "Plus d’1 Go")
+        case .duplicates: String(localized: "Doublons")
+        case .downloads: String(localized: "Téléchargements oubliés")
         }
     }
 

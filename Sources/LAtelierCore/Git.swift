@@ -138,7 +138,7 @@ public struct GitClient: Sendable {
         do {
             let result = try await porcelain
             guard result.succeeded else {
-                status.error = result.stderr.first ?? "git status a échoué"
+                status.error = result.stderr.first ?? String(localized: "git status a échoué")
                 return status
             }
             Self.parseStatus(result.stdout, into: &status)
@@ -263,8 +263,8 @@ public struct GitClient: Sendable {
         let git = repo.appendingPathComponent(".git")
         let fm = FileManager.default
         let checks: [(String, String)] = [
-            ("MERGE_HEAD", "fusion en cours"), ("rebase-merge", "rebase en cours"), ("rebase-apply", "rebase en cours"),
-            ("CHERRY_PICK_HEAD", "cherry-pick en cours"), ("REVERT_HEAD", "revert en cours"), ("BISECT_LOG", "bisect en cours"),
+            ("MERGE_HEAD", String(localized: "fusion en cours")), ("rebase-merge", String(localized: "rebase en cours")), ("rebase-apply", String(localized: "rebase en cours")),
+            ("CHERRY_PICK_HEAD", String(localized: "cherry-pick en cours")), ("REVERT_HEAD", String(localized: "revert en cours")), ("BISECT_LOG", String(localized: "bisect en cours")),
         ]
         return checks.first { fm.fileExists(atPath: git.appendingPathComponent($0.0).path) }?.1
     }
@@ -294,8 +294,8 @@ public struct GitClient: Sendable {
 
     public static func fetchPlan(_ repos: [RepoStatus]) -> ActionPlan {
         ActionPlan(
-            title: repos.count == 1 ? "Fetch : \(repos[0].name)" : "Fetch de \(repos.count) dépôts",
-            summary: "Récupère les nouveautés des distants. Ne touche ni au code ni aux branches locales.",
+            title: repos.count == 1 ? String(localized: "Fetch : \(repos[0].name)") : String(localized: "Fetch de \(repos.count) dépôts"),
+            summary: String(localized: "Récupère les nouveautés des distants. Ne touche ni au code ni aux branches locales."),
             kind: .git, risk: .safe, reversible: true,
             steps: repos.map { .command(command(["fetch", "--prune"], in: $0.url)) },
             stopOnFailure: false
@@ -304,8 +304,8 @@ public struct GitClient: Sendable {
 
     public static func pullPlan(_ repo: RepoStatus) -> ActionPlan {
         ActionPlan(
-            title: "Pull : \(repo.name)",
-            summary: "Récupère \(repo.behind) commit(s) de \(repo.upstream ?? "la branche distante") en avance rapide seulement : si les historiques ont divergé, rien n’est modifié.",
+            title: String(localized: "Pull : \(repo.name)"),
+            summary: String(localized: "Récupère \(repo.behind) commit(s) de \(repo.upstream ?? String(localized: "la branche distante")) en avance rapide seulement : si les historiques ont divergé, rien n’est modifié."),
             kind: .git, risk: repo.changes.isEmpty ? .safe : .caution, reversible: false,
             steps: [.command(command(["pull", "--ff-only"], in: repo.url))]
         )
@@ -316,10 +316,10 @@ public struct GitClient: Sendable {
         let remote = repo.remotes["origin"] != nil ? "origin" : repo.remotes.keys.sorted()[0]
         let arguments = repo.upstream == nil ? ["push", "--set-upstream", remote, branch] : ["push"]
         return ActionPlan(
-            title: "Push : \(repo.name)",
+            title: String(localized: "Push : \(repo.name)"),
             summary: repo.upstream == nil
-                ? "Publie la branche \(branch) sur \(remote) pour la première fois."
-                : "Envoie \(repo.ahead) commit(s) de \(branch) vers \(repo.upstream!). Jamais de push forcé.",
+                ? String(localized: "Publie la branche \(branch) sur \(remote) pour la première fois.")
+                : String(localized: "Envoie \(repo.ahead) commit(s) de \(branch) vers \(repo.upstream!). Jamais de push forcé."),
             kind: .git, risk: .safe, reversible: false,
             steps: [.command(command(arguments, in: repo.url))]
         )
@@ -335,8 +335,8 @@ public struct GitClient: Sendable {
         let paths = files.flatMap { [$0.path] + ($0.originalPath.map { [$0] } ?? []) }
         steps.append(.command(command(["commit", "-m", message, "--"] + paths, in: repo.url)))
         return ActionPlan(
-            title: "Commit : \(repo.name)",
-            summary: "\(files.count) fichier(s) sur \(repo.branch ?? "HEAD détaché") : « \(message) »",
+            title: String(localized: "Commit : \(repo.name)"),
+            summary: String(localized: "\(files.count) fichier(s) sur \(repo.branch ?? String(localized: "HEAD détaché")) : « \(message) »"),
             kind: .git, risk: .safe, reversible: true, steps: steps
         )
     }

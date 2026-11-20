@@ -55,15 +55,15 @@ struct PortActions: View {
                     if compact { icon("safari") } else { Label("Ouvrir", systemImage: "safari").fixedSize() }
                 }
                 .buttonStyle(compactStyle)
-                .help("Ouvrir http://localhost:\(port.port) dans le navigateur")
+                .help(String(localized: "Ouvrir http://localhost:\(String(port.port)) dans le navigateur"))
             }
             Button {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(PortProbe.address(port.port, http: http), forType: .string)
             } label: { compact ? AnyView(icon("doc.on.doc")) : AnyView(Image(systemName: "doc.on.doc")) }
                 .buttonStyle(compactStyle)
-                .help("Copier \(PortProbe.address(port.port, http: http))")
-                .accessibilityLabel("Copier l’adresse")
+                .help(String(localized: "Copier \(PortProbe.address(port.port, http: http))"))
+                .accessibilityLabel(String(localized: "Copier l’adresse"))
         }
         .onAppear { probe.check(port.port) }
     }
@@ -101,13 +101,13 @@ extension View {
         contextMenu {
             let http = PortProbe.shared.http[port.port] == true
             if http, let url = URL(string: PortProbe.address(port.port, http: true)) {
-                Button("Ouvrir \(url.absoluteString)") { NSWorkspace.shared.open(url) }
+                Button(String(localized: "Ouvrir \(url.absoluteString)")) { NSWorkspace.shared.open(url) }
             }
-            Button("Copier \(PortProbe.address(port.port, http: http))") {
+            Button(String(localized: "Copier \(PortProbe.address(port.port, http: http))")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(PortProbe.address(port.port, http: http), forType: .string)
             }
-            Button("Copier le PID (\(port.pid))") {
+            Button(String(localized: "Copier le PID (\(String(port.pid)))")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(String(port.pid), forType: .string)
             }
@@ -152,7 +152,7 @@ struct ProcessDetailSheet: View {
                     .padding(20)
                 }
             } else {
-                ProgressView("Lecture du processus \(pid)…").padding(40)
+                ProgressView(String(localized: "Lecture du processus \(String(pid))…")).padding(40)
             }
         }
         .frame(width: 760, height: 680)
@@ -172,23 +172,23 @@ struct ProcessDetailSheet: View {
             ProcessIcon(name: process.displayName, bundle: process.appBundle).frame(width: 36, height: 36)
             VStack(alignment: .leading, spacing: 2) {
                 Text(process.displayName).font(.system(size: 19, weight: .bold))
-                Text("PID \(process.pid) · \(process.userLabel) · \(process.energy == .high ? "impact énergétique élevé" : "impact énergétique \(energyLabel(process.energy))")")
+                Text(String(localized: "PID \(String(process.pid)) · \(process.userLabel) · \(process.energy == .high ? String(localized: "impact énergétique élevé") : String(localized: "impact énergétique \(energyLabel(process.energy))"))"))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
             Spacer()
             if process.canQuit {
-                Button("Quitter") {
+                Button(String(localized: "Quitter")) {
                     dismiss()
                     model.quit([process.target], label: process.displayName, force: false)
                 }
                 .buttonStyle(PillButtonStyle(kind: .small))
-                Button("Forcer") {
+                Button(String(localized: "Forcer")) {
                     dismiss()
                     model.quit([process.target], label: process.displayName, force: true)
                 }
                 .buttonStyle(PillButtonStyle(kind: .small))
             }
-            Button("Fermer") { dismiss() }
+            Button(String(localized: "Fermer")) { dismiss() }
                 .buttonStyle(PillButtonStyle(kind: .smallFilled))
                 .keyboardShortcut(.cancelAction)
         }
@@ -200,7 +200,7 @@ struct ProcessDetailSheet: View {
         case .none: "nul"
         case .low: "faible"
         case .medium: "moyen"
-        case .high: "élevé"
+        case .high: String(localized: "élevé")
         }
     }
 
@@ -216,23 +216,23 @@ struct ProcessDetailSheet: View {
 
     private func performance(_ process: RunningProcess, monitor: PerformanceMonitor) -> some View {
         let history = monitor.processHistory[pid] ?? []
-        return section("Performances (2 dernières minutes)") {
+        return section(String(localized: "Performances (2 dernières minutes)")) {
             HStack(spacing: 10) {
-                StatTile(label: "Processeur", value: Format.percent(process.cpu))
-                StatTile(label: "Mémoire", value: Format.ram(process.memory))
+                StatTile(label: String(localized: "Processeur"), value: Format.percent(process.cpu))
+                StatTile(label: String(localized: "Mémoire"), value: Format.ram(process.memory))
                 StatTile(label: "Threads", value: process.threads.map(String.init) ?? "—")
-                StatTile(label: "Réveils / s", value: Format.decimal(process.wakeups, decimals: 0))
+                StatTile(label: String(localized: "Réveils / s"), value: Format.decimal(process.wakeups, decimals: 0))
             }
             HStack(spacing: 14) {
-                chart("Processeur (%)", values: history.map(\.cpu), color: Theme.accent) { Format.percent($0) }
-                chart("Mémoire", values: history.map { Double($0.memory) }, color: Color(hex: 0x6E4BD8)) { Format.ram(Int64($0)) }
+                chart(String(localized: "Processeur (%)"), values: history.map(\.cpu), color: Theme.accent) { Format.percent($0) }
+                chart(String(localized: "Mémoire"), values: history.map { Double($0.memory) }, color: Color(hex: 0x6E4BD8)) { Format.ram(Int64($0)) }
             }
             .frame(height: 150)
             HStack(spacing: 10) {
-                StatTile(label: "Lu sur le disque", value: Format.bytes(Int64(process.diskRead)))
-                StatTile(label: "Écrit sur le disque", value: Format.bytes(Int64(process.diskWritten)))
+                StatTile(label: String(localized: "Lu sur le disque"), value: Format.bytes(Int64(process.diskRead)))
+                StatTile(label: String(localized: "Écrit sur le disque"), value: Format.bytes(Int64(process.diskWritten)))
                 if let rate = monitor.traffic[pid] {
-                    StatTile(label: "Réseau ↓ / ↑", value: "\(Format.rate(rate.down)) / \(Format.rate(rate.up))")
+                    StatTile(label: String(localized: "Réseau ↓ / ↑"), value: "\(Format.rate(rate.down)) / \(Format.rate(rate.up))")
                 }
             }
         }
@@ -264,23 +264,23 @@ struct ProcessDetailSheet: View {
     }
 
     private func identity(_ process: RunningProcess) -> some View {
-        section("Identité") {
+        section(String(localized: "Identité")) {
             Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 7) {
-                row("Exécutable", process.path ?? "inconnu (processus d’un autre compte)", mono: true)
+                row(String(localized: "Exécutable"), process.path ?? String(localized: "inconnu (processus d’un autre compte)"), mono: true)
                 if let arguments, arguments.count > 1 {
                     row("Arguments", RecorderDetector.displayCommand(arguments), mono: true)
                 }
-                if let cwd = process.cwd { row("Dossier de travail", cwd, mono: true) }
+                if let cwd = process.cwd { row(String(localized: "Dossier de travail"), cwd, mono: true) }
                 if let project = process.cwd.flatMap({ ProjectMatcher.project(for: $0, in: model.knownProjects) }) {
-                    row("Projet", model.projectName(project), mono: false)
+                    row(String(localized: "Projet"), model.projectName(project), mono: false)
                 }
                 let start = Date(timeIntervalSince1970: TimeInterval(process.started))
-                row("Démarré", start.formatted(date: .abbreviated, time: .standard) + " · depuis " + Self.uptime(Date().timeIntervalSince(start)), mono: false)
-                row("Utilisateur", process.userLabel, mono: false)
+                row(String(localized: "Démarré"), start.formatted(date: .abbreviated, time: .standard) + String(localized: " · depuis ") + Self.uptime(Date().timeIntervalSince(start)), mono: false)
+                row(String(localized: "Utilisateur"), process.userLabel, mono: false)
                 if let signer {
-                    row("Signature", signer.apple ? "Apple" : (signer.name ?? "signé") + (signer.teamID.map { " (\($0))" } ?? ""), mono: false)
+                    row(String(localized: "Signature"), signer.apple ? "Apple" : (signer.name ?? String(localized: "signé")) + (signer.teamID.map { " (\($0))" } ?? ""), mono: false)
                 } else if process.path != nil {
-                    row("Signature", "non signé ou illisible", mono: false)
+                    row(String(localized: "Signature"), String(localized: "non signé ou illisible"), mono: false)
                 }
             }
             HStack(spacing: 8) {
@@ -288,7 +288,7 @@ struct ProcessDetailSheet: View {
                     Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)]) }
                         .buttonStyle(PillButtonStyle(kind: .small))
                 }
-                Button("Copier la commande") {
+                Button(String(localized: "Copier la commande")) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString((arguments ?? [process.path ?? process.name]).joined(separator: " "), forType: .string)
                 }
@@ -306,8 +306,8 @@ struct ProcessDetailSheet: View {
         let s = Int(seconds)
         if s < 60 { return "\(s) s" }
         if s < 3600 { return "\(s / 60) min" }
-        if s < 86_400 { return "\(s / 3600) h \(s % 3600 / 60) min" }
-        return "\(s / 86_400) j \(s % 86_400 / 3600) h"
+        if s < 86_400 { return String(localized: "\(s / 3600) h \(s % 3600 / 60) min") }
+        return String(localized: "\(s / 86_400) j \(s % 86_400 / 3600) h")
     }
 
     private func row(_ label: String, _ value: String, mono: Bool) -> some View {
@@ -321,11 +321,11 @@ struct ProcessDetailSheet: View {
     private func tree(_ process: RunningProcess, monitor: PerformanceMonitor) -> some View {
         let parent = monitor.process(process.ppid)
         let kids = children.compactMap(monitor.process).sorted { $0.cpu > $1.cpu }
-        return section("Arborescence") {
+        return section(String(localized: "Arborescence")) {
             HStack {
                 Text("Parent").font(.system(size: 12)).foregroundStyle(Theme.muted)
                 if let parent {
-                    Button("\(parent.displayName) (PID \(parent.pid))") { model.processDetail = ProcessDetailRequest(pid: parent.pid) }
+                    Button(String(localized: "\(parent.displayName) (PID \(String(parent.pid)))")) { model.processDetail = ProcessDetailRequest(pid: parent.pid) }
                         .buttonStyle(.link)
                 } else {
                     Text("PID \(process.ppid)").font(.system(size: 13))
@@ -334,7 +334,7 @@ struct ProcessDetailSheet: View {
             if kids.isEmpty {
                 Text("Aucun processus enfant.").font(.system(size: 12)).foregroundStyle(Theme.muted)
             } else {
-                Text("\(kids.count) processus enfant\(kids.count > 1 ? "s" : "") · \(Format.percent(kids.reduce(0) { $0 + $1.cpu })) CPU · \(Format.ram(kids.reduce(0) { $0 + $1.memory }))")
+                Text((kids.count > 1 ? String(localized: "\(kids.count) processus enfants · \(Format.percent(kids.reduce(0) { $0 + $1.cpu })) CPU · \(Format.ram(kids.reduce(0) { $0 + $1.memory }))") : String(localized: "\(kids.count) processus enfant · \(Format.percent(kids.reduce(0) { $0 + $1.cpu })) CPU · \(Format.ram(kids.reduce(0) { $0 + $1.memory }))")))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
                 ForEach(kids.prefix(12)) { child in
                     HStack {
@@ -353,7 +353,7 @@ struct ProcessDetailSheet: View {
     private func network(_ process: RunningProcess, monitor: PerformanceMonitor) -> some View {
         let ports = monitor.ports.filter { $0.pid == pid }
         let connections = monitor.connections[pid]
-        return section("Réseau") {
+        return section(String(localized: "Réseau")) {
             if ports.isEmpty && connections == nil {
                 Text("Aucun port ouvert ni connexion établie.").font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
@@ -361,14 +361,14 @@ struct ProcessDetailSheet: View {
                 HStack {
                     Text(":\(String(port.port))").font(.system(size: 13, weight: .bold).monospaced())
                     Text(port.displayAddress).font(.system(size: 12).monospaced()).foregroundStyle(Theme.muted)
-                    if port.exposed { Tag(text: "Exposé au réseau local", foreground: Tag.orange.0, background: Tag.orange.1) }
+                    if port.exposed { Tag(text: String(localized: "Exposé au réseau local"), foreground: Tag.orange.0, background: Tag.orange.1) }
                     Spacer()
                     PortActions(port: port)
                 }
                 .portContextMenu(port)
             }
             if let connections {
-                Text("\(connections.count) connexion\(connections.count > 1 ? "s" : "") établie\(connections.count > 1 ? "s" : "")"
+                Text((connections.count > 1 ? String(localized: "\(connections.count) connexions établies") : String(localized: "\(connections.count) connexion établie"))
                      + (connections.hosts.isEmpty ? "" : " · " + connections.hosts.prefix(6).joined(separator: ", ")))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted).textSelection(.enabled)
             }
@@ -391,36 +391,36 @@ struct MonitorPage: View {
 
     var body: some View {
         let monitor = model.performance
-        PageScaffold(page: .moniteur, subtitle: "\(monitor.machine.chip) · 5 dernières minutes, une mesure par seconde") {
-            Button(monitor.paused ? "Reprendre" : "Pause", systemImage: monitor.paused ? "play.fill" : "pause.fill") { monitor.paused.toggle() }
+        PageScaffold(page: .moniteur, subtitle: String(localized: "\(monitor.machine.chip) · 5 dernières minutes, une mesure par seconde")) {
+            Button(monitor.paused ? String(localized: "Reprendre") : "Pause", systemImage: monitor.paused ? "play.fill" : "pause.fill") { monitor.paused.toggle() }
                 .buttonStyle(.secondary)
         } content: {
             if let sample = monitor.latest {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 14) {
-                    BigChart(title: "Processeur", value: Format.percent(sample.cpu),
-                             detail: "Performance \(Format.percent(sample.performanceLoad)) · Efficacité \(Format.percent(sample.efficiencyLoad))",
+                    BigChart(title: String(localized: "Processeur"), value: Format.percent(sample.cpu),
+                             detail: String(localized: "Performance \(Format.percent(sample.performanceLoad)) · Efficacité \(Format.percent(sample.efficiencyLoad))"),
                              series: [("Total", monitor.cpuHistory, Theme.accent)], format: { Format.percent($0) }, maximum: 100)
-                    BigChart(title: "Mémoire", value: Format.ram(sample.memory.used),
-                             detail: "sur \(Format.ram(sample.memory.total)) · pression \(sample.memory.pressure.label) · swap \(Format.ram(sample.memory.swapUsed))",
-                             series: [("Utilisée", monitor.memoryHistory, Color(hex: 0x6E4BD8))], format: { Format.ram(Int64($0)) },
+                    BigChart(title: String(localized: "Mémoire"), value: Format.ram(sample.memory.used),
+                             detail: String(localized: "sur \(Format.ram(sample.memory.total)) · pression \(sample.memory.pressure.label) · swap \(Format.ram(sample.memory.swapUsed))"),
+                             series: [(String(localized: "Utilisée"), monitor.memoryHistory, Color(hex: 0x6E4BD8))], format: { Format.ram(Int64($0)) },
                              maximum: Double(sample.memory.total), ticks: Self.memoryTicks(sample.memory.total))
-                    BigChart(title: "Disque", value: "\(Format.rate(sample.diskRead)) ↓  \(Format.rate(sample.diskWrite)) ↑",
-                             detail: sample.diskFree.map { "\(Format.bytes($0)) libres" } ?? "lecture et écriture",
-                             series: [("Lecture", monitor.diskReadHistory, Color(hex: 0x00879E)), ("Écriture", monitor.diskWriteHistory, Color(hex: 0xE8890C))],
+                    BigChart(title: String(localized: "Disque"), value: "\(Format.rate(sample.diskRead)) ↓  \(Format.rate(sample.diskWrite)) ↑",
+                             detail: sample.diskFree.map { "\(Format.bytes($0)) libres" } ?? String(localized: "lecture et écriture"),
+                             series: [(String(localized: "Lecture"), monitor.diskReadHistory, Color(hex: 0x00879E)), (String(localized: "Écriture"), monitor.diskWriteHistory, Color(hex: 0xE8890C))],
                              format: { Format.rate($0) })
-                    BigChart(title: "Réseau", value: "\(Format.rate(sample.networkIn)) ↓  \(Format.rate(sample.networkOut)) ↑",
-                             detail: sample.network.primaryName ?? "réception et envoi",
-                             series: [("Reçu", monitor.netInHistory, Color(hex: 0x1E8A45)), ("Envoyé", monitor.netOutHistory, Color(hex: 0xD6336C))],
+                    BigChart(title: String(localized: "Réseau"), value: "\(Format.rate(sample.networkIn)) ↓  \(Format.rate(sample.networkOut)) ↑",
+                             detail: sample.network.primaryName ?? String(localized: "réception et envoi"),
+                             series: [(String(localized: "Reçu"), monitor.netInHistory, Color(hex: 0x1E8A45)), (String(localized: "Envoyé"), monitor.netOutHistory, Color(hex: 0xD6336C))],
                              format: { Format.rate($0) })
-                    BigChart(title: "Processeur graphique", value: sample.gpu.map { Format.percent($0.utilization) } ?? "—",
-                             detail: sample.gpu.map { _ in "utilisation du GPU" } ?? "non disponible",
+                    BigChart(title: String(localized: "Processeur graphique"), value: sample.gpu.map { Format.percent($0.utilization) } ?? "—",
+                             detail: sample.gpu.map { _ in String(localized: "utilisation du GPU") } ?? String(localized: "non disponible"),
                              series: [("GPU", monitor.gpuHistory, Color(hex: 0xB42318))], format: { Format.percent($0) }, maximum: 100)
                     cores(sample)
                 }
                 memoryBreakdown(sample)
                 energy(sample, monitor: monitor)
             } else {
-                ScanningCard(label: "Première mesure…")
+                ScanningCard(label: String(localized: "Première mesure…"))
             }
         }
         .onAppear { monitor.attach() }
@@ -458,9 +458,9 @@ struct MonitorPage: View {
         let memory = sample.memory
         let free = max(0, memory.total - memory.app - memory.wired - memory.compressed - memory.cached)
         let parts: [(String, Int64, Color)] = [
-            ("Apps", memory.app, Color(hex: 0x6E4BD8)), ("Réservée (système)", memory.wired, Color(hex: 0xB42318)),
-            ("Compressée", memory.compressed, Color(hex: 0xE8890C)), ("Fichiers en cache", memory.cached, Color(hex: 0x00879E)),
-            ("Libre", free, Theme.hairline),
+            ("Apps", memory.app, Color(hex: 0x6E4BD8)), (String(localized: "Réservée (système)"), memory.wired, Color(hex: 0xB42318)),
+            (String(localized: "Compressée"), memory.compressed, Color(hex: 0xE8890C)), (String(localized: "Fichiers en cache"), memory.cached, Color(hex: 0x00879E)),
+            (String(localized: "Libre"), free, Theme.hairline),
         ]
         return VStack(alignment: .leading, spacing: 10) {
             Text("Répartition de la mémoire").font(.system(size: 15, weight: .semibold))
@@ -493,8 +493,8 @@ struct MonitorPage: View {
             HStack {
                 Text("Énergie").font(.system(size: 15, weight: .semibold))
                 Spacer()
-                Text([sample.power.batteryLevel.map { "Batterie \($0) %" }, sample.power.onBattery ? "sur batterie" : "sur secteur",
-                      sample.power.charging ? "en charge" : nil, "température \(sample.power.thermalLabel)"]
+                Text([sample.power.batteryLevel.map { String(localized: "Batterie \($0) %") }, sample.power.onBattery ? String(localized: "sur batterie") : String(localized: "sur secteur"),
+                      sample.power.charging ? String(localized: "en charge") : nil, String(localized: "température \(sample.power.thermalLabel)")]
                     .compactMap { $0 }.joined(separator: " · "))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
@@ -505,7 +505,7 @@ struct MonitorPage: View {
                         Text(process.displayName).font(.system(size: 13)).lineLimit(1)
                         Spacer()
                         Text(Format.percent(process.cpu)).monospacedDigit().frame(width: 70, alignment: .trailing)
-                        Text("\(Int(process.wakeups)) réveils/s").monospacedDigit().foregroundStyle(Theme.muted).frame(width: 110, alignment: .trailing)
+                        Text(String(localized: "\(Int(process.wakeups)) réveils/s")).monospacedDigit().foregroundStyle(Theme.muted).frame(width: 110, alignment: .trailing)
                     }
                     .font(.system(size: 12))
                     .contentShape(.rect)

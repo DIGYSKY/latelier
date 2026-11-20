@@ -82,24 +82,24 @@ public struct SSHHost: Sendable, Hashable, Identifiable {
     /// Erreurs de saisie, en clair (vide si tout va bien).
     public func problems(existing: [SSHHost], replacing original: String? = nil) -> [String] {
         var list: [String] = []
-        if alias.isEmpty { list.append("Donnez un nom à la connexion.") }
+        if alias.isEmpty { list.append(String(localized: "Donnez un nom à la connexion.")) }
         if alias.contains(where: { $0.isWhitespace || "*?!,#\"'".contains($0) }) {
-            list.append("Le nom ne peut contenir ni espace, ni guillemet, ni * ? ! , #.")
+            list.append(String(localized: "Le nom ne peut contenir ni espace, ni guillemet, ni * ? ! , #."))
         }
         if existing.contains(where: { $0.alias.caseInsensitiveCompare(alias) == .orderedSame && $0.alias != original }) {
-            list.append("Une connexion « \(alias) » existe déjà.")
+            list.append(String(localized: "Une connexion « \(alias) » existe déjà."))
         }
-        if (hostName ?? "").isEmpty { list.append("Indiquez l’adresse du serveur (nom de domaine ou IP).") }
+        if (hostName ?? "").isEmpty { list.append(String(localized: "Indiquez l’adresse du serveur (nom de domaine ou IP).")) }
         if let port, !(1...65_535).contains(port) { list.append("Le port doit être compris entre 1 et 65535.") }
         let fields = [alias, hostName, user, identityFile, proxyJump, note].compactMap { $0 } + extra.flatMap { [$0.key, $0.value] }
         if fields.contains(where: { $0.contains("\r") }) || [alias, hostName, user, identityFile, proxyJump].compactMap({ $0 }).contains(where: { $0.contains("\n") }) {
-            list.append("Un champ contient un retour à la ligne.")
+            list.append(String(localized: "Un champ contient un retour à la ligne."))
         }
         for option in extra where option.key.contains(where: { !$0.isLetter && !$0.isNumber }) || option.key.isEmpty {
-            list.append("Option invalide : « \(option.key) ».")
+            list.append(String(localized: "Option invalide : « \(option.key) »."))
         }
         for option in extra where ["host", "match", "include"].contains(option.key.lowercased()) {
-            list.append("« \(option.key) » ne peut pas être utilisée dans un bloc.")
+            list.append(String(localized: "« \(option.key) » ne peut pas être utilisée dans un bloc."))
         }
         return list
     }
@@ -523,7 +523,7 @@ public struct SSHCommands: Sendable {
     public var options: [String] {
         [
             "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", "-o", "ServerAliveInterval=15",
-            "-o", "ControlMaster=auto", "-o", "ControlPath=\(controlDirectory)/%C", "-o", "ControlPersist=120",
+            "-o", "ControlMaster=auto", "-o", String(localized: "ControlPath=\(controlDirectory)/%C"), "-o", "ControlPersist=120",
         ]
     }
 
@@ -574,7 +574,7 @@ public struct SSHCommands: Sendable {
     public func rename(_ path: String, to newPath: String) -> CommandSpec {
         let target = ShellQuote.quote(newPath)
         // Le nom n'entre dans le script que quoté (il peut contenir " $ ` …) ; mv -n ferme la course test → mv.
-        let message = ShellQuote.quote("« \(newPath) » existe déjà : rien n’a été renommé.")
+        let message = ShellQuote.quote(String(localized: "« \(newPath) » existe déjà : rien n’a été renommé."))
         return ssh("if [ -e \(target) ] || [ -L \(target) ]; then printf '%s\\n' \(message) >&2; exit 1; fi; mv -n -- \(ShellQuote.quote(path)) \(target) && [ ! -e \(ShellQuote.quote(path)) ]")
     }
 
@@ -589,7 +589,7 @@ public struct SSHCommands: Sendable {
     public func existing(_ names: [String], in directory: String) -> CommandSpec {
         let checks = names.map { name in
             let path = ShellQuote.quote(RemotePath.join(directory, name))
-            return "if [ -e \(path) ] || [ -L \(path) ]; then printf '%s\\n' \(ShellQuote.quote(name)); fi"
+            return String(localized: "if [ -e \(path) ] || [ -L \(path) ]; then printf '%s\\n' \(ShellQuote.quote(name)); fi")
         }
         return ssh(checks.joined(separator: "; ") + "; true")
     }
@@ -601,7 +601,7 @@ public struct SSHCommands: Sendable {
         let target = ShellQuote.quote(path)
         let temp = ShellQuote.quote(uploaded)
         let now = "$(LC_ALL=C ls -ld --time-style=+%s -- \(target) 2>/dev/null || LC_ALL=C ls -ld -- \(target))"
-        let changed = ShellQuote.quote("Le fichier a été modifié sur le serveur entre-temps : rien n’a été remplacé.")
+        let changed = ShellQuote.quote(String(localized: "Le fichier a été modifié sur le serveur entre-temps : rien n’a été remplacé."))
         return ssh("if [ \"\(now)\" != \(ShellQuote.quote(expected)) ]; then rm -f -- \(temp); printf '%s\\n' \(changed) >&2; exit 1; fi; cat -- \(temp) > \(target) && rm -f -- \(temp)")
     }
 
@@ -620,7 +620,7 @@ public struct SSHCommands: Sendable {
     /// Ligne de commande pour le terminal (interactive : mot de passe et empreinte possibles).
     public func interactive(directory: String? = nil) -> [String] {
         guard let directory else { return ["ssh", alias] }
-        return ["ssh", "-t", alias, "cd \(ShellQuote.quote(directory)) && exec \"$SHELL\" -l"]
+        return ["ssh", "-t", alias, String(localized: "cd \(ShellQuote.quote(directory)) && exec \"$SHELL\" -l")]
     }
 
     /// Commande distante dans le terminal (sudo, journaux en direct) : `ssh -t alias '<commande>'`.
@@ -639,27 +639,27 @@ public enum SSHFailure {
     public static func explain(_ output: String) -> (title: String, advice: String) {
         let text = output.lowercased()
         if text.contains("permission denied") {
-            return ("Accès refusé", "Le serveur n’accepte pas votre clé. L’explorateur n’utilise que les clés SSH (pas de mot de passe) : installez votre clé avec « Installer ma clé » ou connectez-vous une fois dans le terminal.")
+            return (String(localized: "Accès refusé"), String(localized: "Le serveur n’accepte pas votre clé. L’explorateur n’utilise que les clés SSH (pas de mot de passe) : installez votre clé avec « Installer ma clé » ou connectez-vous une fois dans le terminal."))
         }
         if text.contains("host key verification failed") || text.contains("remote host identification has changed") {
-            return ("Empreinte du serveur inconnue ou changée", "Connectez-vous une fois dans le terminal pour vérifier et accepter l’empreinte du serveur.")
+            return (String(localized: "Empreinte du serveur inconnue ou changée"), String(localized: "Connectez-vous une fois dans le terminal pour vérifier et accepter l’empreinte du serveur."))
         }
         if text.contains("could not resolve hostname") || text.contains("nodename nor servname") {
-            return ("Adresse introuvable", "Le nom du serveur ne correspond à aucune adresse. Vérifiez « Adresse » dans la connexion, ou votre VPN.")
+            return (String(localized: "Adresse introuvable"), String(localized: "Le nom du serveur ne correspond à aucune adresse. Vérifiez « Adresse » dans la connexion, ou votre VPN."))
         }
         if text.contains("no route to host") || text.contains("network is unreachable") || text.contains("host is down") {
-            return ("Serveur injoignable", "Aucun chemin réseau vers ce serveur : il est éteint, ou il est sur un autre réseau (domicile, VPN) que ce Mac.")
+            return (String(localized: "Serveur injoignable"), String(localized: "Aucun chemin réseau vers ce serveur : il est éteint, ou il est sur un autre réseau (domicile, VPN) que ce Mac."))
         }
         if text.contains("timed out") {
-            return ("Le serveur ne répond pas", "Délai dépassé. Le serveur est éteint, ou un pare-feu/VPN bloque la connexion.")
+            return (String(localized: "Le serveur ne répond pas"), String(localized: "Délai dépassé. Le serveur est éteint, ou un pare-feu/VPN bloque la connexion."))
         }
         if text.contains("connection refused") {
-            return ("Connexion refusée", "Le serveur répond mais n’accepte pas SSH sur ce port. Vérifiez le port.")
+            return (String(localized: "Connexion refusée"), String(localized: "Le serveur répond mais n’accepte pas SSH sur ce port. Vérifiez le port."))
         }
         if text.contains("no such file or directory") {
-            return ("Introuvable", "Ce fichier ou dossier n’existe pas (ou plus) sur le serveur.")
+            return (String(localized: "Introuvable"), String(localized: "Ce fichier ou dossier n’existe pas (ou plus) sur le serveur."))
         }
         let last = output.split(separator: "\n").last.map(String.init) ?? output
-        return ("Échec de la connexion", last.trimmingCharacters(in: .whitespaces))
+        return (String(localized: "Échec de la connexion"), last.trimmingCharacters(in: .whitespaces))
     }
 }

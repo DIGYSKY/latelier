@@ -172,7 +172,7 @@ private struct GroupRow: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .accessibilityValue(open ? "ouvert" : "fermé")
+        .accessibilityValue(open ? "ouvert" : String(localized: "fermé"))
     }
 }
 

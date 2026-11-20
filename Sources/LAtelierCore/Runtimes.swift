@@ -214,7 +214,7 @@ public struct RuntimeScanner: Sendable {
         var suggestion: (String, CommandSpec)?
         if let lts = cycles.filter({ $0.isLTS && ($0.eol ?? .distantFuture) > .now }).max(by: { $0.cycle.compare($1.cycle, options: .numeric) == .orderedAscending }),
            !installed.contains(where: { EndOfLife.cycle(of: $0, components: 1) == lts.cycle }) {
-            suggestion = ("Installer \(lts.cycle) LTS", Nvm.command(["install", "--lts"], root: root))
+            suggestion = (String(localized: "Installer \(lts.cycle) LTS"), Nvm.command(["install", "--lts"], root: root))
         }
         return RuntimeLanguage(id: "node", name: "Node.js", short: "JS", manager: "nvm", versions: versions, suggestion: suggestion)
     }

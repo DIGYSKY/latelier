@@ -10,9 +10,9 @@ struct StartupPage: View {
         let store = model.startup
         PageScaffold(page: .demarrage, subtitle: subtitle(store.value)) {
             if store.loading { ProgressView().controlSize(.small) }
-            Button("Réglages Système") { Self.openLoginSettings() }
+            Button(String(localized: "Réglages Système")) { Self.openLoginSettings() }
                 .buttonStyle(.secondary)
-                .help("Réglages Système › Général › Ouverture : là où macOS gère les éléments de connexion")
+                .help(String(localized: "Réglages Système › Général › Ouverture : là où macOS gère les éléments de connexion"))
         } content: {
             if let result = store.value {
                 ForEach(StartupItem.Kind.allCases, id: \.self) { kind in
@@ -22,10 +22,10 @@ struct StartupPage: View {
                 ForEach(result.problems, id: \.self) { problem in
                     Label(problem, systemImage: "exclamationmark.triangle").font(.system(size: 12)).foregroundStyle(Theme.orange)
                 }
-                Text("Impact estimé d’après la façon dont l’élément se lance (toujours actif, à l’ouverture, à la demande), pas mesuré. Les agents système se modifient avec des droits admin : prévu dans une prochaine étape.")
+                Text(String(localized: "Impact estimé d’après la façon dont l’élément se lance (toujours actif, à l’ouverture, à la demande), pas mesuré. Les agents système se modifient avec des droits admin : prévu dans une prochaine étape."))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
             } else {
-                ScanningCard(label: "Lecture des éléments de connexion, agents et démons…")
+                ScanningCard(label: String(localized: "Lecture des éléments de connexion, agents et démons…"))
             }
         }
         .onAppear {
@@ -47,12 +47,12 @@ struct StartupPage: View {
     }
 
     private func subtitle(_ result: StartupScanner.Result?) -> String {
-        guard let result else { return "Ce qui se lance à l’ouverture de session et au démarrage" }
+        guard let result else { return String(localized: "Ce qui se lance à l’ouverture de session et au démarrage") }
         let active = result.items.filter(\.enabled)
         let seconds = active.reduce(0) { $0 + $1.impact.seconds }
         let orphans = result.items.filter(\.orphan).count
-        var text = "\(active.count) éléments actifs · environ \(Int(seconds.rounded())) s ajoutées au démarrage de la session"
-        if orphans > 0 { text += " · \(orphans) orphelin\(orphans > 1 ? "s" : "")" }
+        var text = String(localized: "\(active.count) éléments actifs · environ \(Int(seconds.rounded())) s ajoutées au démarrage de la session")
+        if orphans > 0 { text += (orphans > 1 ? String(localized: " · \(orphans) orphelins") : String(localized: " · \(orphans) orphelin")) }
         return text
     }
 
@@ -98,13 +98,13 @@ private struct StartupRow: View {
                 HStack(spacing: 6) {
                     Text(item.name).font(.system(size: 13, weight: .semibold)).lineLimit(1).truncationMode(.middle)
                     if item.orphan {
-                        Tag(text: "App supprimée", foreground: Tag.red.0, background: Tag.red.1)
+                        Tag(text: String(localized: "App supprimée"), foreground: Tag.red.0, background: Tag.red.1)
                     }
                     if item.leftover {
-                        Tag(text: "Sans effet", foreground: Tag.grey.0, background: Tag.grey.1)
+                        Tag(text: String(localized: "Sans effet"), foreground: Tag.grey.0, background: Tag.grey.1)
                     }
                     if item.running {
-                        Tag(text: "En cours", foreground: Tag.blue.0, background: Tag.blue.1)
+                        Tag(text: String(localized: "En cours"), foreground: Tag.blue.0, background: Tag.blue.1)
                     }
                 }
                 Text(item.detail)
@@ -123,7 +123,7 @@ private struct StartupRow: View {
                 .foregroundStyle(item.signer?.valid == false ? Tag.orange.0 : Theme.muted)
                 .lineLimit(1)
                 .frame(width: 190, alignment: .leading)
-                .help(item.signer?.teamID.map { "Équipe \($0)" } ?? "")
+                .help(item.signer?.teamID.map { String(localized: "Équipe \($0)") } ?? "")
 
             control.frame(width: 190, alignment: .trailing)
         }
@@ -132,7 +132,7 @@ private struct StartupRow: View {
         .opacity(item.enabled || item.orphan || item.leftover ? 1 : 0.6)
         .contextMenu {
             if let url = item.url {
-                Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+                Button(String(localized: "Afficher dans le Finder")) { NSWorkspace.shared.activateFileViewerSelecting([url]) }
             }
         }
     }
@@ -143,25 +143,25 @@ private struct StartupRow: View {
         case .medium: Tag.orange
         case .low: Tag.green
         }
-        return Tag(text: "Impact \(item.impact.label)", foreground: colors.0, background: colors.1)
+        return Tag(text: String(localized: "Impact \(item.impact.label)"), foreground: colors.0, background: colors.1)
     }
 
     @ViewBuilder
     private var control: some View {
         if item.canRemove {
-            Button("Supprimer") {
+            Button(String(localized: "Supprimer")) {
                 if let plan = StartupScanner.removePlan(item) { model.preview(plan) }
             }
             .buttonStyle(.small)
             .foregroundStyle(Tag.red.0)
         } else if let service = item.brewService {
-            Button("Voir dans Services") { model.selection = .services }
+            Button(String(localized: "Voir dans Services")) { model.selection = .services }
                 .buttonStyle(.plain)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Theme.accent)
-                .help("Géré par brew services (\(service))")
+                .help(String(localized: "Géré par brew services (\(service))"))
         } else if item.canToggle {
-            Toggle(item.enabled ? "Activé" : "Désactivé", isOn: Binding(
+            Toggle(item.enabled ? String(localized: "Activé") : String(localized: "Désactivé"), isOn: Binding(
                 get: { item.enabled },
                 set: { on in if let plan = StartupScanner.togglePlan(item, enable: on) { model.preview(plan) } }
             ))
@@ -171,17 +171,17 @@ private struct StartupRow: View {
         } else if item.kind == .systemAgent {
             HStack(spacing: 8) {
                 Text("admin requis").font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.adaptive(light: NSColor(hex: 0x4A2A8A), dark: NSColor(hex: 0xC9B3FF)))
-                Text(item.enabled ? "Activé" : "Désactivé").font(.system(size: 12)).foregroundStyle(Theme.muted)
+                Text(item.enabled ? String(localized: "Activé") : String(localized: "Désactivé")).font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
         } else {
             // Éléments de connexion et agents bloqués : c'est macOS qui les gère.
-            Button(item.enabled ? "Activé · Réglages…" : "Désactivé · Réglages…") { StartupPage.openLoginSettings() }
+            Button(item.enabled ? String(localized: "Activé · Réglages…") : String(localized: "Désactivé · Réglages…")) { StartupPage.openLoginSettings() }
                 .buttonStyle(.plain)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(item.enabled ? Theme.accent : Theme.muted)
                 .help(item.blockedInSettings
-                      ? "Bloqué dans Réglages Système › Général › Ouverture (« Autoriser en arrière-plan »)."
-                      : "Se règle dans Réglages Système › Général › Ouverture.")
+                      ? String(localized: "Bloqué dans Réglages Système › Général › Ouverture (« Autoriser en arrière-plan »).")
+                      : String(localized: "Se règle dans Réglages Système › Général › Ouverture."))
         }
     }
 }

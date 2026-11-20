@@ -14,13 +14,13 @@ struct MenuBarContent: View {
             header
             if let sample = monitor.latest {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-                    tile("Processeur", Format.percent(sample.cpu), "perf. \(Format.percent(sample.performanceLoad)) · eff. \(Format.percent(sample.efficiencyLoad))",
+                    tile(String(localized: "Processeur"), Format.percent(sample.cpu), String(localized: "perf. \(Format.percent(sample.performanceLoad)) · eff. \(Format.percent(sample.efficiencyLoad))"),
                          monitor.cpuHistory, max: 100, color: Theme.accent)
-                    tile("Mémoire", Format.ram(sample.memory.used), "sur \(Format.ram(sample.memory.total)) · \(sample.memory.pressure.label)",
+                    tile(String(localized: "Mémoire"), Format.ram(sample.memory.used), String(localized: "sur \(Format.ram(sample.memory.total)) · \(sample.memory.pressure.label)"),
                          monitor.memoryHistory, max: Double(sample.memory.total), color: Color(hex: 0x6E4BD8))
-                    tile("Disque", freeSpace.map { "\(Format.bytes($0.0)) libres" } ?? "—",
+                    tile(String(localized: "Disque"), freeSpace.map { "\(Format.bytes($0.0)) libres" } ?? "—",
                          "\(Format.rate(sample.diskRead)) ↓ · \(Format.rate(sample.diskWrite)) ↑", monitor.diskHistory, color: Color(hex: 0x00879E))
-                    tile("Réseau", "\(Format.rate(sample.networkIn)) ↓", "\(Format.rate(sample.networkOut)) ↑ · \(sample.network.primaryName ?? "hors ligne")",
+                    tile(String(localized: "Réseau"), "\(Format.rate(sample.networkIn)) ↓", "\(Format.rate(sample.networkOut)) ↑ · \(sample.network.primaryName ?? String(localized: "hors ligne"))",
                          monitor.networkHistory, color: Color(hex: 0x1E8A45))
                 }
             } else {
@@ -52,14 +52,14 @@ struct MenuBarContent: View {
                 .background(Theme.accent, in: .rect(cornerRadius: 9, style: .continuous))
             VStack(alignment: .leading, spacing: 1) {
                 Text("L’Atelier").font(.system(size: 15, weight: .bold))
-                Text(count == 0 ? "Rien à signaler" : "\(count) point\(count > 1 ? "s" : "") à traiter")
+                Text(count == 0 ? String(localized: "Rien à signaler") : (count > 1 ? String(localized: "\(count) points à traiter") : String(localized: "\(count) point à traiter")))
                     .font(.system(size: 11)).foregroundStyle(count == 0 ? Theme.green : Theme.orange)
             }
             Spacer()
             Button { open(.accueil) } label: { Image(systemName: "macwindow") }
-                .buttonStyle(PillButtonStyle(kind: .small)).help("Ouvrir L’Atelier")
+                .buttonStyle(PillButtonStyle(kind: .small)).help(String(localized: "Ouvrir L’Atelier"))
             Button { open(.reglages) } label: { Image(systemName: "gearshape") }
-                .buttonStyle(PillButtonStyle(kind: .small)).help("Réglages")
+                .buttonStyle(PillButtonStyle(kind: .small)).help(String(localized: "Réglages"))
         }
     }
 
@@ -81,7 +81,7 @@ struct MenuBarContent: View {
 
     private func heavyProcesses(_ monitor: PerformanceMonitor) -> some View {
         let top = monitor.processes.sorted { $0.cpu > $1.cpu }.prefix(4)
-        return section("Processus les plus actifs", action: ("Tout voir", .processus)) {
+        return section(String(localized: "Processus les plus actifs"), action: (String(localized: "Tout voir"), .processus)) {
             if top.isEmpty {
                 Text("Mesure en cours…").font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
@@ -111,27 +111,27 @@ struct MenuBarContent: View {
     private var alerts: [(text: String, symbol: String, color: Color, page: Page)] {
         var list: [(String, String, Color, Page)] = []
         let concerning = model.news.concerningSevere
-        if concerning > 0 { list.append(("\(concerning) avis de sécurité vous concerne\(concerning > 1 ? "nt" : "")", "exclamationmark.shield", Theme.red, .pourVous)) }
+        if concerning > 0 { list.append(((concerning > 1 ? String(localized: "\(concerning) avis de sécurité vous concernent") : String(localized: "\(concerning) avis de sécurité vous concerne")), "exclamationmark.shield", Theme.red, .pourVous)) }
         if let analysis = model.analysis.value {
             let critical = model.criticalActiveProjects?.count ?? 0
-            if critical > 0 { list.append(("\(critical) projet\(critical > 1 ? "s" : "") actif\(critical > 1 ? "s" : "") à faille critique", "lock.shield", Theme.red, .securite)) }
-            if !analysis.secrets.isEmpty { list.append(("\(analysis.secrets.count) secret\(analysis.secrets.count > 1 ? "s" : "") commité\(analysis.secrets.count > 1 ? "s" : "")", "key", Theme.red, .securite)) }
+            if critical > 0 { list.append(((critical > 1 ? String(localized: "\(critical) projets actifs à faille critique") : String(localized: "\(critical) projet actif à faille critique")), "lock.shield", Theme.red, .securite)) }
+            if !analysis.secrets.isEmpty { list.append(((analysis.secrets.count > 1 ? String(localized: "\(analysis.secrets.count) secrets commités") : String(localized: "\(analysis.secrets.count) secret commité")), "key", Theme.red, .securite)) }
         }
         if let release = model.updates.available {
-            list.append(("L’Atelier \(release.version) est disponible", "sparkles", Theme.accent, .reglages))
+            list.append((String(localized: "L’Atelier \(release.version) est disponible"), "sparkles", Theme.accent, .reglages))
         }
         let updates = model.packages.updates.count
-        if updates > 0 { list.append(("\(updates) mise\(updates > 1 ? "s" : "") à jour de paquets", "arrow.down.circle", Theme.orange, .majs)) }
+        if updates > 0 { list.append(((updates > 1 ? String(localized: "\(updates) mises à jour de paquets") : String(localized: "\(updates) mise à jour de paquets")), "arrow.down.circle", Theme.orange, .majs)) }
         let unpushed = model.repos.repos.filter { $0.ahead > 0 }.count
-        if unpushed > 0 { list.append(("\(unpushed) dépôt\(unpushed > 1 ? "s" : "") avec des commits non poussés", "arrow.up.circle", Theme.accent, .modifications)) }
+        if unpushed > 0 { list.append(((unpushed > 1 ? String(localized: "\(unpushed) dépôts avec des commits non poussés") : String(localized: "\(unpushed) dépôt avec des commits non poussés")), "arrow.up.circle", Theme.accent, .modifications)) }
         if let free = freeSpace, Double(free.0) / Double(max(free.1, 1)) < 0.1 {
-            list.append(("Espace disque faible : \(Format.bytes(free.0)) libres", "internaldrive", Theme.red, .stockageVue))
+            list.append((String(localized: "Espace disque faible : \(Format.bytes(free.0)) libres"), "internaldrive", Theme.red, .stockageVue))
         }
         return list
     }
 
     private var alertsCard: some View {
-        section("À traiter") {
+        section(String(localized: "À traiter")) {
             if alerts.isEmpty {
                 Label("Rien à signaler", systemImage: "checkmark.circle").font(.system(size: 12)).foregroundStyle(Theme.green)
             }
@@ -156,7 +156,7 @@ struct MenuBarContent: View {
     private func portsCard(_ monitor: PerformanceMonitor) -> some View {
         let ports = PortDescriber.sorted(monitor.ports).filter { monitor.process($0.pid)?.isSystem == false }.prefix(4)
         if !ports.isEmpty {
-            section("Ports en écoute", action: ("Réseau", .reseau)) {
+            section(String(localized: "Ports en écoute"), action: (String(localized: "Réseau"), .reseau)) {
                 ForEach(Array(ports)) { port in
                     HStack(spacing: 8) {
                         Text(":\(String(port.port))").font(.system(size: 12, weight: .bold).monospaced()).frame(width: 58, alignment: .leading)
@@ -175,10 +175,10 @@ struct MenuBarContent: View {
 
     private var shortcuts: some View {
         HStack(spacing: 6) {
-            shortcut("Stockage", "internaldrive", .stockageVue)
-            shortcut("Projets", "folder.badge.gearshape", .depots)
-            shortcut("Serveurs", "externaldrive.connected.to.line.below", .serveurs)
-            shortcut("Moniteur", "waveform.path.ecg.rectangle", .moniteur)
+            shortcut(String(localized: "Stockage"), "internaldrive", .stockageVue)
+            shortcut(String(localized: "Projets"), "folder.badge.gearshape", .depots)
+            shortcut(String(localized: "Serveurs"), "externaldrive.connected.to.line.below", .serveurs)
+            shortcut(String(localized: "Moniteur"), "waveform.path.ecg.rectangle", .moniteur)
             shortcut("News", "newspaper", .pourVous)
         }
     }
@@ -200,7 +200,7 @@ struct MenuBarContent: View {
         HStack {
             Text("Mis à jour chaque seconde").font(.system(size: 10)).foregroundStyle(Theme.muted)
             Spacer()
-            Button("Quitter L’Atelier") { NSApp.terminate(nil) }
+            Button(String(localized: "Quitter L’Atelier")) { NSApp.terminate(nil) }
                 .buttonStyle(.plain).font(.system(size: 11, weight: .medium)).foregroundStyle(Theme.muted)
         }
         .padding(.horizontal, 4)

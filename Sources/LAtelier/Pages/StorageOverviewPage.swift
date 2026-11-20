@@ -20,7 +20,7 @@ struct StorageOverviewPage: View {
             if let overview = store.value {
                 diskCard(overview)
             } else {
-                ScanningCard(label: "Mesure du disque : apps, outils de développement, images, vidéos, musique…")
+                ScanningCard(label: String(localized: "Mesure du disque : apps, outils de développement, images, vidéos, musique…"))
             }
             if anyScanning { progress }
             recoverableCards
@@ -38,8 +38,8 @@ struct StorageOverviewPage: View {
     }
 
     private var subtitle: String {
-        guard let overview = model.overview.value, let finished = model.overview.finishedAt else { return "Tout le disque, pas seulement ce qui est nettoyable" }
-        return "Dernière analyse à \(finished.formatted(date: .omitted, time: .shortened)) · \(Format.duration(overview.duration))"
+        guard let overview = model.overview.value, let finished = model.overview.finishedAt else { return String(localized: "Tout le disque, pas seulement ce qui est nettoyable") }
+        return String(localized: "Dernière analyse à \(finished.formatted(date: .omitted, time: .shortened)) · \(Format.duration(overview.duration))")
     }
 
     private var anyScanning: Bool {
@@ -84,10 +84,10 @@ struct StorageOverviewPage: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(overview.volumeName).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.muted)
                     (Text("\(Format.bytes(overview.available)) libres ").font(.system(size: 26, weight: .bold))
-                        + Text("sur \(Format.bytes(overview.total)) · \(Format.bytes(overview.used)) utilisés, répartis ci-dessous")
+                        + Text(String(localized: "sur \(Format.bytes(overview.total)) · \(Format.bytes(overview.used)) utilisés, répartis ci-dessous"))
                         .font(.system(size: 14)).foregroundStyle(Theme.muted))
                     if overview.purgeable > 500_000_000 {
-                        Text("dont \(Format.bytes(overview.purgeable)) « purgeables » que macOS libère seul au besoin")
+                        Text(String(localized: "dont \(Format.bytes(overview.purgeable)) « purgeables » que macOS libère seul au besoin"))
                             .font(.system(size: 12)).foregroundStyle(Theme.muted)
                     }
                 }
@@ -95,7 +95,7 @@ struct StorageOverviewPage: View {
                 VStack(alignment: .trailing, spacing: 6) {
                     Text("Récupérable sans risque").font(.system(size: 12)).foregroundStyle(Theme.muted)
                     Text(Format.bytes(safeItems.reduce(0) { $0 + $1.bytes })).font(.system(size: 22, weight: .bold)).foregroundStyle(Tag.green.0)
-                    Button("Nettoyer le sans-risque…") { cleanSafe() }
+                    Button(String(localized: "Nettoyer le sans-risque…")) { cleanSafe() }
                         .buttonStyle(PillButtonStyle(kind: .smallFilled))
                         .disabled(safeItems.isEmpty)
                 }
@@ -153,10 +153,10 @@ struct StorageOverviewPage: View {
             if !model.preferences.allowPersonalFolders {
                 HStack(spacing: 10) {
                     Image(systemName: "hand.raised").foregroundStyle(Theme.muted)
-                    Text("Documents, Bureau et Téléchargements ne sont pas mesurés : macOS demande votre autorisation pour les lire.")
+                    Text(String(localized: "Documents, Bureau et Téléchargements ne sont pas mesurés : macOS demande votre autorisation pour les lire."))
                         .font(.system(size: 12)).foregroundStyle(Theme.muted)
                     Spacer()
-                    Button("Inclure ces dossiers…") { model.allowPersonalFolders() }
+                    Button(String(localized: "Inclure ces dossiers…")) { model.allowPersonalFolders() }
                         .buttonStyle(PillButtonStyle(kind: .small))
                 }
             }
@@ -172,11 +172,11 @@ struct StorageOverviewPage: View {
         return HStack(spacing: 12) {
             Circle().fill(info.color).frame(width: 12, height: 12)
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(info.name) · \(category.bytes.map(Format.bytes) ?? (category.note ?? "inconnu"))" + (share.map { " (\($0) % du disque)" } ?? ""))
+                Text("\(info.name) · \(category.bytes.map(Format.bytes) ?? (category.note ?? "inconnu"))" + (share.map { String(localized: " (\($0) % du disque)") } ?? ""))
                     .font(.system(size: 14, weight: .semibold))
                 Text(category.id == .other && category.note != nil ? info.description + " " + category.note! + "."
                      : category.id == .other && overview.localSnapshots > 0
-                     ? info.description + " \(overview.localSnapshots) instantané\(overview.localSnapshots > 1 ? "s" : "") Time Machine local\(overview.localSnapshots > 1 ? "aux" : "")."
+                     ? info.description + (overview.localSnapshots > 1 ? String(localized: " \(overview.localSnapshots) instantanés Time Machine localaux.") : String(localized: " \(overview.localSnapshots) instantané Time Machine local."))
                      : info.description)
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
@@ -213,7 +213,7 @@ struct StorageOverviewPage: View {
                         Text("non mesuré").font(.system(size: 12)).foregroundStyle(Theme.muted).frame(width: 232, alignment: .trailing)
                     }
                     if let url = part.url, part.bytes != nil {
-                        Button("Explorer") {
+                        Button(String(localized: "Explorer")) {
                             model.explorer.reveal(url)
                             model.selection = .explorateur
                         }
@@ -260,21 +260,21 @@ struct StorageOverviewPage: View {
     }
 
     private func cleanSafe() {
-        if let plan = CleanupPlanner.plan(title: "Nettoyer le sans-risque", items: safeItems,
-                                          summary: "Caches, artefacts de build et restes d’apps marqués « sans risque » dans chaque écran. Les fichiers vont à la corbeille ; les caches d’outils sont vidés par leur commande officielle.") {
+        if let plan = CleanupPlanner.plan(title: String(localized: "Nettoyer le sans-risque"), items: safeItems,
+                                          summary: String(localized: "Caches, artefacts de build et restes d’apps marqués « sans risque » dans chaque écran. Les fichiers vont à la corbeille ; les caches d’outils sont vidés par leur commande officielle.")) {
             model.preview(plan)
         }
     }
 
     private var recoverableCards: some View {
         let cards: [(String, String, Int64?, String, Page, Risk)] = [
-            ("Système", "desktopcomputer", model.systemScan.finishedAt == nil ? nil : selectedBytes(model.systemScan), "Caches, logs, corbeille", .systeme, .safe),
-            ("Développement", "chevron.left.forwardslash.chevron.right", model.devScan.finishedAt == nil ? nil : selectedBytes(model.devScan),
-             model.devScan.finishedAt == nil ? "Analyse au premier passage" : "\(model.devScan.items.count) artefacts", .dev, .safe),
+            (String(localized: "Système"), "desktopcomputer", model.systemScan.finishedAt == nil ? nil : selectedBytes(model.systemScan), String(localized: "Caches, logs, corbeille"), .systeme, .safe),
+            (String(localized: "Développement"), "chevron.left.forwardslash.chevron.right", model.devScan.finishedAt == nil ? nil : selectedBytes(model.devScan),
+             model.devScan.finishedAt == nil ? String(localized: "Analyse au premier passage") : "\(model.devScan.items.count) artefacts", .dev, .safe),
             ("Docker", "shippingbox", model.docker.value?.state == .ready ? dockerBytes : nil, dockerNote, .docker, .caution),
-            ("Caches de paquets", "cylinder", model.cacheScan.finishedAt == nil ? nil : selectedBytes(model.cacheScan), "npm, pnpm, Go, Cargo, Xcode", .caches, .safe),
-            ("Restes d’applications", "app.dashed", model.leftoverScan.finishedAt == nil ? nil : selectedBytes(model.leftoverScan),
-             "\(model.leftoverScan.items.count) éléments", .appsNettoyage, .caution),
+            (String(localized: "Caches de paquets"), "cylinder", model.cacheScan.finishedAt == nil ? nil : selectedBytes(model.cacheScan), "npm, pnpm, Go, Cargo, Xcode", .caches, .safe),
+            (String(localized: "Restes d’applications"), "app.dashed", model.leftoverScan.finishedAt == nil ? nil : selectedBytes(model.leftoverScan),
+             String(localized: "\(model.leftoverScan.items.count) éléments"), .appsNettoyage, .caution),
         ]
         let sum = max(1, cards.compactMap(\.2).reduce(0, +))
         return LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 12)], spacing: 12) {
@@ -312,21 +312,21 @@ struct StorageOverviewPage: View {
     private var dockerNote: String {
         guard let report = model.docker.value else { return "—" }
         switch report.state {
-        case .notInstalled: return "Docker n’est pas installé"
-        case .notRunning: return "Docker n’est pas démarré"
+        case .notInstalled: return String(localized: "Docker n’est pas installé")
+        case .notRunning: return String(localized: "Docker n’est pas démarré")
         case .ready:
             let data = report.volumes.filter { $0.links == 0 && DockerVolumeKind.classify($0) == .data }.count
-            return data > 0 ? "dont \(data) volume\(data > 1 ? "s" : "") de données exclus" : "images, volumes, build cache"
+            return data > 0 ? (data > 1 ? String(localized: "dont \(data) volumes de données exclus") : String(localized: "dont \(data) volume de données exclus")) : String(localized: "images, volumes, build cache")
         }
     }
 
     private var progress: some View {
         let rows: [(String, Bool, Bool)] = [
-            ("Disque", model.overview.loading, model.overview.value != nil),
-            ("Système", model.systemScan.scanning, model.systemScan.finishedAt != nil),
-            ("Développement", model.devScan.scanning, model.devScan.finishedAt != nil),
+            (String(localized: "Disque"), model.overview.loading, model.overview.value != nil),
+            (String(localized: "Système"), model.systemScan.scanning, model.systemScan.finishedAt != nil),
+            (String(localized: "Développement"), model.devScan.scanning, model.devScan.finishedAt != nil),
             ("Caches", model.cacheScan.scanning, model.cacheScan.finishedAt != nil),
-            ("Restes d’apps", model.leftoverScan.scanning, model.leftoverScan.finishedAt != nil),
+            (String(localized: "Restes d’apps"), model.leftoverScan.scanning, model.leftoverScan.finishedAt != nil),
             ("Docker", model.docker.loading, model.docker.value != nil),
         ]
         return HStack(spacing: 14) {
@@ -352,7 +352,7 @@ struct StorageOverviewPage: View {
             HStack {
                 Text("Dernières suppressions").font(.system(size: 15, weight: .semibold))
                 Spacer()
-                Button("Tout l’historique →") { model.selection = .historique }.buttonStyle(.link)
+                Button(String(localized: "Tout l’historique →")) { model.selection = .historique }.buttonStyle(.link)
             }
             if entries.isEmpty {
                 Text("Aucune suppression pour l’instant.").font(.system(size: 13)).foregroundStyle(Theme.muted)
@@ -373,10 +373,10 @@ struct StorageOverviewPage: View {
 
     private func outcomeLabel(_ outcome: HistoryEntry.Outcome) -> String {
         switch outcome {
-        case .success: "Terminé"
-        case .partial: "Partiel"
-        case .failure: "Échec"
-        case .cancelled: "Annulé"
+        case .success: String(localized: "Terminé")
+        case .partial: String(localized: "Partiel")
+        case .failure: String(localized: "Échec")
+        case .cancelled: String(localized: "Annulé")
         }
     }
 }

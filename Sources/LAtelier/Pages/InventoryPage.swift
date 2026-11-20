@@ -10,18 +10,18 @@ struct InventoryPage: View {
 
     var body: some View {
         let store = model.packages
-        PageScaffold(page: .inventaire, subtitle: "Tout ce qui est installé globalement sur la machine, à jour ou non") {
-            SearchField(prompt: "Rechercher un paquet", text: $query)
+        PageScaffold(page: .inventaire, subtitle: String(localized: "Tout ce qui est installé globalement sur la machine, à jour ou non")) {
+            SearchField(prompt: String(localized: "Rechercher un paquet"), text: $query)
         } content: {
             if store.scanning && store.packages.isEmpty {
-                ScanningCard(label: "Lecture des paquets installés…")
+                ScanningCard(label: String(localized: "Lecture des paquets installés…"))
             } else if store.packages.isEmpty {
-                Card { EmptyState(symbol: "shippingbox", title: "Aucun paquet trouvé", message: "Homebrew, npm, cargo et mas sont introuvables.") }
+                Card { EmptyState(symbol: "shippingbox", title: String(localized: "Aucun paquet trouvé"), message: String(localized: "Homebrew, npm, cargo et mas sont introuvables.")) }
             } else {
                 sourceTiles
                 table
                 if dependencyCount > 0 {
-                    Toggle("Afficher les \(dependencyCount) dépendances Homebrew installées automatiquement", isOn: $showDependencies)
+                    Toggle(String(localized: "Afficher les \(dependencyCount) dépendances Homebrew installées automatiquement"), isOn: $showDependencies)
                         .toggleStyle(.checkbox)
                         .font(.system(size: 12))
                         .foregroundStyle(Theme.muted)
@@ -61,9 +61,9 @@ struct InventoryPage: View {
                 let selected = source == item
                 Button { source = item } label: {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(item?.label ?? "Tout").font(.system(size: 13, weight: .semibold))
+                        Text(item?.label ?? String(localized: "Tout")).font(.system(size: 13, weight: .semibold))
                         Text("\(packages.count)").font(.system(size: 22, weight: .bold))
-                        Text(updates > 0 ? "\(updates) à mettre à jour" : "tout à jour")
+                        Text(updates > 0 ? String(localized: "\(updates) à mettre à jour") : String(localized: "tout à jour"))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(updates > 0 ? Tag.blue.0 : Tag.green.0)
                     }
@@ -86,12 +86,12 @@ struct InventoryPage: View {
     private var table: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                Text("Paquet").frame(maxWidth: .infinity, alignment: .leading)
+                Text(String(localized: "Paquet")).frame(maxWidth: .infinity, alignment: .leading)
                 Text("Source").frame(width: 90, alignment: .leading)
                 Text("Version").frame(width: 110, alignment: .leading)
-                Text("Installé").frame(width: 80, alignment: .leading)
-                Text("Taille").frame(width: 70, alignment: .trailing)
-                Text("État").frame(width: 100, alignment: .leading)
+                Text(String(localized: "Installé")).frame(width: 80, alignment: .leading)
+                Text(String(localized: "Taille")).frame(width: 70, alignment: .trailing)
+                Text(String(localized: "État")).frame(width: 100, alignment: .leading)
                 Text("Actions").frame(width: 140, alignment: .trailing)
             }
             .font(.system(size: 12, weight: .semibold))
@@ -101,7 +101,7 @@ struct InventoryPage: View {
             .background(Theme.cardFill.opacity(0.7))
 
             if visible.isEmpty {
-                EmptyState(symbol: "magnifyingglass", title: "Aucun paquet ne correspond")
+                EmptyState(symbol: "magnifyingglass", title: String(localized: "Aucun paquet ne correspond"))
             }
             ForEach(visible) { package in
                 Rectangle().fill(Theme.hairline).frame(height: 1)
@@ -144,17 +144,17 @@ private struct InventoryRow: View {
             HStack(spacing: 6) {
                 if let url = package.homepage {
                     Link(destination: url) { Image(systemName: "safari") }
-                        .help("Site du projet")
-                        .accessibilityLabel("Site de \(package.name)")
+                        .help(String(localized: "Site du projet"))
+                        .accessibilityLabel(String(localized: "Site de \(package.name)"))
                         .foregroundStyle(Theme.muted)
                 }
-                Button("Désinstaller") {
+                Button(String(localized: "Désinstaller")) {
                     Task {
                         // Homebrew refuse de retirer une formule dont un autre paquet dépend : on le dit avant.
                         if package.source == .homebrew, !package.isCask {
                             let users = await Brew.dependents(of: package.identifier, runner: model.runner)
                             if !users.isEmpty {
-                                model.actionNotice = "\(package.name) est requis par \(users.joined(separator: ", ")). Désinstallez d’abord ces paquets, ou gardez-le."
+                                model.actionNotice = String(localized: "\(package.name) est requis par \(users.joined(separator: ", ")). Désinstallez d’abord ces paquets, ou gardez-le.")
                                 return
                             }
                         }
@@ -179,24 +179,24 @@ private struct InventoryRow: View {
 
     private var uninstallHelp: String {
         if let reason = package.lockReason { return reason }
-        if package.uninstallCommand == nil { return "À désinstaller depuis le Finder (Applications)." }
-        if !package.onRequest { return "Dépendance : Homebrew la retire avec le paquet qui l’utilise." }
+        if package.uninstallCommand == nil { return String(localized: "À désinstaller depuis le Finder (Applications).") }
+        if !package.onRequest { return String(localized: "Dépendance : Homebrew la retire avec le paquet qui l’utilise.") }
         return package.uninstallCommand?.displayString ?? ""
     }
 
     @ViewBuilder
     private var state: some View {
         if let worst = package.vulnerabilities.map(\.severity).max() {
-            Tag(text: "Faille \(worst.label.lowercased())", foreground: worst.colors.ink, background: worst.colors.fill)
+            Tag(text: String(localized: "Faille \(worst.label.lowercased())"), foreground: worst.colors.ink, background: worst.colors.fill)
                 .help(package.vulnerabilities.map { "\($0.displayID) : \($0.summary)" }.joined(separator: "\n"))
         } else if package.lockReason != nil, package.source != .npm {
             Tag(text: package.lockReason!, foreground: Tag.grey.0, background: Tag.grey.1)
         } else if package.hasUpdate {
-            Tag(text: "Mise à jour", foreground: Tag.blue.0, background: Tag.blue.1)
+            Tag(text: String(localized: "Mise à jour"), foreground: Tag.blue.0, background: Tag.blue.1)
         } else if package.pinned {
-            Tag(text: "Épinglé", foreground: Tag.grey.0, background: Tag.grey.1)
+            Tag(text: String(localized: "Épinglé"), foreground: Tag.grey.0, background: Tag.grey.1)
         } else {
-            Tag(text: "À jour", foreground: Tag.green.0, background: Tag.green.1)
+            Tag(text: String(localized: "À jour"), foreground: Tag.green.0, background: Tag.green.1)
         }
     }
 }

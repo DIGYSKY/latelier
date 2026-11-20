@@ -125,7 +125,7 @@ public struct DiskOverviewScanner: Sendable {
             ("Bibliothèque du Mac (/Library)", URL(fileURLWithPath: "/Library"), "Données partagées des apps, polices, extensions, réglages pour tous les comptes"),
             ("/usr/local", URL(fileURLWithPath: "/usr/local"), "Outils installés hors Homebrew (ou ancien Homebrew Intel)"),
             ("Dossier partagé (/Users/Shared)", URL(fileURLWithPath: "/Users/Shared"), "Fichiers partagés entre les comptes"),
-            ("Fichiers temporaires", tmp, "Caches et fichiers temporaires de vos apps (/var/folders), vidés par macOS au redémarrage"),
+            (String(localized: "Fichiers temporaires"), tmp, String(localized: "Caches et fichiers temporaires de vos apps (/var/folders), vidés par macOS au redémarrage")),
         ].filter { fm.fileExists(atPath: $0.1.path) }
         let skipping = skip.union(["/Library/Developer"])
         let sizes = await DiskUsage.measure(homeChildren + system.map(\.1), skipping: skipping)
@@ -143,8 +143,8 @@ public struct DiskOverviewScanner: Sendable {
             }
         }
         if small > 0 {
-            parts.append(DiskOtherPart(name: "\(smallCount) petits éléments du dossier personnel", url: home, bytes: small,
-                                       note: "Fichiers de configuration (.zshrc, .gitconfig…) et petits dossiers d’outils"))
+            parts.append(DiskOtherPart(name: String(localized: "\(smallCount) petits éléments du dossier personnel"), url: home, bytes: small,
+                                       note: String(localized: "Fichiers de configuration (.zshrc, .gitconfig…) et petits dossiers d’outils")))
         }
         for (name, url, note) in system {
             let bytes = sizes[url]?.bytes ?? 0
@@ -153,14 +153,14 @@ public struct DiskOverviewScanner: Sendable {
         parts.sort { ($0.bytes ?? 0) > ($1.bytes ?? 0) }
         // Ce qui n'est pas mesuré, et pourquoi.
         if !allowPersonal {
-            parts.append(DiskOtherPart(name: "Documents, Bureau, Téléchargements", url: nil, bytes: nil,
-                                       note: "Non mesurés : macOS demande votre autorisation (bouton « Inclure ces dossiers… »)"))
+            parts.append(DiskOtherPart(name: String(localized: "Documents, Bureau, Téléchargements"), url: nil, bytes: nil,
+                                       note: String(localized: "Non mesurés : macOS demande votre autorisation (bouton « Inclure ces dossiers… »)")))
         }
-        parts.append(DiskOtherPart(name: "Conteneurs d’apps (~/Library/Containers, Group Containers)", url: p("Library/Containers"), bytes: nil,
-                                   note: "Non mesurés : données protégées des autres apps. Le disque virtuel de Docker (Docker.raw) y est rangé"))
+        parts.append(DiskOtherPart(name: String(localized: "Conteneurs d’apps (~/Library/Containers, Group Containers)"), url: p("Library/Containers"), bytes: nil,
+                                   note: String(localized: "Non mesurés : données protégées des autres apps. Le disque virtuel de Docker (Docker.raw) y est rangé")))
         if snapshots > 0 {
-            parts.append(DiskOtherPart(name: "\(snapshots) instantané\(snapshots > 1 ? "s" : "") Time Machine locaux", url: nil, bytes: nil,
-                                       note: "Gérés par macOS : supprimés automatiquement quand la place manque"))
+            parts.append(DiskOtherPart(name: (snapshots > 1 ? String(localized: "\(snapshots) instantanés Time Machine locaux") : String(localized: "\(snapshots) instantané Time Machine locaux")), url: nil, bytes: nil,
+                                       note: String(localized: "Gérés par macOS : supprimés automatiquement quand la place manque")))
         }
         return parts
     }
@@ -215,24 +215,24 @@ public struct DiskOverviewScanner: Sendable {
             if let bytes = measured[id] {
                 categories.append(DiskCategory(id: id, bytes: bytes))
             } else {
-                categories.append(DiskCategory(id: id, bytes: nil, note: "Autorisation requise"))
+                categories.append(DiskCategory(id: id, bytes: nil, note: String(localized: "Autorisation requise")))
             }
         }
         let otherAccounts = otherUsers()
-        categories.append(DiskCategory(id: .users, bytes: nil, note: otherAccounts == 0 ? "Aucun autre compte" : "\(otherAccounts) compte\(otherAccounts > 1 ? "s" : "") · lecture seule"))
+        categories.append(DiskCategory(id: .users, bytes: nil, note: otherAccounts == 0 ? String(localized: "Aucun autre compte") : (otherAccounts > 1 ? String(localized: "\(otherAccounts) comptes · lecture seule") : String(localized: "\(otherAccounts) compte · lecture seule"))))
         let trash = trashBytes()
-        categories.append(DiskCategory(id: .trash, bytes: trash, note: trash == nil ? "Accès complet au disque requis" : nil))
+        categories.append(DiskCategory(id: .trash, bytes: trash, note: trash == nil ? String(localized: "Accès complet au disque requis") : nil))
         let used = total - Int64(important)
         let attributed = categories.compactMap(\.bytes).reduce(0, +)
         let otherBytes = max(0, used - attributed)
         categories.append(DiskCategory(id: .other, bytes: otherBytes,
-                                       note: allowPersonal ? nil : "Comprend Documents, Bureau et Téléchargements, non mesurés"))
+                                       note: allowPersonal ? nil : String(localized: "Comprend Documents, Bureau et Téléchargements, non mesurés")))
         let snapshotCount = await snapshots
         var others = await otherParts(skip: skip, snapshots: snapshotCount)
         let identified = others.compactMap { $0.bytes }.reduce(0, +)
         if otherBytes > identified {
-            others.append(DiskOtherPart(name: "Reste non identifié", url: nil, bytes: otherBytes - identified,
-                                        note: "Ce qui n’est pas lisible sans droits (conteneurs, instantanés, fichiers système, autres comptes)"))
+            others.append(DiskOtherPart(name: String(localized: "Reste non identifié"), url: nil, bytes: otherBytes - identified,
+                                        note: String(localized: "Ce qui n’est pas lisible sans droits (conteneurs, instantanés, fichiers système, autres comptes)")))
         }
         return DiskOverview(
             others: others, volumeName: values?.volumeLocalizedName ?? "Macintosh HD", total: total, available: Int64(important),
@@ -306,67 +306,67 @@ public enum FolderExplorer {
 
     /// Descriptions en clair des dossiers connus, par chemin relatif au dossier personnel.
     static let known: [String: Known] = [
-        "Library": Known(kind: .review, description: "Réglages, caches et données des apps. Le plus gros gisement de place récupérable."),
-        "Library/Caches": Known(kind: .safe, description: "Caches des apps, recréés automatiquement.", screen: "systeme"),
-        "Library/Logs": Known(kind: .safe, description: "Journaux d’apps et rapports de plantage.", screen: "systeme"),
-        "Library/Developer": Known(kind: .safe, description: "DerivedData et simulateurs Xcode : recréés au besoin.", screen: "caches"),
-        "Library/Application Support": Known(kind: .review, description: "Données des apps. Contient parfois des restes d’apps désinstallées.", screen: "appsNettoyage"),
-        "Library/Containers": Known(kind: .review, description: "Données des apps sandboxées. macOS demande l’autorisation pour y lire : non mesuré.", screen: "desinstalleur"),
-        "Library/Group Containers": Known(kind: .review, description: "Données partagées entre apps d’un même éditeur. Non mesuré (autorisation de macOS)."),
-        "Library/Mobile Documents": Known(kind: .personal, description: "iCloud Drive. Non mesuré."),
-        "Library/HTTPStorages": Known(kind: .safe, description: "Cookies et caches web des apps."),
-        "Library/pnpm": Known(kind: .safe, description: "Magasin de paquets pnpm.", screen: "caches"),
-        "Library/Android": Known(kind: .review, description: "SDK Android et émulateurs."),
-        "Movies": Known(kind: .personal, description: "Vos vidéos. Jamais proposé au nettoyage : triez-les au Sonar.", screen: "sonar"),
-        "Music": Known(kind: .personal, description: "Votre musique et la bibliothèque Musique.", screen: "sonar"),
-        "Pictures": Known(kind: .personal, description: "Vos images. La Photothèque n’est pas parcourue.", screen: "sonar"),
-        "Documents": Known(kind: .personal, description: "Vos documents. Jamais proposé au nettoyage.", screen: "sonar"),
-        "Desktop": Known(kind: .personal, description: "Le Bureau. Jamais proposé au nettoyage.", screen: "sonar"),
-        "Downloads": Known(kind: .review, description: "Téléchargements : installeurs et archives oubliés à trier au Sonar.", screen: "sonar"),
-        "Applications": Known(kind: .review, description: "Apps installées pour vous seul.", screen: "desinstalleur"),
-        ".Trash": Known(kind: .safe, description: "La corbeille.", screen: "systeme"),
-        ".npm": Known(kind: .safe, description: "Cache npm.", screen: "caches"),
-        ".cache": Known(kind: .review, description: "Caches d’outils divers, au cas par cas.", screen: "caches"),
-        ".m2": Known(kind: .review, description: "Dépôt Maven local.", screen: "caches"),
-        ".gradle": Known(kind: .review, description: "Caches Gradle.", screen: "caches"),
-        ".rustup": Known(kind: .protected, description: "Toolchains Rust : protégées."),
-        ".cargo": Known(kind: .review, description: "Binaires cargo (protégés) et registre des crates (recréable).", screen: "caches"),
-        ".nvm": Known(kind: .protected, description: "Versions de Node.js : protégées.", screen: "runtimes"),
-        ".pyenv": Known(kind: .protected, description: "Versions de Python : protégées.", screen: "runtimes"),
-        ".docker": Known(kind: .review, description: "Configuration et extensions de la CLI Docker.", screen: "docker"),
-        ".ollama": Known(kind: .review, description: "Modèles Ollama téléchargés : longs à re-télécharger."),
-        ".vscode": Known(kind: .review, description: "Extensions de Visual Studio Code."),
-        ".local": Known(kind: .review, description: "Outils installés pour vous seul (pipx, uv, mise…)."),
-        ".espressif": Known(kind: .review, description: "Toolchains ESP-IDF (Espressif) : lourdes à réinstaller, à garder si vous programmez des ESP32."),
-        ".codex": Known(kind: .review, description: "Données et sessions de Codex (OpenAI)."),
-        ".claude": Known(kind: .review, description: "Réglages, sessions et mémoire de Claude Code."),
-        ".lmstudio": Known(kind: .review, description: "Modèles LM Studio téléchargés : longs à re-télécharger."),
-        ".yarn": Known(kind: .safe, description: "Cache et versions de Yarn.", screen: "caches"),
-        ".bun": Known(kind: .review, description: "Bun et son cache de paquets.", screen: "caches"),
-        ".android": Known(kind: .review, description: "Réglages et émulateurs Android."),
-        "kDrive": Known(kind: .personal, description: "Dossier synchronisé kDrive (Infomaniak) : vos fichiers."),
-        "go": Known(kind: .review, description: "Modules Go (recréables) et binaires go install.", screen: "caches"),
+        "Library": Known(kind: .review, description: String(localized: "Réglages, caches et données des apps. Le plus gros gisement de place récupérable.")),
+        "Library/Caches": Known(kind: .safe, description: String(localized: "Caches des apps, recréés automatiquement."), screen: "systeme"),
+        "Library/Logs": Known(kind: .safe, description: String(localized: "Journaux d’apps et rapports de plantage."), screen: "systeme"),
+        "Library/Developer": Known(kind: .safe, description: String(localized: "DerivedData et simulateurs Xcode : recréés au besoin."), screen: "caches"),
+        "Library/Application Support": Known(kind: .review, description: String(localized: "Données des apps. Contient parfois des restes d’apps désinstallées."), screen: "appsNettoyage"),
+        "Library/Containers": Known(kind: .review, description: String(localized: "Données des apps sandboxées. macOS demande l’autorisation pour y lire : non mesuré."), screen: "desinstalleur"),
+        "Library/Group Containers": Known(kind: .review, description: String(localized: "Données partagées entre apps d’un même éditeur. Non mesuré (autorisation de macOS).")),
+        "Library/Mobile Documents": Known(kind: .personal, description: String(localized: "iCloud Drive. Non mesuré.")),
+        "Library/HTTPStorages": Known(kind: .safe, description: String(localized: "Cookies et caches web des apps.")),
+        "Library/pnpm": Known(kind: .safe, description: String(localized: "Magasin de paquets pnpm."), screen: "caches"),
+        "Library/Android": Known(kind: .review, description: String(localized: "SDK Android et émulateurs.")),
+        "Movies": Known(kind: .personal, description: String(localized: "Vos vidéos. Jamais proposé au nettoyage : triez-les au Sonar."), screen: "sonar"),
+        "Music": Known(kind: .personal, description: String(localized: "Votre musique et la bibliothèque Musique."), screen: "sonar"),
+        "Pictures": Known(kind: .personal, description: String(localized: "Vos images. La Photothèque n’est pas parcourue."), screen: "sonar"),
+        "Documents": Known(kind: .personal, description: String(localized: "Vos documents. Jamais proposé au nettoyage."), screen: "sonar"),
+        "Desktop": Known(kind: .personal, description: String(localized: "Le Bureau. Jamais proposé au nettoyage."), screen: "sonar"),
+        "Downloads": Known(kind: .review, description: String(localized: "Téléchargements : installeurs et archives oubliés à trier au Sonar."), screen: "sonar"),
+        "Applications": Known(kind: .review, description: String(localized: "Apps installées pour vous seul."), screen: "desinstalleur"),
+        ".Trash": Known(kind: .safe, description: String(localized: "La corbeille."), screen: "systeme"),
+        ".npm": Known(kind: .safe, description: String(localized: "Cache npm."), screen: "caches"),
+        ".cache": Known(kind: .review, description: String(localized: "Caches d’outils divers, au cas par cas."), screen: "caches"),
+        ".m2": Known(kind: .review, description: String(localized: "Dépôt Maven local."), screen: "caches"),
+        ".gradle": Known(kind: .review, description: String(localized: "Caches Gradle."), screen: "caches"),
+        ".rustup": Known(kind: .protected, description: String(localized: "Toolchains Rust : protégées.")),
+        ".cargo": Known(kind: .review, description: String(localized: "Binaires cargo (protégés) et registre des crates (recréable)."), screen: "caches"),
+        ".nvm": Known(kind: .protected, description: String(localized: "Versions de Node.js : protégées."), screen: "runtimes"),
+        ".pyenv": Known(kind: .protected, description: String(localized: "Versions de Python : protégées."), screen: "runtimes"),
+        ".docker": Known(kind: .review, description: String(localized: "Configuration et extensions de la CLI Docker."), screen: "docker"),
+        ".ollama": Known(kind: .review, description: String(localized: "Modèles Ollama téléchargés : longs à re-télécharger.")),
+        ".vscode": Known(kind: .review, description: String(localized: "Extensions de Visual Studio Code.")),
+        ".local": Known(kind: .review, description: String(localized: "Outils installés pour vous seul (pipx, uv, mise…).")),
+        ".espressif": Known(kind: .review, description: String(localized: "Toolchains ESP-IDF (Espressif) : lourdes à réinstaller, à garder si vous programmez des ESP32.")),
+        ".codex": Known(kind: .review, description: String(localized: "Données et sessions de Codex (OpenAI).")),
+        ".claude": Known(kind: .review, description: String(localized: "Réglages, sessions et mémoire de Claude Code.")),
+        ".lmstudio": Known(kind: .review, description: String(localized: "Modèles LM Studio téléchargés : longs à re-télécharger.")),
+        ".yarn": Known(kind: .safe, description: String(localized: "Cache et versions de Yarn."), screen: "caches"),
+        ".bun": Known(kind: .review, description: String(localized: "Bun et son cache de paquets."), screen: "caches"),
+        ".android": Known(kind: .review, description: String(localized: "Réglages et émulateurs Android.")),
+        "kDrive": Known(kind: .personal, description: String(localized: "Dossier synchronisé kDrive (Infomaniak) : vos fichiers.")),
+        "go": Known(kind: .review, description: String(localized: "Modules Go (recréables) et binaires go install."), screen: "caches"),
     ]
 
     public static func describe(_ url: URL, home: String = NSHomeDirectory(), projectRoots: [URL] = []) -> (FolderNode.Kind, String, String?) {
         let relative = url.path == home ? "" : url.path.hasPrefix(home + "/") ? String(url.path.dropFirst(home.count + 1)) : url.path
         if let known = known[relative] { return (known.kind, known.description, known.screen) }
         if projectRoots.contains(url) {
-            return (.review, "Vos projets de code. Seuls les artefacts de build sont proposés.", "dev")
+            return (.review, String(localized: "Vos projets de code. Seuls les artefacts de build sont proposés."), "dev")
         }
         if projectRoots.contains(where: { url.path.hasPrefix($0.path + "/") }) {
-            return (.personal, "Projet de code : seuls node_modules, target, .venv… sont proposés.", "dev")
+            return (.personal, String(localized: "Projet de code : seuls node_modules, target, .venv… sont proposés."), "dev")
         }
         let name = url.lastPathComponent
         if ["node_modules", "target", ".venv", "venv", "__pycache__", ".next", ".nuxt", ".turbo", "DerivedData", ".gradle"].contains(name) {
-            return (.safe, "Artefact de build, recréable.", "dev")
+            return (.safe, String(localized: "Artefact de build, recréable."), "dev")
         }
         if relative.hasPrefix("Library/Caches/") { return (.safe, "Cache d’app.", "systeme") }
         if relative.hasPrefix("Library/Application Support/") { return (.review, "Données d’une app.", "appsNettoyage") }
         if relative.hasPrefix("Library/") { return (.review, "Données de macOS ou des apps.", nil) }
         if url.path.hasPrefix("/Applications") { return (.review, "App installée.", "desinstalleur") }
         if name.hasPrefix(".") { return (.review, "Dossier caché d’un outil.", nil) }
-        return (.personal, "Vos fichiers. Jamais proposé au nettoyage.", nil)
+        return (.personal, String(localized: "Vos fichiers. Jamais proposé au nettoyage."), nil)
     }
 
     /// Contenu d'un dossier avec la taille de chaque élément, du plus lourd au plus léger.

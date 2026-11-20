@@ -73,20 +73,20 @@ public enum Launcher {
 
         public var errorDescription: String? {
             switch self {
-            case .notInstalled(let app): "\(app) n’est pas installé."
-            case .claudeMissing: "Claude Code (« claude ») est introuvable. Installation : npm install -g @anthropic-ai/claude-code"
+            case .notInstalled(let app): String(localized: "\(app) n’est pas installé.")
+            case .claudeMissing: String(localized: "Claude Code (« claude ») est introuvable. Installation : npm install -g @anthropic-ai/claude-code")
             }
         }
     }
 
     /// Script lancé par le terminal : se place dans le projet, lance la commande, puis laisse un shell ouvert.
     public static func script(directory: URL, command: [String]?, shell: String = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh") -> String {
-        var lines = ["#!\(shell) -l", "cd \(ShellQuote.quote(directory.path)) || exit 1"]
+        var lines = [String(localized: "#!\(shell) -l"), String(localized: "cd \(ShellQuote.quote(directory.path)) || exit 1")]
         if let command, !command.isEmpty {
             lines.append("clear")
             lines.append(command.map(ShellQuote.quote).joined(separator: " "))
         }
-        lines.append("exec \(ShellQuote.quote(shell)) -l")
+        lines.append(String(localized: "exec \(ShellQuote.quote(shell)) -l"))
         return lines.joined(separator: "\n") + "\n"
     }
 
@@ -161,26 +161,26 @@ public enum Launcher {
 /// Consignes « Corriger avec Claude » prêtes à l'emploi.
 public enum ClaudePrompts {
     public static func fixVulnerability(package: String, version: String, fixed: String?, ids: [String], manifest: String) -> String {
-        let target = fixed.map { "vers \($0) ou plus" } ?? "vers une version sans faille (aucun correctif publié : propose une alternative)"
-        return "Mets à jour \(package) (actuellement \(version)) \(target) pour corriger \(ids.prefix(3).joined(separator: ", "))\(ids.count > 3 ? "…" : ""). "
-            + "Le paquet est déclaré dans \(manifest). Lance les tests ensuite et corrige ce qui casse."
+        let target = fixed.map { String(localized: "vers \($0) ou plus") } ?? String(localized: "vers une version sans faille (aucun correctif publié : propose une alternative)")
+        return (ids.count > 3 ? String(localized: "Mets à jour \(package) (actuellement \(version)) \(target) pour corriger \(ids.prefix(3).joined(separator: ", "))…. ") : String(localized: "Mets à jour \(package) (actuellement \(version)) \(target) pour corriger \(ids.prefix(3).joined(separator: ", ")). "))
+            + String(localized: "Le paquet est déclaré dans \(manifest). Lance les tests ensuite et corrige ce qui casse.")
     }
 
     public static func failedCommand(_ command: String, tail: [String]) -> String {
         let output = tail.suffix(15).joined(separator: "\n")
-        return "La commande « \(command) » échoue. Trouve pourquoi et corrige-la.\n\nFin de la sortie :\n\(output)"
+        return String(localized: "La commande « \(command) » échoue. Trouve pourquoi et corrige-la.\n\nFin de la sortie :\n\(output)")
     }
 
     public static func suggestion(title: String, why: String) -> String {
-        "\(title) : \(why) Fais la modification et vérifie qu’elle fonctionne."
+        String(localized: "\(title) : \(why) Fais la modification et vérifie qu’elle fonctionne.")
     }
 
     public static func coverage(weakest: [FileCoverage], threshold: Int) -> String {
         let files = weakest.prefix(4).map { "\($0.path) (\(Int($0.percent)) %)" }.joined(separator: ", ")
-        return "Ajoute des tests pour améliorer la couverture (objectif \(threshold) %). Fichiers les moins couverts : \(files). Ne modifie pas le comportement du code."
+        return String(localized: "Ajoute des tests pour améliorer la couverture (objectif \(threshold) %). Fichiers les moins couverts : \(files). Ne modifie pas le comportement du code.")
     }
 
     public static func align(library: String, version: String) -> String {
-        "Mets à jour \(library) vers \(version) et corrige ce qui casse (changements incompatibles, types, tests)."
+        String(localized: "Mets à jour \(library) vers \(version) et corrige ce qui casse (changements incompatibles, types, tests).")
     }
 }

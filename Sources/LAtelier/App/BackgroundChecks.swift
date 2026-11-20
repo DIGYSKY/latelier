@@ -43,8 +43,8 @@ extension AppModel {
                         let key = "\(process.pid)-\(process.started)"
                         if next[process.pid]! >= 5, !notifiedHeavy.contains(key) {
                             notifiedHeavy.insert(key)
-                            Notifier.send(id: "heavy-\(key)", title: "Processus gourmand",
-                                          body: "\(process.displayName) utilise \(Int(process.cpu)) % de CPU depuis 5 minutes.")
+                            Notifier.send(id: "heavy-\(key)", title: String(localized: "Processus gourmand"),
+                                          body: String(localized: "\(process.displayName) utilise \(Int(process.cpu)) % de CPU depuis 5 minutes."))
                         }
                     }
                     heavy = next
@@ -85,7 +85,7 @@ extension AppModel {
               let total = values.volumeTotalCapacity, total > 0,
               let free = values.volumeAvailableCapacityForImportantUsage else { return }
         guard Double(free) / Double(total) < 0.10, due("lastLowSpaceNotice", every: 86_400) else { return }
-        Notifier.send(id: "low-space", title: "Espace disque faible",
-                      body: "Plus que \(ByteCountFormatter.string(fromByteCount: free, countStyle: .file)) libres. Stockage › Vue d’ensemble montre ce qui est récupérable.")
+        Notifier.send(id: "low-space", title: String(localized: "Espace disque faible"),
+                      body: String(localized: "Plus que \(ByteCountFormatter.string(fromByteCount: free, countStyle: .file)) libres. Stockage › Vue d’ensemble montre ce qui est récupérable."))
     }
 }

@@ -112,28 +112,28 @@ public enum AppInventory {
             found.append(Part(url: url, kind: kind, isPreference: preference, isContainer: container))
         }
         if let id = bundleID {
-            add("Application Support/\(id)", "Données")
-            add("Caches/\(id)", "Cache")
-            add("HTTPStorages/\(id)", "Cookies et cache web")
+            add("Application Support/\(id)", String(localized: "Données"))
+            add(String(localized: "Caches/\(id)"), "Cache")
+            add("HTTPStorages/\(id)", String(localized: "Cookies et cache web"))
             add("HTTPStorages/\(id).binarycookies", "Cookies")
-            add("WebKit/\(id)", "Données web")
-            add("Saved Application State/\(id).savedState", "État des fenêtres")
-            add("Logs/\(id)", "Journaux")
-            add("Containers/\(id)", "Conteneur (données de l’app sandboxée)", container: true)
-            add("Preferences/\(id).plist", "Réglages", preference: true)
+            add(String(localized: "WebKit/\(id)"), String(localized: "Données web"))
+            add("Saved Application State/\(id).savedState", String(localized: "État des fenêtres"))
+            add(String(localized: "Logs/\(id)"), String(localized: "Journaux"))
+            add(String(localized: "Containers/\(id)"), String(localized: "Conteneur (données de l’app sandboxée)"), container: true)
+            add(String(localized: "Preferences/\(id).plist"), String(localized: "Réglages"), preference: true)
             let byHost = library.appending(path: "Preferences/ByHost")
             for file in (try? fm.contentsOfDirectory(atPath: byHost.path)) ?? [] where file.hasPrefix(id + ".") && file.hasSuffix(".plist") {
-                add("Preferences/ByHost/\(file)", "Réglages (cet ordinateur)", preference: true)
+                add(String(localized: "Preferences/ByHost/\(file)"), String(localized: "Réglages (cet ordinateur)"), preference: true)
             }
             let agents = library.appending(path: "LaunchAgents")
             for file in (try? fm.contentsOfDirectory(atPath: agents.path)) ?? [] where file.hasPrefix(id) && file.hasSuffix(".plist") {
-                add("LaunchAgents/\(file)", "Agent de démarrage")
+                add(String(localized: "LaunchAgents/\(file)"), String(localized: "Agent de démarrage"))
             }
         }
         if !name.isEmpty, !Self.genericNames.contains(name.lowercased()) {
-            add("Application Support/\(name)", "Données")
-            add("Caches/\(name)", "Cache")
-            add("Logs/\(name)", "Journaux")
+            add(String(localized: "Application Support/\(name)"), String(localized: "Données"))
+            add(String(localized: "Caches/\(name)"), "Cache")
+            add(String(localized: "Logs/\(name)"), String(localized: "Journaux"))
         }
         return found
     }
@@ -161,18 +161,18 @@ public enum AppInventory {
             steps.append(.command(CommandSpec("/usr/bin/osascript", [
                 "-e", "tell application \"Finder\" to delete (POSIX file \(AppleScript.quote(app.url.path)) as alias)",
             ])))
-            skipped.append("\(app.name) appartient au système : le Finder demandera votre mot de passe.")
+            skipped.append(String(localized: "\(app.name) appartient au système : le Finder demandera votre mot de passe."))
         }
         for (part, bytes) in parts {
             steps.append(.remove(part.url, bytes: bytes, permanently: false))
         }
         let total = appBytes + parts.reduce(0) { $0 + $1.1 }
         let summary = [
-            running != nil ? "\(app.name) est ouverte : elle sera quittée proprement d’abord." : nil,
-            brew != nil ? "Installée via Homebrew : désinstallée par brew, puis ses données vont à la corbeille." : "L’app et ses données vont à la corbeille.",
+            running != nil ? String(localized: "\(app.name) est ouverte : elle sera quittée proprement d’abord.") : nil,
+            brew != nil ? String(localized: "Installée via Homebrew : désinstallée par brew, puis ses données vont à la corbeille.") : String(localized: "L’app et ses données vont à la corbeille."),
         ].compactMap { $0 }.joined(separator: " ")
         return ActionPlan(
-            title: "Désinstaller \(app.name)", summary: summary, kind: .nettoyage, risk: .caution,
+            title: String(localized: "Désinstaller \(app.name)"), summary: summary, kind: .nettoyage, risk: .caution,
             reversible: brew == nil && app.deletable, steps: steps, estimatedBytes: total, skipped: skipped
         )
     }
@@ -334,7 +334,7 @@ public struct LeftoverScanner: Sendable {
             return CleanupItem(
                 id: "leftover:" + leftover.id, name: leftover.name,
                 detail: "\(leftover.id) · \(leftover.folders.joined(separator: ", "))",
-                meta: leftover.modified.map { "Modifié \(RelativeDate.french($0, now: now))" },
+                meta: leftover.modified.map { String(localized: "Modifié \(RelativeDate.french($0, now: now))") },
                 metaHighlighted: old, risk: old ? .safe : .caution, selectedByDefault: old, entries: entries
             )
         }

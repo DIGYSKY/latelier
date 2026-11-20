@@ -36,10 +36,10 @@ struct PlanSheet: View {
 
             HStack(spacing: 10) {
                 if let bytes = plan.estimatedBytes, bytes > 0 {
-                    stat("Espace libéré", Format.bytes(bytes), color: Theme.accent, big: true)
+                    stat(String(localized: "Espace libéré"), Format.bytes(bytes), color: Theme.accent, big: true)
                 }
-                stat("Éléments", plan.removesFiles ? "\(plan.removals.count) élément\(plan.removals.count > 1 ? "s" : "")" : "\(plan.steps.count) commande\(plan.steps.count > 1 ? "s" : "")")
-                stat("Risque", plan.risk == .safe ? "Tout sans risque" : plan.risk.label, color: RiskBadge(risk: plan.risk).color)
+                stat(String(localized: "Éléments"), plan.removesFiles ? (plan.removals.count > 1 ? String(localized: "\(plan.removals.count) éléments") : String(localized: "\(plan.removals.count) élément")) : "\(plan.steps.count) commande\(plan.steps.count > 1 ? "s" : "")")
+                stat(String(localized: "Risque"), plan.risk == .safe ? String(localized: "Tout sans risque") : plan.risk.label, color: RiskBadge(risk: plan.risk).color)
             }
 
             stepList
@@ -47,7 +47,7 @@ struct PlanSheet: View {
             if !plan.skipped.isEmpty {
                 Callout(symbol: "exclamationmark.triangle", tint: .orange) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("\(plan.skipped.count) élément\(plan.skipped.count > 1 ? "s" : "") ignoré\(plan.skipped.count > 1 ? "s" : "") : en cours d’utilisation.").bold()
+                        Text((plan.skipped.count > 1 ? String(localized: "\(plan.skipped.count) éléments ignorés : en cours d’utilisation.") : String(localized: "\(plan.skipped.count) élément ignoré : en cours d’utilisation."))).bold()
                         ForEach(plan.skipped.prefix(3), id: \.self) { Text($0) }
                     }
                 }
@@ -57,8 +57,8 @@ struct PlanSheet: View {
 
             if !plan.reversible {
                 Text(plan.removesPermanently
-                     ? "La suppression définitive ne passe pas par la corbeille. Elle ne pourra pas être annulée."
-                     : "Cette action ne pourra pas être annulée.")
+                     ? String(localized: "La suppression définitive ne passe pas par la corbeille. Elle ne pourra pas être annulée.")
+                     : String(localized: "Cette action ne pourra pas être annulée."))
                     .font(.system(size: 13))
                     .foregroundStyle(Theme.red)
             }
@@ -67,8 +67,8 @@ struct PlanSheet: View {
         .padding(.top, 26)
         .padding(.bottom, 18)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            footer(note: "Ajouté à l’historique après l’opération") {
-                Button("Annuler") { dismiss() }
+            footer(note: String(localized: "Ajouté à l’historique après l’opération")) {
+                Button(String(localized: "Annuler")) { dismiss() }
                     .buttonStyle(.secondary)
                     .keyboardShortcut(.cancelAction)
                 Button(ctaLabel) { run.start(plan, model: model) }
@@ -80,8 +80,8 @@ struct PlanSheet: View {
     }
 
     private var ctaLabel: String {
-        if plan.removesFiles { return plan.removesPermanently ? "Supprimer définitivement" : "Mettre à la corbeille" }
-        return plan.reversible ? "Exécuter" : "Exécuter quand même"
+        if plan.removesFiles { return plan.removesPermanently ? String(localized: "Supprimer définitivement") : String(localized: "Mettre à la corbeille") }
+        return plan.reversible ? String(localized: "Exécuter") : String(localized: "Exécuter quand même")
     }
 
     /// Les chemins les plus lourds, ou les commandes.
@@ -108,7 +108,7 @@ struct PlanSheet: View {
             }
             if rows.count > 6 {
                 Rectangle().fill(Theme.hairline).frame(height: 1)
-                Text("et \(rows.count - 6) autre\(rows.count - 6 > 1 ? "s" : "")")
+                Text((rows.count - 6 > 1 ? String(localized: "et \(rows.count - 6) autres") : String(localized: "et \(rows.count - 6) autre")))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14).padding(.vertical, 8)
@@ -121,9 +121,9 @@ struct PlanSheet: View {
     private var methodPicker: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Méthode").font(.system(size: 13, weight: .semibold)).padding(.bottom, 2)
-            methodRow(permanent: false, label: "Mettre à la corbeille", note: "récupérable depuis le Finder")
+            methodRow(permanent: false, label: String(localized: "Mettre à la corbeille"), note: String(localized: "récupérable depuis le Finder"))
             if plan.allowsPermanent {
-                methodRow(permanent: true, label: "Supprimer définitivement", note: "irréversible")
+                methodRow(permanent: true, label: String(localized: "Supprimer définitivement"), note: String(localized: "irréversible"))
             }
         }
     }
@@ -156,7 +156,7 @@ struct PlanSheet: View {
 
     private var running: some View {
         VStack(spacing: 16) {
-            Text(plan.removesFiles ? "Nettoyage en cours…" : "Exécution en cours…").font(.system(size: 21, weight: .bold))
+            Text(plan.removesFiles ? String(localized: "Nettoyage en cours…") : String(localized: "Exécution en cours…")).font(.system(size: 21, weight: .bold))
             Text(run.current ?? " ")
                 .font(.system(size: 12).monospaced())
                 .foregroundStyle(Theme.muted)
@@ -168,7 +168,7 @@ struct PlanSheet: View {
                 .frame(maxWidth: 420)
             Text("\(Int(run.progress(of: plan) * 100)) %").font(.system(size: 13)).foregroundStyle(Theme.muted)
             if !plan.removesFiles { console }
-            Button("Arrêter") { run.stop() }.buttonStyle(.secondary)
+            Button(String(localized: "Arrêter")) { run.stop() }.buttonStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 28)
@@ -219,12 +219,12 @@ struct PlanSheet: View {
                     .frame(maxWidth: 480)
             }
             HStack(spacing: 10) {
-                Button("Voir l’historique") {
+                Button(String(localized: "Voir l’historique")) {
                     model.selection = .historique
                     dismiss()
                 }
                 .buttonStyle(.secondary)
-                Button("Fermer") { dismiss() }
+                Button(String(localized: "Fermer")) { dismiss() }
                     .buttonStyle(.primary)
                     .keyboardShortcut(.defaultAction)
             }
@@ -240,8 +240,8 @@ struct PlanSheet: View {
         switch entry.outcome {
         case .success: entry.bytesFreed.map { "\(Format.bytes($0)) libérés" } ?? "Terminé"
         case .partial: entry.bytesFreed.map { "\(Format.bytes($0)) libérés, en partie" } ?? "Fait en partie"
-        case .failure: "Échec"
-        case .cancelled: "Annulé"
+        case .failure: String(localized: "Échec")
+        case .cancelled: String(localized: "Annulé")
         }
     }
 
@@ -250,12 +250,12 @@ struct PlanSheet: View {
         case .success:
             if plan.removesFiles {
                 return plan.removesPermanently
-                    ? "\(plan.removals.count) élément(s) supprimé(s) définitivement."
-                    : "\(plan.removals.count) élément(s) mis à la corbeille. Vous pouvez les récupérer depuis le Finder tant qu’elle n’est pas vidée."
+                    ? String(localized: "\(plan.removals.count) élément(s) supprimé(s) définitivement.")
+                    : String(localized: "\(plan.removals.count) élément(s) mis à la corbeille. Vous pouvez les récupérer depuis le Finder tant qu’elle n’est pas vidée.")
             }
-            return "Toutes les commandes ont réussi."
+            return String(localized: "Toutes les commandes ont réussi.")
         case .partial(let message), .failure(let message): return message
-        case .cancelled: return "Rien n’a été modifié."
+        case .cancelled: return String(localized: "Rien n’a été modifié.")
         }
     }
 
@@ -403,7 +403,7 @@ struct FailureHintCard: View {
                     .buttonStyle(PillButtonStyle(kind: .smallFilled))
                 }
                 if let raw = hint.page, let page = Page(rawValue: raw) {
-                    Button("Ouvrir \(page.title)") {
+                    Button(String(localized: "Ouvrir \(page.title)")) {
                         leave()
                         model.selection = page
                     }

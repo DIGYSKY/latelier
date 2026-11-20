@@ -35,7 +35,11 @@ défini dans `Sources/LAtelier/App/ViewState.swift`), et pas de `#Preview`.
 - **La logique dans `LAtelierCore`, avec ses tests.** La cible de l’app (`LAtelier`) reste fine.
   Un changement du cœur s’accompagne de tests Swift Testing dans `Tests/LAtelierCoreTests`.
 - **Aucune dépendance externe**, aucune télémétrie, aucun appel réseau en dehors de ceux listés dans le README.
-- **Les deux langues.** Les textes visibles sont traduits : ajoutez l’anglais et le français.
+- **Les deux langues.** Le français est la langue des sources : écrivez les textes visibles en
+  français dans le code (`Text("…")`, ou `String(localized: "…")` pour toute autre chaîne), puis lancez
+  `make l10n`. Il liste les phrases sans traduction anglaise : ajoutez-les à `Support/Localization/en.json`.
+  Ne traduisez pas les chaînes techniques (commandes, chemins, identifiants), et passez les PID, ports
+  et codes en `String(valeur)` pour qu’ils ne soient pas formatés comme des quantités (`4 821`).
 - **Le nom** : toujours « L’Atelier », avec l’apostrophe typographique `’` (U+2019).
 
 ## Pull requests

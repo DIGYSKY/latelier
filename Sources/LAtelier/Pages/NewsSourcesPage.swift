@@ -11,7 +11,7 @@ struct NewsSourcesPage: View {
 
     var body: some View {
         let news = model.news!
-        PageScaffold(page: .sources, subtitle: "D’où viennent les news, et quels sujets suivre") {
+        PageScaffold(page: .sources, subtitle: String(localized: "D’où viennent les news, et quels sujets suivre")) {
             Button {
                 Task { await news.refresh() }
             } label: {
@@ -22,7 +22,7 @@ struct NewsSourcesPage: View {
         } content: {
             topics(news)
             feeds(news)
-            Text("Seules des requêtes de lecture partent vers ces adresses : aucun nom de projet, chemin ni code n’est envoyé. Les avis GitHub sont lus sans compte (60 requêtes par heure).")
+            Text(String(localized: "Seules des requêtes de lecture partent vers ces adresses : aucun nom de projet, chemin ni code n’est envoyé. Les avis GitHub sont lus sans compte (60 requêtes par heure)."))
                 .font(.system(size: 12)).foregroundStyle(Theme.muted)
         }
         .onAppear {
@@ -51,7 +51,7 @@ struct NewsSourcesPage: View {
                                 .background(Theme.hairline, in: .circle)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Retirer \(topic.name)")
+                        .accessibilityLabel(String(localized: "Retirer \(topic.name)"))
                     }
                     .padding(.leading, 12)
                     .padding(.trailing, 5)
@@ -59,7 +59,7 @@ struct NewsSourcesPage: View {
                     .background(Theme.raised, in: .capsule)
                     .overlay(Capsule().strokeBorder(Theme.hairline))
                 }
-                TextField("+ Ajouter un sujet (ex. Kubernetes)", text: $newTopic)
+                TextField(String(localized: "+ Ajouter un sujet (ex. Kubernetes)"), text: $newTopic)
                     .textFieldStyle(.plain)
                     .font(.system(size: 13))
                     .padding(.horizontal, 12)
@@ -72,10 +72,10 @@ struct NewsSourcesPage: View {
             }
             let hidden = news.state.hiddenTopics.sorted()
             HStack(spacing: 6) {
-                Text("Les sujets « auto » sont déduits de vos projets et paquets ; un sujet ajouté à la main est cherché dans les titres et résumés.")
+                Text(String(localized: "Les sujets « auto » sont déduits de vos projets et paquets ; un sujet ajouté à la main est cherché dans les titres et résumés."))
                 if !hidden.isEmpty {
-                    Text("Retirés : \(hidden.joined(separator: ", ")).")
-                    Button("Rétablir") { for topic in hidden { news.addTopic(topic) } }
+                    Text(String(localized: "Retirés : \(hidden.joined(separator: ", "))."))
+                    Button(String(localized: "Rétablir")) { for topic in hidden { news.addTopic(topic) } }
                         .buttonStyle(.link)
                 }
             }
@@ -109,7 +109,7 @@ struct NewsSourcesPage: View {
                     .overlay(Capsule().strokeBorder(Theme.hairline))
                     .onSubmit(add)
                 Button(action: add) {
-                    if adding { ProgressView().controlSize(.small) } else { Text("Ajouter") }
+                    if adding { ProgressView().controlSize(.small) } else { Text(String(localized: "Ajouter")) }
                 }
                 .buttonStyle(PillButtonStyle(kind: .smallFilled))
                 .disabled(adding || address.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -120,12 +120,12 @@ struct NewsSourcesPage: View {
 
             Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 0) {
                 GridRow {
-                    Text("Actif")
+                    Text(String(localized: "Actif"))
                     Text("Source")
-                    Text("Catégorie")
+                    Text(String(localized: "Catégorie"))
                     Text("Type")
-                    Text("Dernière lecture")
-                    Text("État")
+                    Text(String(localized: "Dernière lecture"))
+                    Text(String(localized: "État"))
                     Color.clear.frame(width: 1, height: 1)
                 }
                 .font(.system(size: 12, weight: .medium))
@@ -151,7 +151,7 @@ struct NewsSourcesPage: View {
                 .toggleStyle(.switch)
                 .controlSize(.mini)
                 .labelsHidden()
-                .accessibilityLabel("Activer \(source.name)")
+                .accessibilityLabel(String(localized: "Activer \(source.name)"))
             VStack(alignment: .leading, spacing: 1) {
                 Text(source.name).font(.system(size: 13, weight: .semibold))
                 Text(source.displayURL).font(.system(size: 11).monospaced()).foregroundStyle(Theme.muted)
@@ -172,8 +172,8 @@ struct NewsSourcesPage: View {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.muted)
                 }
                 .buttonStyle(.plain)
-                .help("Retirer ce flux (ses favoris sont gardés)")
-                .accessibilityLabel("Retirer \(source.name)")
+                .help(String(localized: "Retirer ce flux (ses favoris sont gardés)"))
+                .accessibilityLabel(String(localized: "Retirer \(source.name)"))
             }
         }
         .padding(.vertical, 7)
@@ -190,15 +190,15 @@ struct NewsSourcesPage: View {
 
     private func lastRead(_ status: NewsSourceStatus?) -> String {
         guard let status, let attempt = status.lastAttempt else { return "—" }
-        if status.error != nil, status.lastSuccess != attempt { return "échec \(FrenchDate.relative(attempt))" }
+        if status.error != nil, status.lastSuccess != attempt { return String(localized: "échec \(FrenchDate.relative(attempt))") }
         return FrenchDate.relative(attempt) + (status.count > 0 ? " · \(status.count)" : "")
     }
 
     private func stateTag(on: Bool, status: NewsSourceStatus?) -> (String, (Color, Color)) {
-        if !on { return ("Désactivée", Tag.grey) }
-        guard let status, status.lastAttempt != nil else { return ("Pas encore lue", Tag.grey) }
+        if !on { return (String(localized: "Désactivée"), Tag.grey) }
+        guard let status, status.lastAttempt != nil else { return (String(localized: "Pas encore lue"), Tag.grey) }
         if let error = status.error {
-            return (status.lastSuccess == status.lastAttempt ? "Partielle" : error, status.lastSuccess == status.lastAttempt ? Tag.orange : Tag.red)
+            return (status.lastSuccess == status.lastAttempt ? String(localized: "Partielle") : error, status.lastSuccess == status.lastAttempt ? Tag.orange : Tag.red)
         }
         return ("OK", Tag.green)
     }

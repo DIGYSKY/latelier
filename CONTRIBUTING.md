@@ -34,7 +34,11 @@ Without Xcode, SwiftUI’s `@State` macro is unavailable: use `@ViewState` (an a
 - **Logic in `LAtelierCore`, with tests.** The app target (`LAtelier`) stays thin. A change to the
   core comes with Swift Testing tests in `Tests/LAtelierCoreTests`.
 - **No third-party dependencies**, no telemetry, no network call beyond those listed in the README.
-- **Both languages.** User-visible text is localized: add the English and French strings.
+- **Both languages.** French is the source language: write user-visible text in French in the code
+  (`Text("…")`, or `String(localized: "…")` for any other string), then run `make l10n`. It lists
+  the sentences without an English translation; add them to `Support/Localization/en.json`.
+  Don’t localize technical strings (commands, paths, identifiers), and pass PIDs, ports and codes as
+  `String(value)` so they are not formatted like quantities (`4 821`).
 - **Name**: always “L’Atelier”, with the typographic apostrophe `’` (U+2019).
 
 ## Pull requests

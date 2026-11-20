@@ -12,7 +12,7 @@ struct ScanListPage<Banner: View>: View {
     let emptyMessage: String
     let planTitle: String
     let scan: () -> Void
-    var verb = "à mettre à la corbeille"
+    var verb = String(localized: "à mettre à la corbeille")
     @ViewBuilder var banner: Banner
 
     var body: some View {
@@ -56,10 +56,10 @@ struct CachesPage: View {
     var body: some View {
         ScanListPage(
             page: .caches, store: model.cacheScan,
-            subtitle: "Nettoyés avec la commande officielle de chaque outil quand elle existe. Les toolchains ne sont jamais touchées",
-            scanningLabel: "Mesure des caches npm, pnpm, Go, Cargo, Maven, Xcode et ~/.cache…",
-            emptyTitle: "Aucun cache notable", emptyMessage: "Les caches des gestionnaires de paquets sont vides ou absents.",
-            planTitle: "Nettoyer : caches de paquets", scan: model.scanCaches, verb: "à libérer"
+            subtitle: String(localized: "Nettoyés avec la commande officielle de chaque outil quand elle existe. Les toolchains ne sont jamais touchées"),
+            scanningLabel: String(localized: "Mesure des caches npm, pnpm, Go, Cargo, Maven, Xcode et ~/.cache…"),
+            emptyTitle: String(localized: "Aucun cache notable"), emptyMessage: String(localized: "Les caches des gestionnaires de paquets sont vides ou absents."),
+            planTitle: String(localized: "Nettoyer : caches de paquets"), scan: model.scanCaches, verb: String(localized: "à libérer")
         ) { EmptyView() }
     }
 }
@@ -71,13 +71,13 @@ struct AppsCleanupPage: View {
     var body: some View {
         ScanListPage(
             page: .appsNettoyage, store: model.leftoverScan,
-            subtitle: "Restes d’apps déjà supprimées. Pour retirer une app installée, utilisez le Désinstalleur",
-            scanningLabel: "Recherche des données d’apps qui ne sont plus installées…",
-            emptyTitle: "Aucun reste d’app", emptyMessage: "Toutes les données de ~/Library appartiennent à des apps installées.",
-            planTitle: "Nettoyer : restes d’applications", scan: model.scanLeftovers
+            subtitle: String(localized: "Restes d’apps déjà supprimées. Pour retirer une app installée, utilisez le Désinstalleur"),
+            scanningLabel: String(localized: "Recherche des données d’apps qui ne sont plus installées…"),
+            emptyTitle: String(localized: "Aucun reste d’app"), emptyMessage: String(localized: "Toutes les données de ~/Library appartiennent à des apps installées."),
+            planTitle: String(localized: "Nettoyer : restes d’applications"), scan: model.scanLeftovers
         ) {
             if !model.deadLinks.isEmpty { deadLinksBanner }
-            Button("Ouvrir le Désinstalleur →") { model.selection = .desinstalleur }
+            Button(String(localized: "Ouvrir le Désinstalleur →")) { model.selection = .desinstalleur }
                 .buttonStyle(.link)
                 .font(.system(size: 13))
         }
@@ -88,13 +88,13 @@ struct AppsCleanupPage: View {
         return HStack(spacing: 12) {
             Image(systemName: "lock.fill").font(.system(size: 16)).foregroundStyle(Color.adaptive(light: NSColor(hex: 0x4A2A8A), dark: NSColor(hex: 0xC9B3FF)))
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(links.count) lien\(links.count > 1 ? "s" : "") mort\(links.count > 1 ? "s" : "") dans /usr/local/bin")
+                Text((links.count > 1 ? String(localized: "\(links.count) liens morts dans /usr/local/bin") : String(localized: "\(links.count) lien mort dans /usr/local/bin")))
                     .font(.system(size: 14, weight: .semibold))
                 Text(links.map { "\($0.url.lastPathComponent) → \(DeadLinks.appName($0))" }.joined(separator: " · "))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            Button("Supprimer (mot de passe admin)…") {
+            Button(String(localized: "Supprimer (mot de passe admin)…")) {
                 if let plan = model.deadLinksPlan { model.preview(plan) }
             }
             .buttonStyle(PillButtonStyle(kind: .small))
@@ -116,7 +116,7 @@ struct DockerPage: View {
         let store = model.docker
         let report = store.value
         let groups = report.map { DockerScanner.groups($0, docker: model.dockerPath) } ?? []
-        PageScaffold(page: .docker, subtitle: "Lu via docker system df -v · nettoyé via la CLI Docker") {
+        PageScaffold(page: .docker, subtitle: String(localized: "Lu via docker system df -v · nettoyé via la CLI Docker")) {
             if let report { statusPill(report) }
             Button("Analyser", systemImage: "magnifyingglass") { model.scanDocker() }
                 .buttonStyle(.primary)
@@ -124,34 +124,34 @@ struct DockerPage: View {
         } content: {
             if !model.preferences.includeDocker {
                 Card {
-                    EmptyState(symbol: "shippingbox", title: "Docker est exclu des analyses",
-                               message: "Réglages › Stockage › Inclure Docker. Le bouton Analyser lit quand même Docker à la demande.")
+                    EmptyState(symbol: "shippingbox", title: String(localized: "Docker est exclu des analyses"),
+                               message: String(localized: "Réglages › Stockage › Inclure Docker. Le bouton Analyser lit quand même Docker à la demande."))
                 }
             }
             if store.loading && report == nil {
-                ScanningCard(label: "Lecture de docker system df -v…")
+                ScanningCard(label: String(localized: "Lecture de docker system df -v…"))
             } else if let report {
                 switch report.state {
                 case .notInstalled:
-                    Card { EmptyState(symbol: "shippingbox", title: "Docker n’est pas installé", message: "La CLI docker est introuvable.") }
+                    Card { EmptyState(symbol: "shippingbox", title: String(localized: "Docker n’est pas installé"), message: String(localized: "La CLI docker est introuvable.")) }
                 case .notRunning(let message):
                     Card {
-                        EmptyState(symbol: "pause.circle", title: "Docker n’est pas démarré",
-                                   message: "L’Atelier ne le démarre pas pour vous. Lancez Docker Desktop puis Analyser. (\(message))")
+                        EmptyState(symbol: "pause.circle", title: String(localized: "Docker n’est pas démarré"),
+                                   message: String(localized: "L’Atelier ne le démarre pas pour vous. Lancez Docker Desktop puis Analyser. (\(message))"))
                     }
                 case .ready:
                     stats(report)
                     if groups.isEmpty {
-                        Card { EmptyState(symbol: "sparkles", title: "Rien à nettoyer", message: "Pas d’image, de conteneur ni de volume inutilisé.") }
+                        Card { EmptyState(symbol: "sparkles", title: String(localized: "Rien à nettoyer"), message: String(localized: "Pas d’image, de conteneur ni de volume inutilisé.")) }
                     } else {
                         CleanupList(groups: groups, selection: $bindable.dockerSelection)
                         if groups.contains(where: { $0.tone == .data }) && groups.filter({ $0.tone == .data }).flatMap(\.items).contains(where: { model.dockerSelection.contains($0.id) }) {
-                            Label("Vous avez coché un volume de données. Il sera supprimé définitivement (pas de corbeille pour Docker).",
+                            Label(String(localized: "Vous avez coché un volume de données. Il sera supprimé définitivement (pas de corbeille pour Docker)."),
                                   systemImage: "exclamationmark.triangle.fill")
                                 .font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.red)
                         }
                     }
-                    Label("L’espace revient progressivement : Docker stocke tout dans un disque virtuel (Docker.raw) qui se réduit au fil du temps.",
+                    Label(String(localized: "L’espace revient progressivement : Docker stocke tout dans un disque virtuel (Docker.raw) qui se réduit au fil du temps."),
                           systemImage: "info.circle")
                         .font(.system(size: 13)).foregroundStyle(Theme.muted)
                 }
@@ -160,15 +160,15 @@ struct DockerPage: View {
         .safeAreaInset(edge: .bottom) {
             if !groups.isEmpty {
                 let chosen = groups.flatMap(\.items).filter { model.dockerSelection.contains($0.id) && !$0.isLocked }
-                CleanupBar(count: chosen.count, bytes: chosen.reduce(0) { $0 + $1.bytes }, verb: "à supprimer via docker",
+                CleanupBar(count: chosen.count, bytes: chosen.reduce(0) { $0 + $1.bytes }, verb: String(localized: "à supprimer via docker"),
                            clear: { model.dockerSelection = [] }) {
                     let skipped = groups.flatMap(\.items).filter { $0.isLocked }
                     let data = chosen.contains { $0.risk == .danger }
                     if var plan = CleanupPlanner.plan(
-                        title: "Nettoyer : Docker", items: chosen, skipped: skipped,
+                        title: String(localized: "Nettoyer : Docker"), items: chosen, skipped: skipped,
                         summary: data
-                            ? "Attention : un volume de données est coché. Docker le supprime définitivement, sans corbeille."
-                            : "Nettoyé avec la CLI Docker : ce qui est supprimé ne passe pas par la corbeille, mais tout est recréable."
+                            ? String(localized: "Attention : un volume de données est coché. Docker le supprime définitivement, sans corbeille.")
+                            : String(localized: "Nettoyé avec la CLI Docker : ce qui est supprimé ne passe pas par la corbeille, mais tout est recréable.")
                     ) {
                         plan.stopOnFailure = false
                         model.preview(plan)
@@ -187,7 +187,7 @@ struct DockerPage: View {
         let running = report.state == .ready
         return HStack(spacing: 6) {
             Circle().fill(running ? Tag.green.0 : Theme.muted).frame(width: 8, height: 8)
-            Text(running ? "Docker en cours d’exécution" + (report.runningCount > 0 ? " · \(report.runningCount) conteneur\(report.runningCount > 1 ? "s" : "") actif\(report.runningCount > 1 ? "s" : "")" : "") : "Docker arrêté")
+            Text(running ? String(localized: "Docker en cours d’exécution") + (report.runningCount > 0 ? (report.runningCount > 1 ? String(localized: " · \(report.runningCount) conteneurs actifs") : String(localized: " · \(report.runningCount) conteneur actif")) : "") : String(localized: "Docker arrêté"))
                 .font(.system(size: 13, weight: .medium))
         }
         .padding(.horizontal, 12)
@@ -199,7 +199,7 @@ struct DockerPage: View {
     private func stats(_ report: DockerReport) -> some View {
         HStack(spacing: 12) {
             StatTile(label: "Images", value: Format.bytes(report.imageBytes))
-            StatTile(label: "Conteneurs arrêtés", value: Format.bytes(report.stoppedBytes))
+            StatTile(label: String(localized: "Conteneurs arrêtés"), value: Format.bytes(report.stoppedBytes))
             StatTile(label: "Build cache", value: Format.bytes(report.buildCache))
             StatTile(label: "Volumes", value: Format.bytes(report.volumeBytes))
         }

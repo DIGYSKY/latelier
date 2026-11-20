@@ -287,7 +287,7 @@ public enum CoverageDetector {
                     missing = CoverageSetup.Missing(
                         package: "@vitest/coverage-v8",
                         install: CommandSpec(add[0], Array(add.dropFirst()) + ["@vitest/coverage-v8\(version)"], in: project),
-                        why: "Vitest est installé mais pas son module de couverture : sans lui, « vitest --coverage » échoue (MISSING DEPENDENCY)."
+                        why: String(localized: "Vitest est installé mais pas son module de couverture : sans lui, « vitest --coverage » échoue (MISSING DEPENDENCY).")
                     )
                 }
                 return CoverageSetup(tool: "Vitest", command: run, reports: ["coverage/lcov.info"] + knownReports, missing: missing)
@@ -301,7 +301,7 @@ public enum CoverageDetector {
                 return CoverageSetup(tool: "Vitest", command: run, reports: ["coverage/lcov.info"] + knownReports, missing: CoverageSetup.Missing(
                     package: "vitest + @vitest/coverage-v8",
                     install: CommandSpec(add[0], Array(add.dropFirst()) + ["vitest", "@vitest/coverage-v8"], in: project),
-                    why: "Aucun outil de test dans ce projet : Vitest et son module de couverture seront ajoutés en dépendances de développement."
+                    why: String(localized: "Aucun outil de test dans ce projet : Vitest et son module de couverture seront ajoutés en dépendances de développement.")
                 ))
             }
         }
@@ -313,7 +313,7 @@ public enum CoverageDetector {
                                  reports: ["target/llvm-cov/lcov.info"] + knownReports,
                                  missing: installed ? nil : CoverageSetup.Missing(
                                     package: "cargo-llvm-cov", install: CommandSpec("cargo", ["install", "cargo-llvm-cov", "--locked"]), global: true,
-                                    why: "La couverture Rust passe par cargo-llvm-cov, un outil installé une fois pour tous les projets (~/.cargo/bin)."))
+                                    why: String(localized: "La couverture Rust passe par cargo-llvm-cov, un outil installé une fois pour tous les projets (~/.cargo/bin).")))
         }
         if has("pyproject.toml") || has("setup.py") || has("requirements.txt") || has("pytest.ini") {
             let runner: [String] = has("uv.lock") ? ["uv", "run"] : has("poetry.lock") ? ["poetry", "run"] : []
@@ -327,7 +327,7 @@ public enum CoverageDetector {
                     : has("poetry.lock") ? CommandSpec("poetry", ["add", "--group", "dev", "pytest-cov"], in: project) : nil
                 if let install {
                     missing = CoverageSetup.Missing(package: "pytest-cov", install: install,
-                                                    why: "pytest-cov n’est pas dans les dépendances du projet : sans lui, « pytest --cov » échoue.")
+                                                    why: String(localized: "pytest-cov n’est pas dans les dépendances du projet : sans lui, « pytest --cov » échoue."))
                 }
             }
             return CoverageSetup(tool: "pytest-cov", command: spec, reports: ["coverage.xml"] + knownReports, missing: missing)
@@ -352,7 +352,7 @@ public enum CoverageDetector {
         }
         // Pas d'outil reconnu, mais peut-être un rapport existant.
         let existing = knownReports.filter(has)
-        return existing.isEmpty ? nil : CoverageSetup(tool: "Rapport existant", command: nil, reports: existing)
+        return existing.isEmpty ? nil : CoverageSetup(tool: String(localized: "Rapport existant"), command: nil, reports: existing)
     }
 
     /// Version demandée pour un paquet dans package.json (« ^2.1.8 »).
@@ -370,9 +370,9 @@ public enum CoverageDetector {
         var commands = [missing.install]
         if thenRun, let command = setup.command { commands.append(command) }
         return ActionPlan(
-            title: thenRun ? "Ajouter \(missing.package) et mesurer la couverture" : "Ajouter \(missing.package) à \(project.lastPathComponent)",
-            summary: missing.why + (missing.global ? " L’outil est installé pour votre compte, pas dans le projet."
-                                                   : " Le manifeste et le lockfile du projet seront modifiés."),
+            title: thenRun ? String(localized: "Ajouter \(missing.package) et mesurer la couverture") : String(localized: "Ajouter \(missing.package) à \(project.lastPathComponent)"),
+            summary: missing.why + (missing.global ? String(localized: " L’outil est installé pour votre compte, pas dans le projet.")
+                                                   : String(localized: " Le manifeste et le lockfile du projet seront modifiés.")),
             kind: .commande, risk: .caution, reversible: false, commands: commands
         )
     }
@@ -428,8 +428,8 @@ public enum CoverageDetector {
     public static func runPlan(project: URL, setup: CoverageSetup) -> ActionPlan? {
         guard let command = setup.command else { return nil }
         return ActionPlan(
-            title: "Mesurer la couverture de \(project.lastPathComponent)",
-            summary: "Lance les tests du projet avec \(setup.tool). Le rapport est écrit dans le projet (dossier de build ou coverage/), puis relu ici.",
+            title: String(localized: "Mesurer la couverture de \(project.lastPathComponent)"),
+            summary: String(localized: "Lance les tests du projet avec \(setup.tool). Le rapport est écrit dans le projet (dossier de build ou coverage/), puis relu ici."),
             kind: .commande, risk: .safe, reversible: true, commands: [command]
         )
     }

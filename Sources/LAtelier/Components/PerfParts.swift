@@ -3,12 +3,12 @@ import LAtelierCore
 import SwiftUI
 
 extension Format {
-    private static let french = Locale(identifier: "fr_FR")
+    private static let french = Locale.current
 
     /// « 2,4 Mo/s », « 180 Ko/s ».
     static func rate(_ bytesPerSecond: Double) -> String {
         let ko = bytesPerSecond / 1000
-        if ko < 1 { return bytesPerSecond < 1 ? "0 Ko/s" : "< 1 Ko/s" }
+        if ko < 1 { return bytesPerSecond < 1 ? String(localized: "0 Ko/s") : String(localized: "< 1 Ko/s") }
         if ko < 1000 { return "\(Int(ko.rounded())) Ko/s" }
         let mo = ko / 1000
         if mo < 1000 { return decimal(mo, decimals: mo < 100 ? 1 : 0) + " Mo/s" }
@@ -199,7 +199,7 @@ struct SortHeader: View {
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Trier par \(label)")
+        .accessibilityLabel(String(localized: "Trier par \(label)"))
         .accessibilityAddTraits(active ? .isSelected : [])
     }
 }
@@ -270,6 +270,6 @@ extension RunningProcess {
     var userLabel: String {
         if isMine { return "vous" }
         if uid == 0 { return "root" }
-        return uid < 500 ? "système" : (getpwuid(uid).map { String(cString: $0.pointee.pw_name) } ?? "\(uid)")
+        return uid < 500 ? String(localized: "système") : (getpwuid(uid).map { String(cString: $0.pointee.pw_name) } ?? "\(uid)")
     }
 }

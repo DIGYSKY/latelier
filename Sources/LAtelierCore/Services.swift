@@ -71,10 +71,10 @@ public enum BrewServices {
 
         public var label: String {
             switch self {
-            case .start: "Démarrer"
-            case .stop: "Arrêter"
-            case .restart: "Redémarrer"
-            case .run: "Lancer sans inscrire au démarrage"
+            case .start: String(localized: "Démarrer")
+            case .stop: String(localized: "Arrêter")
+            case .restart: String(localized: "Redémarrer")
+            case .run: String(localized: "Lancer sans inscrire au démarrage")
             }
         }
     }
@@ -89,8 +89,8 @@ public enum BrewServices {
             ? [command(.stop, service.name), command(.run, service.name)]
             : [command(.start, service.name)]
         return ActionPlan(
-            title: service.registered ? "Ne plus lancer \(service.name) au démarrage" : "Lancer \(service.name) au démarrage",
-            summary: service.registered ? "Le service est relancé tout de suite, sans être inscrit au démarrage." : "Le service sera relancé à chaque ouverture de session.",
+            title: service.registered ? String(localized: "Ne plus lancer \(service.name) au démarrage") : String(localized: "Lancer \(service.name) au démarrage"),
+            summary: service.registered ? String(localized: "Le service est relancé tout de suite, sans être inscrit au démarrage.") : String(localized: "Le service sera relancé à chaque ouverture de session."),
             kind: .systeme, risk: .safe, reversible: true, commands: steps
         )
     }
@@ -99,13 +99,13 @@ public enum BrewServices {
         let targets = services.filter { $0.running && !$0.runsAsRoot }
         guard !targets.isEmpty else { return nil }
         var plan = ActionPlan(
-            title: "Arrêter \(targets.count) service(s)",
-            summary: "Les services inscrits au démarrage ne seront plus relancés à l’ouverture de session. Les connexions en cours sont coupées.",
+            title: String(localized: "Arrêter \(targets.count) service(s)"),
+            summary: String(localized: "Les services inscrits au démarrage ne seront plus relancés à l’ouverture de session. Les connexions en cours sont coupées."),
             kind: .systeme, risk: .caution, reversible: true,
             commands: targets.map { command(.stop, $0.name) }
         )
         plan.stopOnFailure = false
-        plan.skipped = services.filter { $0.running && $0.runsAsRoot }.map { "\($0.name) : lancé en root (sudo)" }
+        plan.skipped = services.filter { $0.running && $0.runsAsRoot }.map { String(localized: "\($0.name) : lancé en root (sudo)") }
         return plan
     }
 
@@ -125,7 +125,7 @@ public enum BrewServices {
                 chunks.append(paths.count > 1 && seen.count > 1 ? "— \(URL(fileURLWithPath: path).lastPathComponent)\n\(tail)" : tail)
             }
         }
-        return chunks.isEmpty ? "(aucun log)" : chunks.joined(separator: "\n\n")
+        return chunks.isEmpty ? String(localized: "(aucun log)") : chunks.joined(separator: "\n\n")
     }
 }
 
@@ -141,7 +141,7 @@ public struct ServiceScanner: Sendable {
         guard let result = try? await runner.run(
             CommandSpec("brew", ["services", "info", "--all", "--json"], environment: Brew.environment), timeout: .seconds(30)
         ), result.succeeded else {
-            return ([], "brew services n’a pas répondu.")
+            return ([], String(localized: "brew services n’a pas répondu."))
         }
         var services = BrewServices.parse(Data(result.stdout.joined(separator: "\n").utf8))
         let pids = services.compactMap(\.pid)

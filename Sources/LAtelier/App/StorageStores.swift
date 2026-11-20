@@ -38,26 +38,26 @@ extension AppModel {
             let items = scanner.items(leftovers, sizes: sizes.mapValues(\.bytes))
             let large = items.filter { $0.bytes >= 5_000_000 }, small = items.filter { $0.bytes < 5_000_000 }
             if !large.isEmpty {
-                groups.append(CleanupGroup(id: "leftovers", title: "Apps désinstallées",
-                                           detail: "Données dont l’app n’est plus installée · nom retrouvé depuis l’identifiant", items: large))
+                groups.append(CleanupGroup(id: "leftovers", title: String(localized: "Apps désinstallées"),
+                                           detail: String(localized: "Données dont l’app n’est plus installée · nom retrouvé depuis l’identifiant"), items: large))
             }
             if !small.isEmpty {
-                groups.append(CleanupGroup(id: "leftovers-small", title: "Petits restes (moins de 5 Mo)",
-                                           detail: "Réglages et petits caches d’apps supprimées · cochés s’ils n’ont pas bougé depuis 3 mois",
+                groups.append(CleanupGroup(id: "leftovers-small", title: String(localized: "Petits restes (moins de 5 Mo)"),
+                                           detail: String(localized: "Réglages et petits caches d’apps supprimées · cochés s’ils n’ont pas bougé depuis 3 mois"),
                                            tone: .neutral, items: small))
             }
             let stale = interrupted.map { url -> CleanupItem in
                 let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
                 let recent = Date().timeIntervalSince(modified) < 3600
                 return CleanupItem(
-                    id: "interrupted:" + url.path, name: "Installation Docker interrompue", detail: url.abbreviatingHome(),
-                    detailIsPath: true, meta: "Du \(modified.formatted(.dateTime.day().month(.abbreviated)))",
-                    risk: recent ? .protected : .safe, lockReason: recent ? "installation peut-être en cours" : nil,
+                    id: "interrupted:" + url.path, name: String(localized: "Installation Docker interrompue"), detail: url.abbreviatingHome(),
+                    detailIsPath: true, meta: String(localized: "Du \(modified.formatted(.dateTime.day().month(.abbreviated)))"),
+                    risk: recent ? .protected : .safe, lockReason: recent ? String(localized: "installation peut-être en cours") : nil,
                     selectedByDefault: !recent, entries: [CleanupItem.Entry(url: url, bytes: sizes[url]?.bytes ?? 0)]
                 )
             }
             if !stale.isEmpty {
-                groups.append(CleanupGroup(id: "interrupted", title: "Installations interrompues", detail: "com.docker.install/in_progress", items: stale))
+                groups.append(CleanupGroup(id: "interrupted", title: String(localized: "Installations interrompues"), detail: "com.docker.install/in_progress", items: stale))
             }
             return groups
         }
@@ -67,8 +67,8 @@ extension AppModel {
     var deadLinksPlan: ActionPlan? {
         guard let command = DeadLinks.removalCommand(deadLinks) else { return nil }
         return ActionPlan(
-            title: "Supprimer \(deadLinks.count) lien\(deadLinks.count > 1 ? "s" : "") mort\(deadLinks.count > 1 ? "s" : "") dans /usr/local/bin",
-            summary: "Ces liens visent des apps qui n’existent plus. /usr/local/bin appartient au système : macOS demandera le mot de passe administrateur.",
+            title: (deadLinks.count > 1 ? String(localized: "Supprimer \(deadLinks.count) liens morts dans /usr/local/bin") : String(localized: "Supprimer \(deadLinks.count) lien mort dans /usr/local/bin")),
+            summary: String(localized: "Ces liens visent des apps qui n’existent plus. /usr/local/bin appartient au système : macOS demandera le mot de passe administrateur."),
             kind: .nettoyage, risk: .caution, reversible: false, steps: [.command(command)],
             skipped: deadLinks.map { "\($0.url.lastPathComponent) → \(DeadLinks.appName($0))" }
         )
@@ -292,8 +292,8 @@ final class SonarStore {
         guard !list.isEmpty else { return nil }
         let total = list.reduce(0) { $0 + $1.bytes }
         var plan = ActionPlan(
-            title: "Sonar : \(list.count) fichier\(list.count > 1 ? "s" : "") à la corbeille",
-            summary: "Tout part dans la corbeille de macOS : rien n’est supprimé définitivement depuis le Sonar.",
+            title: (list.count > 1 ? String(localized: "Sonar : \(list.count) fichiers à la corbeille") : String(localized: "Sonar : \(list.count) fichier à la corbeille")),
+            summary: String(localized: "Tout part dans la corbeille de macOS : rien n’est supprimé définitivement depuis le Sonar."),
             kind: .nettoyage, risk: .caution, reversible: true,
             steps: list.map { .remove($0.url, bytes: $0.bytes, permanently: false) }, estimatedBytes: total
         )

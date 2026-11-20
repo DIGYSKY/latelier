@@ -34,12 +34,12 @@ struct RootView: View {
         .sheet(isPresented: $model.showOnboarding) {
             OnboardingSheet()
         }
-        .alert("Action impossible", isPresented: Binding(get: { model.actionNotice != nil }, set: { if !$0 { model.actionNotice = nil } })) {
+        .alert(String(localized: "Action impossible"), isPresented: Binding(get: { model.actionNotice != nil }, set: { if !$0 { model.actionNotice = nil } })) {
             Button("OK") { model.actionNotice = nil }
         } message: {
             Text(model.actionNotice ?? "")
         }
-        .alert("Ouverture impossible", isPresented: Binding(get: { model.launchError != nil }, set: { if !$0 { model.launchError = nil } })) {
+        .alert(String(localized: "Ouverture impossible"), isPresented: Binding(get: { model.launchError != nil }, set: { if !$0 { model.launchError = nil } })) {
             Button("OK") { model.launchError = nil }
         } message: {
             Text(model.launchError ?? "")

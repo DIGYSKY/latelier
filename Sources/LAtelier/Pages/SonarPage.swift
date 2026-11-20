@@ -23,7 +23,7 @@ struct SonarPage: View {
 
     var body: some View {
         let sonar = model.sonar
-        PageScaffold(title: "Sonar", subtitle: "Plus un point est loin du centre, plus le fichier est vieux. Plus il est gros, plus il pèse.") {
+        PageScaffold(title: "Sonar", subtitle: String(localized: "Plus un point est loin du centre, plus le fichier est vieux. Plus il est gros, plus il pèse.")) {
             gauge(sonar)
         } content: {
             VStack(alignment: .leading, spacing: 8) {
@@ -37,7 +37,7 @@ struct SonarPage: View {
                     GlassSegments(selection: Binding(get: { sonar.minimumBytes }, set: { value in
                         sonar.minimumBytes = value
                         if sonar.scannedZone != nil { scan(sonar.zone) }
-                    }), items: [(10_000_000, "10 Mo"), (50_000_000, "50 Mo"), (100_000_000, "100 Mo"), (500_000_000, "500 Mo")], compact: true)
+                    }), items: [(Int64(10_000_000), String(localized: "10 Mo")), (Int64(50_000_000), String(localized: "50 Mo")), (Int64(100_000_000), String(localized: "100 Mo")), (Int64(500_000_000), String(localized: "500 Mo"))], compact: true)
                         .fixedSize()
                 }
             }
@@ -86,7 +86,7 @@ struct SonarPage: View {
                 .menuStyle(.borderlessButton).fixedSize()
             }
             ProgressView(value: progress).frame(width: 260).tint(Tag.green.0)
-            Text("\(sonar.sortedCount) fichier\(sonar.sortedCount > 1 ? "s" : "") trié\(sonar.sortedCount > 1 ? "s" : "")")
+            Text((sonar.sortedCount > 1 ? String(localized: "\(sonar.sortedCount) fichiers triés") : String(localized: "\(sonar.sortedCount) fichier trié")))
                 .font(.system(size: 12)).foregroundStyle(Theme.muted)
         }
     }
@@ -113,7 +113,7 @@ struct SonarPage: View {
                     .contentShape(.capsule)
                 }
                 .buttonStyle(.plain)
-                .help(locked ? "macOS demandera l’autorisation de lire ce dossier" : "Balayer \(zone.label)")
+                .help(locked ? String(localized: "macOS demandera l’autorisation de lire ce dossier") : String(localized: "Balayer \(zone.label)"))
             }
         }
         .padding(3)
@@ -125,17 +125,17 @@ struct SonarPage: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Lancer un balayage").font(.system(size: 17, weight: .semibold))
-                Text("Le Sonar repère les gros fichiers (50 Mo par défaut) dans la zone choisie, leur dernière ouverture, les doublons exacts et les installeurs déjà utilisés. Vos projets de code sont ignorés (voir Développement).")
+                Text(String(localized: "Le Sonar repère les gros fichiers (50 Mo par défaut) dans la zone choisie, leur dernière ouverture, les doublons exacts et les installeurs déjà utilisés. Vos projets de code sont ignorés (voir Développement)."))
                     .font(.system(size: 13)).foregroundStyle(Theme.muted)
                 if !model.preferences.allowPersonalFolders {
-                    Text("Bureau, Documents et Téléchargements sont exclus tant que vous ne les incluez pas : macOS demandera alors l’autorisation.")
+                    Text(String(localized: "Bureau, Documents et Téléchargements sont exclus tant que vous ne les incluez pas : macOS demandera alors l’autorisation."))
                         .font(.system(size: 12)).foregroundStyle(Theme.muted)
                 }
                 HStack {
-                    Button("Balayer \(sonar.zone.label.lowercased())") { scan(sonar.zone) }
+                    Button(String(localized: "Balayer \(sonar.zone.label.lowercased())")) { scan(sonar.zone) }
                         .buttonStyle(.primary)
                     if !model.preferences.allowPersonalFolders {
-                        Button("Inclure Bureau, Documents, Téléchargements…") {
+                        Button(String(localized: "Inclure Bureau, Documents, Téléchargements…")) {
                             model.allowPersonalFolders()
                             scan(sonar.zone)
                         }
@@ -161,27 +161,27 @@ struct SonarPage: View {
     private func aside(_ sonar: SonarStore) -> some View {
         VStack(spacing: 12) {
             if sonar.scanning {
-                ScanningCard(label: "Balayage de \(sonar.zone.label.lowercased())…")
+                ScanningCard(label: String(localized: "Balayage de \(sonar.zone.label.lowercased())…"))
             } else if let file = sonar.current {
                 fileCard(file, sonar)
             } else {
                 VStack(spacing: 6) {
                     Text(Format.bytes(sonar.freed + sonar.staged.reduce(0) { $0 + $1.bytes })).font(.system(size: 26, weight: .bold)).foregroundStyle(Tag.green.0)
                     Text("Zone triée !").font(.system(size: 16, weight: .semibold))
-                    Text(sonar.files.isEmpty ? "Aucun fichier de plus de \(Format.bytes(sonar.minimumBytes)) ici." : "Tout a été trié dans ce filtre. Essayez un autre filtre ou une autre zone.")
+                    Text(sonar.files.isEmpty ? String(localized: "Aucun fichier de plus de \(Format.bytes(sonar.minimumBytes)) ici.") : String(localized: "Tout a été trié dans ce filtre. Essayez un autre filtre ou une autre zone."))
                         .font(.system(size: 12)).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
                     if sonar.files.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
                             if !model.preferences.allowPersonalFolders {
-                                Text("Vos gros fichiers sont souvent dans Téléchargements ou Documents, que macOS protège.")
+                                Text(String(localized: "Vos gros fichiers sont souvent dans Téléchargements ou Documents, que macOS protège."))
                                     .font(.system(size: 11)).padding(.top, 4)
-                                Button("Inclure Bureau, Documents, Téléchargements…") {
+                                Button(String(localized: "Inclure Bureau, Documents, Téléchargements…")) {
                                     model.allowPersonalFolders()
                                     scan(sonar.zone)
                                 }
                                 .buttonStyle(PillButtonStyle(kind: .small))
                             } else if sonar.minimumBytes > 10_000_000 {
-                                Button("Chercher dès 10 Mo") {
+                                Button(String(localized: "Chercher dès 10 Mo")) {
                                     sonar.minimumBytes = 10_000_000
                                     scan(sonar.zone)
                                 }
@@ -214,8 +214,8 @@ struct SonarPage: View {
                 }
             }
             HStack(spacing: 10) {
-                fact("Taille", Format.bytes(file.bytes))
-                fact("Dernière ouverture", file.lastUsed.map { RelativeDate.french($0) } ?? "jamais")
+                fact(String(localized: "Taille"), Format.bytes(file.bytes))
+                fact(String(localized: "Dernière ouverture"), file.lastUsed.map { RelativeDate.french($0) } ?? "jamais")
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text("Pourquoi ?").font(.system(size: 12, weight: .semibold))
@@ -225,7 +225,7 @@ struct SonarPage: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.raised.opacity(0.6), in: .rect(cornerRadius: 10, style: .continuous))
             HStack(spacing: 8) {
-                Button("Garder") { sonar.decide(.keep) }
+                Button(String(localized: "Garder")) { sonar.decide(.keep) }
                     .buttonStyle(PillButtonStyle(kind: .secondary))
                     .frame(maxWidth: .infinity)
                 Button("Corbeille") { sonar.decide(.trash) }
@@ -233,7 +233,7 @@ struct SonarPage: View {
                     .frame(maxWidth: .infinity)
             }
             HStack(spacing: 6) {
-                Button("Coup d’œil") { preview = file.url }.buttonStyle(PillButtonStyle(kind: .small))
+                Button(String(localized: "Coup d’œil")) { preview = file.url }.buttonStyle(PillButtonStyle(kind: .small))
                 Button("Finder") { NSWorkspace.shared.activateFileViewerSelecting([file.url]) }.buttonStyle(PillButtonStyle(kind: .small))
                 Spacer()
                 Button("Passer →") { sonar.decide(.skip) }.buttonStyle(.plain).font(.system(size: 13, weight: .medium))
@@ -269,12 +269,12 @@ struct SonarPage: View {
                 }
             }
             if staged.count > 5 { Text("et \(staged.count - 5) autres").font(.system(size: 12)).foregroundStyle(Theme.muted) }
-            Button("Mettre \(staged.count) fichier\(staged.count > 1 ? "s" : "") à la corbeille…") {
+            Button((staged.count > 1 ? String(localized: "Mettre \(staged.count) fichiers à la corbeille…") : String(localized: "Mettre \(staged.count) fichier à la corbeille…"))) {
                 if let plan = sonar.trashPlan { model.preview(plan) }
             }
             .buttonStyle(PillButtonStyle(kind: .smallFilled))
             .disabled(staged.isEmpty)
-            Text("Rien n’est supprimé définitivement : tout part dans la corbeille de macOS, après l’aperçu.")
+            Text(String(localized: "Rien n’est supprimé définitivement : tout part dans la corbeille de macOS, après l’aperçu."))
                 .font(.system(size: 11)).foregroundStyle(Theme.muted)
         }
         .padding(16)
@@ -289,7 +289,7 @@ private struct RadarView: View {
     let scanning: Bool
     let pick: (String) -> Void
 
-    private static let rings: [(days: Int, label: String)] = [(30, "1 mois"), (180, "6 mois"), (365, "1 an"), (1095, "3 ans")]
+    private static let rings: [(days: Int, label: String)] = [(30, String(localized: "1 mois")), (180, String(localized: "6 mois")), (365, String(localized: "1 an")), (1095, String(localized: "3 ans"))]
 
     var body: some View {
         GeometryReader { geometry in
@@ -335,7 +335,7 @@ private struct RadarView: View {
                         .buttonStyle(.plain)
                         .position(x: center.x + cos(rad) * blip.distance * radius, y: center.y + sin(rad) * blip.distance * radius)
                         .help("\(blip.file.name) · \(Format.bytes(blip.file.bytes))")
-                        .accessibilityLabel("\(blip.file.name), \(Format.bytes(blip.file.bytes)), ouvert \(blip.file.lastUsed.map { RelativeDate.french($0) } ?? "jamais")")
+                        .accessibilityLabel(String(localized: "\(blip.file.name), \(Format.bytes(blip.file.bytes)), ouvert \(blip.file.lastUsed.map { RelativeDate.french($0) } ?? "jamais")"))
                     }
                     Circle().fill(Color.white.opacity(0.9)).frame(width: 6, height: 6)
                 }

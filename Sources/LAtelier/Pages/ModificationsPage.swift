@@ -9,7 +9,7 @@ struct ModificationsPage: View {
     var body: some View {
         let store = model.repos
         PageScaffold(page: .modifications, subtitle: store.message ?? summary) {
-            Button(store.fetching ? "Fetch en cours…" : "Fetch de tous les dépôts", systemImage: "arrow.clockwise") {
+            Button(store.fetching ? String(localized: "Fetch en cours…") : String(localized: "Fetch de tous les dépôts"), systemImage: "arrow.clockwise") {
                 model.fetchAll()
             }
             .buttonStyle(.secondary)
@@ -19,9 +19,9 @@ struct ModificationsPage: View {
                 .disabled(pushable.isEmpty)
         } content: {
             if store.scanning && store.repos.isEmpty {
-                ScanningCard(label: "Analyse des dépôts…")
+                ScanningCard(label: String(localized: "Analyse des dépôts…"))
             } else if groups.isEmpty {
-                Card { EmptyState(symbol: "checkmark.circle", title: "Tout est à jour", message: "Aucun dépôt n’a de modification, de commit à pousser ou de retard.") }
+                Card { EmptyState(symbol: "checkmark.circle", title: String(localized: "Tout est à jour"), message: String(localized: "Aucun dépôt n’a de modification, de commit à pousser ou de retard.")) }
             } else {
                 ForEach(groups, id: \.title) { group in
                     RepoGroupCard(title: group.title, detail: group.detail, repos: group.repos)
@@ -36,12 +36,12 @@ struct ModificationsPage: View {
 
     private var groups: [(title: String, detail: String, repos: [RepoStatus])] {
         [
-            ("Opération en cours ou conflit", "À terminer dans le terminal", repos.filter { $0.state == .conflict }),
-            ("Modifications non commitées", "Fichiers modifiés ou nouveaux", repos.filter { $0.state == .modified }),
-            ("Historiques divergés", "Ni pull ni push en avance rapide : à régler à la main", repos.filter { $0.state == .diverged }),
-            ("Commits à pousser", "Pas encore sur le distant", repos.filter { $0.canPush && $0.state != .modified }),
-            ("En retard sur le distant", "Un pull les met à jour", repos.filter { $0.state == .behind }),
-            ("Sans remote", "Sauvegardés nulle part", repos.filter { $0.state == .noRemote }),
+            (String(localized: "Opération en cours ou conflit"), String(localized: "À terminer dans le terminal"), repos.filter { $0.state == .conflict }),
+            (String(localized: "Modifications non commitées"), String(localized: "Fichiers modifiés ou nouveaux"), repos.filter { $0.state == .modified }),
+            (String(localized: "Historiques divergés"), String(localized: "Ni pull ni push en avance rapide : à régler à la main"), repos.filter { $0.state == .diverged }),
+            (String(localized: "Commits à pousser"), String(localized: "Pas encore sur le distant"), repos.filter { $0.canPush && $0.state != .modified }),
+            (String(localized: "En retard sur le distant"), String(localized: "Un pull les met à jour"), repos.filter { $0.state == .behind }),
+            (String(localized: "Sans remote"), String(localized: "Sauvegardés nulle part"), repos.filter { $0.state == .noRemote }),
         ].filter { !$0.2.isEmpty }
     }
 
@@ -51,14 +51,14 @@ struct ModificationsPage: View {
         let modified = repos.filter { !$0.changes.isEmpty }.count
         let ahead = pushable.count
         let behind = repos.filter { $0.behind > 0 }.count
-        return "\(modified) modifié\(modified > 1 ? "s" : "") · \(ahead) à pousser · \(behind) en retard, sur \(repos.count) dépôts"
+        return (modified > 1 ? String(localized: "\(modified) modifiés · \(ahead) à pousser · \(behind) en retard, sur \(repos.count) dépôts") : String(localized: "\(modified) modifié · \(ahead) à pousser · \(behind) en retard, sur \(repos.count) dépôts"))
     }
 
     private func pushAll() {
         let steps = pushable.compactMap { GitClient.pushPlan($0)?.steps.first }
         model.preview(ActionPlan(
-            title: "Pousser \(steps.count) dépôt(s)",
-            summary: "Un push par dépôt, jamais forcé. Si l’un échoue, les autres continuent.",
+            title: String(localized: "Pousser \(steps.count) dépôt(s)"),
+            summary: String(localized: "Un push par dépôt, jamais forcé. Si l’un échoue, les autres continuent."),
             kind: .git, risk: .safe, reversible: false, steps: steps, stopOnFailure: false
         ))
     }
@@ -89,7 +89,7 @@ private struct RepoGroupCard: View {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(repo.name).font(.system(size: 14, weight: .semibold))
-                        Text("\(repo.url.abbreviatingHome()) · ⎇ \(repo.branch ?? "détaché")")
+                        Text("\(repo.url.abbreviatingHome()) · ⎇ \(repo.branch ?? String(localized: "détaché"))")
                             .font(.system(size: 12).monospaced())
                             .foregroundStyle(Theme.muted)
                             .lineLimit(1)
@@ -113,13 +113,13 @@ private struct RepoGroupCard: View {
         HStack(spacing: 6) {
             if repo.operationInProgress == nil {
                 if repo.behind > 0 && repo.ahead == 0 {
-                    Button("Pull ↓\(repo.behind)") { model.preview(GitClient.pullPlan(repo)) }.buttonStyle(.small)
+                    Button(String(localized: "Pull ↓\(repo.behind)")) { model.preview(GitClient.pullPlan(repo)) }.buttonStyle(.small)
                 }
                 if repo.ahead > 0 && repo.behind == 0 || repo.state == .noUpstream, let plan = GitClient.pushPlan(repo) {
-                    Button(repo.upstream == nil ? "Publier" : "Push ↑\(repo.ahead)") { model.preview(plan) }.buttonStyle(.small)
+                    Button(repo.upstream == nil ? String(localized: "Publier") : String(localized: "Push ↑\(repo.ahead)")) { model.preview(plan) }.buttonStyle(.small)
                 }
             }
-            Button("Ouvrir") {
+            Button(String(localized: "Ouvrir")) {
                 model.repos.selectedID = repo.id
                 model.selection = .depots
             }

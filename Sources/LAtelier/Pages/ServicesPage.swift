@@ -13,16 +13,16 @@ struct ServicesPage: View {
             Button("Actualiser", systemImage: "arrow.clockwise") { model.scanServices() }
                 .buttonStyle(.secondary)
                 .disabled(store.loading)
-            Button("Tout arrêter") {
+            Button(String(localized: "Tout arrêter")) {
                 if let plan = BrewServices.stopAll(services) { model.preview(plan) }
             }
             .buttonStyle(.secondary)
             .disabled(!services.contains { $0.running && !$0.runsAsRoot })
         } content: {
             if store.value == nil {
-                ScanningCard(label: "Lecture de brew services…")
+                ScanningCard(label: String(localized: "Lecture de brew services…"))
             } else if services.isEmpty {
-                Card { EmptyState(symbol: "server.rack", title: "Aucun service", message: "Aucune formule Homebrew installée ne fournit de service.") }
+                Card { EmptyState(symbol: "server.rack", title: String(localized: "Aucun service"), message: String(localized: "Aucune formule Homebrew installée ne fournit de service.")) }
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(services.enumerated()), id: \.element.id) { index, service in
@@ -40,7 +40,7 @@ struct ServicesPage: View {
             if let problem = store.problem {
                 Label(problem, systemImage: "exclamationmark.triangle").font(.system(size: 12)).foregroundStyle(Theme.orange)
             }
-            Text("Les conteneurs Docker sont gérés dans Stockage › Docker. Un service qui occupe un port apparaît aussi dans Performance › Réseau.")
+            Text(String(localized: "Les conteneurs Docker sont gérés dans Stockage › Docker. Un service qui occupe un port apparaît aussi dans Performance › Réseau."))
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.muted)
         }
@@ -52,9 +52,9 @@ struct ServicesPage: View {
     }
 
     private func subtitle(_ services: [BrewService]) -> String {
-        guard model.services.value != nil else { return "brew services et agents de dev" }
+        guard model.services.value != nil else { return String(localized: "brew services et agents de dev") }
         let running = services.filter(\.running).count
-        return "\(running) en cours sur \(services.count) · brew services et agents de dev"
+        return String(localized: "\(running) en cours sur \(services.count) · brew services et agents de dev")
     }
 
     private func summary(of service: BrewService) -> String {
@@ -96,7 +96,7 @@ private struct ServiceRow: View {
                     .font(.system(size: 12).monospacedDigit())
                     .foregroundStyle(Theme.muted)
                     .frame(width: 64, alignment: .trailing)
-                Toggle("Au démarrage", isOn: Binding(
+                Toggle(String(localized: "Au démarrage"), isOn: Binding(
                     get: { service.registered },
                     set: { _ in model.preview(BrewServices.toggleAtLogin(service)) }
                 ))
@@ -104,21 +104,21 @@ private struct ServiceRow: View {
                 .controlSize(.mini)
                 .font(.system(size: 12))
                 .disabled(!service.running || service.runsAsRoot || busy)
-                .help(service.running ? "Relancer ce service à chaque ouverture de session" : "Démarrez d’abord le service")
+                .help(service.running ? String(localized: "Relancer ce service à chaque ouverture de session") : String(localized: "Démarrez d’abord le service"))
                 .frame(width: 130)
                 Group {
                     if busy {
                         ProgressView().controlSize(.small).frame(width: 86)
                     } else if service.running {
-                        Button("Arrêter") { model.runService(.stop, service) }.buttonStyle(.small)
+                        Button(String(localized: "Arrêter")) { model.runService(.stop, service) }.buttonStyle(.small)
                     } else {
-                        Button("Démarrer") { model.runService(.start, service) }
+                        Button(String(localized: "Démarrer")) { model.runService(.start, service) }
                             .buttonStyle(PillButtonStyle(kind: .smallFilled))
                     }
                 }
                 .disabled(service.runsAsRoot)
-                .help(service.runsAsRoot ? "Lancé avec sudo : à piloter dans le terminal" : "")
-                Button(logsOpen ? "Masquer" : "Logs", action: toggleLogs).buttonStyle(.small)
+                .help(service.runsAsRoot ? String(localized: "Lancé avec sudo : à piloter dans le terminal") : "")
+                Button(logsOpen ? String(localized: "Masquer") : "Logs", action: toggleLogs).buttonStyle(.small)
             }
             if logsOpen {
                 ConsoleBlock(text: BrewServices.logTail(service), color: Color(hex: 0xB9F5C9), maxHeight: 200)
@@ -134,9 +134,9 @@ private struct ServiceRow: View {
     }
 
     private var stateLabel: String {
-        if service.runsAsRoot && !service.running { return "Arrêté (root)" }
-        if service.running { return service.runsAsRoot ? "En cours (root)" : "En cours" }
-        if service.failed { return "Erreur (code \(service.exitCode ?? 0))" }
-        return "Arrêté"
+        if service.runsAsRoot && !service.running { return String(localized: "Arrêté (root)") }
+        if service.running { return service.runsAsRoot ? String(localized: "En cours (root)") : String(localized: "En cours") }
+        if service.failed { return String(localized: "Erreur (code \(service.exitCode ?? 0))") }
+        return String(localized: "Arrêté")
     }
 }

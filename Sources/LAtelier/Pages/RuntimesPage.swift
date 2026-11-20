@@ -7,7 +7,7 @@ struct RuntimesPage: View {
 
     var body: some View {
         let store = model.runtimes
-        PageScaffold(page: .runtimes, subtitle: "Versions de langages installées, version par défaut et fin de vie (endoflife.date)") {
+        PageScaffold(page: .runtimes, subtitle: String(localized: "Versions de langages installées, version par défaut et fin de vie (endoflife.date)")) {
             Button("Actualiser", systemImage: "arrow.clockwise") { model.scanRuntimes() }
                 .buttonStyle(.secondary)
                 .disabled(store.loading)
@@ -19,9 +19,9 @@ struct RuntimesPage: View {
                     }
                 }
             } else if store.loading || store.value == nil {
-                ScanningCard(label: "Recherche des versions de Node, Python, Rust, Java, Go et Swift…")
+                ScanningCard(label: String(localized: "Recherche des versions de Node, Python, Rust, Java, Go et Swift…"))
             } else {
-                Card { EmptyState(symbol: "chevron.left.forwardslash.chevron.right", title: "Aucun runtime géré trouvé") }
+                Card { EmptyState(symbol: "chevron.left.forwardslash.chevron.right", title: String(localized: "Aucun runtime géré trouvé")) }
             }
         }
         .onAppear { if store.stale && !store.loading { model.scanRuntimes() } }
@@ -60,7 +60,7 @@ private struct LanguageCard: View {
                 Button(suggestion.label, systemImage: language.id == "rust" ? "arrow.down.circle" : "plus") {
                     model.preview(ActionPlan(
                         title: "\(language.name) : \(suggestion.label.prefix(1).lowercased() + suggestion.label.dropFirst())",
-                        summary: language.id == "rust" ? "rustup télécharge la dernière version stable et remplace l’actuelle." : "Installé à côté des versions existantes ; la version par défaut ne change pas.",
+                        summary: language.id == "rust" ? String(localized: "rustup télécharge la dernière version stable et remplace l’actuelle.") : String(localized: "Installé à côté des versions existantes ; la version par défaut ne change pas."),
                         kind: .paquet, risk: .safe, reversible: false, commands: [suggestion.command]
                     ))
                 }
@@ -96,28 +96,28 @@ private struct VersionRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(version.version).font(.system(size: 13, weight: .semibold).monospaced())
-                    if version.isDefault { Tag(text: "Par défaut", foreground: Tag.blue.0, background: Tag.blue.1) }
-                    if eol { Tag(text: "Fin de vie", foreground: Tag.red.0, background: Tag.red.1) }
+                    if version.isDefault { Tag(text: String(localized: "Par défaut"), foreground: Tag.blue.0, background: Tag.blue.1) }
+                    if eol { Tag(text: String(localized: "Fin de vie"), foreground: Tag.red.0, background: Tag.red.1) }
                 }
                 Text(usage).font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1)
             }
             Spacer(minLength: 4)
             if !version.isDefault, !eol, let command = version.setDefault {
-                Button("Par défaut") {
+                Button(String(localized: "Par défaut")) {
                     model.preview(ActionPlan(
-                        title: "\(language.name) \(version.version) par défaut",
-                        summary: "Les nouveaux terminaux utiliseront cette version. Les projets qui fixent leur version ne changent pas.",
+                        title: String(localized: "\(language.name) \(version.version) par défaut"),
+                        summary: String(localized: "Les nouveaux terminaux utiliseront cette version. Les projets qui fixent leur version ne changent pas."),
                         kind: .paquet, risk: .safe, reversible: true, commands: [command]
                     ))
                 }
                 .buttonStyle(.small)
             }
             if version.canRemove, let command = version.remove {
-                Button("Supprimer") {
-                    let size = version.bytes.map { " Libère environ \(Format.bytes($0))." } ?? ""
+                Button(String(localized: "Supprimer")) {
+                    let size = version.bytes.map { String(localized: " Libère environ \(Format.bytes($0)).") } ?? ""
                     model.preview(ActionPlan(
-                        title: "Supprimer \(language.name) \(version.version)",
-                        summary: "Aucun projet ne l’utilise et ce n’est pas la version par défaut.\(size)",
+                        title: String(localized: "Supprimer \(language.name) \(version.version)"),
+                        summary: String(localized: "Aucun projet ne l’utilise et ce n’est pas la version par défaut.\(size)"),
                         kind: .paquet, risk: .caution, reversible: false, commands: [command],
                         estimatedBytes: version.bytes
                     ))
@@ -132,18 +132,18 @@ private struct VersionRow: View {
 
     private var usage: String {
         var parts: [String] = []
-        if version.isSystem { parts.append("Fournie par Xcode") }
+        if version.isSystem { parts.append(String(localized: "Fournie par Xcode")) }
         if !version.requiredBy.isEmpty {
-            parts.append("Requise par \(version.requiredBy.prefix(3).joined(separator: ", ")) (Homebrew)")
+            parts.append(String(localized: "Requise par \(version.requiredBy.prefix(3).joined(separator: ", ")) (Homebrew)"))
         }
         if version.usedBy.isEmpty {
-            if !version.isSystem { parts.append("Aucun projet") }
+            if !version.isSystem { parts.append(String(localized: "Aucun projet")) }
         } else {
             let names = version.usedBy.prefix(3).joined(separator: ", ")
-            parts.append("Utilisé par \(names)\(version.usedBy.count > 3 ? " et \(version.usedBy.count - 3) autres" : "")")
+            parts.append(String(localized: "Utilisé par \(names)\(version.usedBy.count > 3 ? String(localized: " et \(version.usedBy.count - 3) autres") : "")"))
         }
         if let eol = version.endOfLife, eol != .distantPast, !version.isEndOfLife() {
-            parts.append("support jusqu’en \(FrenchDate.monthYear(eol))")
+            parts.append(String(localized: "support jusqu’en \(FrenchDate.monthYear(eol))"))
         }
         if let bytes = version.bytes, bytes > 0 { parts.append(Format.bytes(bytes)) }
         return parts.joined(separator: " · ")

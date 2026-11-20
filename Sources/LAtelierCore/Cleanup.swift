@@ -116,10 +116,10 @@ public enum CleanupPlanner {
         let usesCommands = steps.contains(where: \.isCommandLike)
         let bytes = removable.reduce(Int64(0)) { $0 + $1.bytes }
         let summary = summary ?? (emptiesTrash
-            ? "La corbeille de macOS sera vidée définitivement."
+            ? String(localized: "La corbeille de macOS sera vidée définitivement.")
             : usesCommands
-            ? "Nettoyé avec la commande officielle de chaque outil : ce qui est supprimé ainsi ne passe pas par la corbeille."
-            : "Seuls des fichiers recréables sont concernés. Le code source n’est jamais touché.")
+            ? String(localized: "Nettoyé avec la commande officielle de chaque outil : ce qui est supprimé ainsi ne passe pas par la corbeille.")
+            : String(localized: "Seuls des fichiers recréables sont concernés. Le code source n’est jamais touché."))
         return ActionPlan(
             title: title,
             summary: summary,
@@ -128,7 +128,7 @@ public enum CleanupPlanner {
             reversible: !emptiesTrash && !usesCommands,
             steps: steps,
             estimatedBytes: bytes,
-            skipped: skipped.map { "\($0.name) : \($0.lockReason ?? "ignoré")" }
+            skipped: skipped.map { "\($0.name) : \($0.lockReason ?? String(localized: "ignoré"))" }
         )
     }
 }
@@ -208,12 +208,12 @@ public enum RelativeDate {
     /// « il y a 14 mois », « aujourd’hui », « hier ».
     public static func french(_ date: Date, now: Date = .now) -> String {
         let calendar = Calendar(identifier: .gregorian)
-        if calendar.isDate(date, inSameDayAs: now) { return "aujourd’hui" }
+        if calendar.isDate(date, inSameDayAs: now) { return String(localized: "aujourd’hui") }
         if let yesterday = calendar.date(byAdding: .day, value: -1, to: now), calendar.isDate(date, inSameDayAs: yesterday) {
-            return "hier"
+            return String(localized: "hier")
         }
         let formatter = RelativeDateTimeFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.locale = Locale.current
         formatter.unitsStyle = .full
         formatter.dateTimeStyle = .numeric
         return formatter.localizedString(for: date, relativeTo: now)

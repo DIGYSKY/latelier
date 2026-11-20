@@ -17,9 +17,9 @@ extension AppModel {
         if updates.installedFromSource {
             installation = "install.sh"
         } else if Bundle.main.bundleURL.path.hasPrefix("/Applications/") || Bundle.main.bundleURL.path.hasPrefix(NSHomeDirectory() + "/Applications/") {
-            installation = "image disque (.dmg)"
+            installation = String(localized: "image disque (.dmg)")
         } else {
-            installation = "compilée depuis un clone"
+            installation = String(localized: "compilée depuis un clone")
         }
         return IssueReport.Environment(
             appVersion: info?["CFBundleShortVersionString"] as? String ?? "dev",
@@ -38,6 +38,16 @@ extension AppModel {
         }
     }
 
+    /// Relance L’Atelier (changement de langue).
+    func relaunch() {
+        let path = Bundle.main.bundleURL.path
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", "sleep 1; /usr/bin/open \(ShellQuote.quote(path))"]
+        try? process.run()
+        NSApp.terminate(nil)
+    }
+
     func copyDiagnostics() {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(issueEnvironment.summary, forType: .string)
@@ -47,8 +57,8 @@ extension AppModel {
     var ownData: [(label: String, url: URL)] {
         let home = URL(fileURLWithPath: NSHomeDirectory())
         let candidates: [(String, URL)] = [
-            ("Historique, réglages internes, enregistrements", AppPaths.supportDirectory),
-            ("Caches (versions, failles, scripts)", AppPaths.cacheDirectory),
+            (String(localized: "Historique, réglages internes, enregistrements"), AppPaths.supportDirectory),
+            (String(localized: "Caches (versions, failles, scripts)"), AppPaths.cacheDirectory),
             ("Préférences", home.appendingPathComponent("Library/Preferences/\(AppPaths.bundleIdentifier).plist")),
             ("Sources (installation par install.sh)", home.appendingPathComponent(".latelier")),
             ("Connexions SSH partagées", URL(fileURLWithPath: SSHCommands.defaultControlDirectory)),
@@ -67,8 +77,8 @@ extension AppModel {
             steps.append(.remove(app, bytes: DiskUsage.measure(app).bytes, permanently: false))
         }
         var plan = ActionPlan(
-            title: "Désinstaller L’Atelier",
-            summary: "Tout va à la corbeille : vous pouvez encore revenir en arrière. Votre ~/.ssh/config, vos projets et vos serveurs ne sont pas touchés. L’Atelier se ferme ensuite.",
+            title: String(localized: "Désinstaller L’Atelier"),
+            summary: String(localized: "Tout va à la corbeille : vous pouvez encore revenir en arrière. Votre ~/.ssh/config, vos projets et vos serveurs ne sont pas touchés. L’Atelier se ferme ensuite."),
             kind: .systeme, risk: .caution, reversible: true, steps: steps
         )
         plan.allowsPermanent = false
@@ -77,7 +87,7 @@ extension AppModel {
 
     /// Après la désinstallation : retirer l'ouverture à la connexion et quitter.
     func finishUninstall(_ entry: HistoryEntry) {
-        guard entry.title == "Désinstaller L’Atelier", entry.outcome == .success else { return }
+        guard entry.title == String(localized: "Désinstaller L’Atelier"), entry.outcome == .success else { return }
         try? SMAppService.mainApp.unregister()
         // L'entrée d'historique vient de recréer le dossier de données : il repart à la corbeille.
         try? FileManager.default.trashItem(at: AppPaths.supportDirectory, resultingItemURL: nil)

@@ -35,7 +35,7 @@ private struct GroupCard: View {
                 }
                 Spacer()
                 if selectable.count > 1 {
-                    Button(allOn ? "Tout décocher" : "Tout cocher") {
+                    Button(allOn ? String(localized: "Tout décocher") : String(localized: "Tout cocher")) {
                         let ids = selectable.map(\.id)
                         if allOn { selection.subtract(ids) } else { selection.formUnion(ids) }
                     }
@@ -112,10 +112,10 @@ private struct CleanupRow: View {
         .background(selected && !item.isLocked ? Theme.accent.opacity(0.06) : .clear)
         .contentShape(.rect)
         .onTapGesture { if !item.isLocked { toggle() } }
-        .help(item.lockReason.map { "Verrouillé : \($0)" } ?? "")
+        .help(item.lockReason.map { String(localized: "Verrouillé : \($0)") } ?? "")
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
-        .accessibilityValue(item.isLocked ? "verrouillé" : selected ? "coché" : "non coché")
+        .accessibilityValue(item.isLocked ? String(localized: "verrouillé") : selected ? String(localized: "coché") : String(localized: "non coché"))
     }
 }
 
@@ -123,20 +123,20 @@ private struct CleanupRow: View {
 struct CleanupBar: View {
     let count: Int
     let bytes: Int64
-    var verb = "à mettre à la corbeille"
+    var verb = String(localized: "à mettre à la corbeille")
     let clear: () -> Void
     let review: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            (Text("\(count) élément\(count > 1 ? "s" : "")").bold()
+            (Text((count > 1 ? String(localized: "\(count) éléments") : String(localized: "\(count) élément"))).bold()
                 + Text(" · \(Format.bytes(bytes)) \(verb)").foregroundStyle(Theme.muted))
                 .font(.system(size: 14))
             Spacer()
-            Button("Tout désélectionner", action: clear)
+            Button(String(localized: "Tout désélectionner"), action: clear)
                 .buttonStyle(.secondary)
                 .disabled(count == 0)
-            Button("Vérifier et nettoyer…", action: review)
+            Button(String(localized: "Vérifier et nettoyer…"), action: review)
                 .buttonStyle(.primary)
                 .disabled(count == 0)
                 .keyboardShortcut(.defaultAction)
@@ -177,6 +177,6 @@ extension ScanStore {
     var statusLine: String? {
         guard let finishedAt else { return nil }
         let time = finishedAt.formatted(date: .omitted, time: .shortened)
-        return "Dernière analyse à \(time) · \(Format.duration(duration))"
+        return String(localized: "Dernière analyse à \(time) · \(Format.duration(duration))")
     }
 }

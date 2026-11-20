@@ -30,31 +30,31 @@ struct RemoteFilesView: View {
         .padding(.trailing, 30)
         .padding(.bottom, 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .alert("Renommer", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
-            TextField("Nouveau nom", text: $newName)
-            Button("Annuler", role: .cancel) { renaming = nil }
-            Button("Renommer") {
+        .alert(String(localized: "Renommer"), isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            TextField(String(localized: "Nouveau nom"), text: $newName)
+            Button(String(localized: "Annuler"), role: .cancel) { renaming = nil }
+            Button(String(localized: "Renommer")) {
                 if let file = renaming { browser.rename(file, to: newName.trimmingCharacters(in: .whitespaces)) }
                 renaming = nil
             }
         } message: {
-            Text("Le nom ne doit pas déjà exister dans ce dossier : rien n’est jamais remplacé.")
+            Text(String(localized: "Le nom ne doit pas déjà exister dans ce dossier : rien n’est jamais remplacé."))
         }
-        .alert("Nouveau dossier", isPresented: $creatingFolder) {
-            TextField("Nom du dossier", text: $folderName)
-            Button("Annuler", role: .cancel) {}
-            Button("Créer") { browser.makeDirectory(folderName.trimmingCharacters(in: .whitespaces)) }
+        .alert(String(localized: "Nouveau dossier"), isPresented: $creatingFolder) {
+            TextField(String(localized: "Nom du dossier"), text: $folderName)
+            Button(String(localized: "Annuler"), role: .cancel) {}
+            Button(String(localized: "Créer")) { browser.makeDirectory(folderName.trimmingCharacters(in: .whitespaces)) }
         } message: {
-            Text("Dans \(browser.path ?? "le dossier courant").")
+            Text(String(localized: "Dans \(browser.path ?? String(localized: "le dossier courant"))."))
         }
-        .alert("Supprimer définitivement ?", isPresented: Binding(get: { confirmPermanent != nil }, set: { if !$0 { confirmPermanent = nil } })) {
-            Button("Annuler", role: .cancel) { confirmPermanent = nil }
-            Button("Voir l’aperçu…", role: .destructive) {
+        .alert(String(localized: "Supprimer définitivement ?"), isPresented: Binding(get: { confirmPermanent != nil }, set: { if !$0 { confirmPermanent = nil } })) {
+            Button(String(localized: "Annuler"), role: .cancel) { confirmPermanent = nil }
+            Button(String(localized: "Voir l’aperçu…"), role: .destructive) {
                 if let files = confirmPermanent { browser.deletePermanently(files) }
                 confirmPermanent = nil
             }
         } message: {
-            Text("Sans passer par la corbeille du serveur. Préférez « Supprimer », qui déplace dans ~/.latelier-corbeille.")
+            Text(String(localized: "Sans passer par la corbeille du serveur. Préférez « Supprimer », qui déplace dans ~/.latelier-corbeille."))
         }
         .onAppear { browser.start() }
         .onDisappear { if model.ssh.openHost == nil { browser.stop() } }
@@ -65,23 +65,23 @@ struct RemoteFilesView: View {
     private var toolbar: some View {
         HStack(spacing: 8) {
             HStack(spacing: 2) {
-                roundButton("chevron.left", "Précédent") { browser.goBack() }.disabled(!browser.canGoBack)
-                roundButton("arrow.up", "Dossier parent") { browser.goUp() }.disabled(browser.path == nil || browser.path == "/")
-                roundButton("house", "Dossier personnel") { browser.goHome() }.disabled(browser.home == nil)
+                roundButton("chevron.left", String(localized: "Précédent")) { browser.goBack() }.disabled(!browser.canGoBack)
+                roundButton("arrow.up", String(localized: "Dossier parent")) { browser.goUp() }.disabled(browser.path == nil || browser.path == "/")
+                roundButton("house", String(localized: "Dossier personnel")) { browser.goHome() }.disabled(browser.home == nil)
             }
             breadcrumbs
             Spacer(minLength: 8)
             if browser.loading { ProgressView().controlSize(.small) }
-            roundButton(browser.showHidden ? "eye" : "eye.slash", browser.showHidden ? "Masquer les fichiers cachés" : "Afficher les fichiers cachés") {
+            roundButton(browser.showHidden ? "eye" : "eye.slash", browser.showHidden ? String(localized: "Masquer les fichiers cachés") : String(localized: "Afficher les fichiers cachés")) {
                 browser.showHidden.toggle()
             }
-            roundButton("arrow.clockwise", "Actualiser") { browser.refresh() }
-            GlassSegments(selection: $browser.layout, items: [(.grid, "Grille"), (.list, "Liste")], compact: true).fixedSize()
+            roundButton("arrow.clockwise", String(localized: "Actualiser")) { browser.refresh() }
+            GlassSegments(selection: $browser.layout, items: [(.grid, String(localized: "Grille")), (.list, String(localized: "Liste"))], compact: true).fixedSize()
             Button("Nouveau dossier", systemImage: "folder.badge.plus") { folderName = ""; creatingFolder = true }
                 .buttonStyle(.small).fixedSize().disabled(browser.path == nil)
             Button("Importer", systemImage: "square.and.arrow.up") { browser.chooseUploads() }
                 .buttonStyle(PillButtonStyle(kind: .smallFilled)).fixedSize().disabled(browser.path == nil)
-                .help("Envoyer des fichiers ou des dossiers du Mac dans ce dossier (ou glissez-les dans la fenêtre)")
+                .help(String(localized: "Envoyer des fichiers ou des dossiers du Mac dans ce dossier (ou glissez-les dans la fenêtre)"))
         }
     }
 
@@ -138,9 +138,9 @@ struct RemoteFilesView: View {
         }
         let _ = browser.tick
         ForEach(browser.pendingExternal) { edit in
-            banner("« \(edit.file.name) » a été modifié dans votre éditeur.", symbol: "pencil.circle.fill", color: Theme.orange) {
-                Button("Ne plus suivre") { browser.stopWatching(edit) }.buttonStyle(.small)
-                Button("Envoyer sur le serveur…") { browser.save(edit) }.buttonStyle(PillButtonStyle(kind: .smallFilled))
+            banner(String(localized: "« \(edit.file.name) » a été modifié dans votre éditeur."), symbol: "pencil.circle.fill", color: Theme.orange) {
+                Button(String(localized: "Ne plus suivre")) { browser.stopWatching(edit) }.buttonStyle(.small)
+                Button(String(localized: "Envoyer sur le serveur…")) { browser.save(edit) }.buttonStyle(PillButtonStyle(kind: .smallFilled))
             }
         }
     }
@@ -178,15 +178,15 @@ struct RemoteFilesView: View {
                 .padding(4)
             }
         } else if browser.path == nil {
-            Card { ScanningLabel(text: "Connexion à \(host.alias)…") }
+            Card { ScanningLabel(text: String(localized: "Connexion à \(host.alias)…")) }
         } else {
             ZStack(alignment: .bottom) {
                 VStack(spacing: 0) {
                     ScrollView {
                         Group {
                             if browser.visibleFiles.isEmpty {
-                                EmptyState(symbol: "tray", title: "Dossier vide",
-                                           message: "Glissez des fichiers ici, ou utilisez « Importer ».")
+                                EmptyState(symbol: "tray", title: String(localized: "Dossier vide"),
+                                           message: String(localized: "Glissez des fichiers ici, ou utilisez « Importer »."))
                                     .padding(.top, 40)
                             } else if browser.layout == .grid {
                                 grid
@@ -241,11 +241,11 @@ struct RemoteFilesView: View {
     private var list: some View {
         VStack(spacing: 2) {
             HStack(spacing: 12) {
-                Text("Nom").frame(maxWidth: .infinity, alignment: .leading)
-                Text("Taille").frame(width: 90, alignment: .trailing)
-                Text("Modifié").frame(width: 150, alignment: .leading)
-                Text("Droits").frame(width: 96, alignment: .leading)
-                Text("Propriétaire").frame(width: 100, alignment: .leading)
+                Text(String(localized: "Nom")).frame(maxWidth: .infinity, alignment: .leading)
+                Text(String(localized: "Taille")).frame(width: 90, alignment: .trailing)
+                Text(String(localized: "Modifié")).frame(width: 150, alignment: .leading)
+                Text(String(localized: "Droits")).frame(width: 96, alignment: .leading)
+                Text(String(localized: "Propriétaire")).frame(width: 100, alignment: .leading)
             }
             .font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.muted)
             .padding(.horizontal, 10).padding(.bottom, 4)
@@ -261,9 +261,9 @@ struct RemoteFilesView: View {
         let bytes = files.filter { !$0.isDirectory }.reduce(Int64(0)) { $0 + $1.size }
         let folders = files.filter(\.isDirectory).count
         return HStack(spacing: 8) {
-            Text("\(folders) dossier\(folders > 1 ? "s" : "") · \(files.count - folders) fichier\(files.count - folders > 1 ? "s" : "") · \(Format.bytes(bytes))")
+            Text(String(localized: "\(folders) dossier\(folders > 1 ? "s" : "") · \(files.count - folders) fichier\(files.count - folders > 1 ? "s" : "") · \(Format.bytes(bytes))"))
             if !browser.showHidden, browser.files.contains(where: \.isHidden) {
-                Text("· \(browser.files.filter(\.isHidden).count) cachés").foregroundStyle(Theme.muted)
+                Text(String(localized: "· \(browser.files.filter(\.isHidden).count) cachés")).foregroundStyle(Theme.muted)
             }
             Spacer()
             Text(browser.path ?? "").font(.system(size: 11).monospaced()).textSelection(.enabled).lineLimit(1).truncationMode(.head)
@@ -281,17 +281,17 @@ struct RemoteFilesView: View {
         return HStack(spacing: 6) {
             Text("\(files.count) sélectionné\(files.count > 1 ? "s" : "")").font(.system(size: 13, weight: .semibold)).padding(.horizontal, 8)
             Divider().frame(height: 20)
-            barButton("Télécharger", "arrow.down.circle") { browser.download(files) }
+            barButton(String(localized: "Télécharger"), "arrow.down.circle") { browser.download(files) }
             if let single, single.kind == .file {
-                barButton("Modifier", "pencil") { browser.edit(single) }
+                barButton(String(localized: "Modifier"), "pencil") { browser.edit(single) }
             }
             if let single {
-                barButton("Renommer", "character.cursor.ibeam") { newName = single.name; renaming = single }
+                barButton(String(localized: "Renommer"), "character.cursor.ibeam") { newName = single.name; renaming = single }
             }
-            barButton("Supprimer", "trash", tint: Theme.red) { browser.trash(files) }
+            barButton(String(localized: "Supprimer"), "trash", tint: Theme.red) { browser.trash(files) }
             Divider().frame(height: 20)
             Button { browser.selection = [] } label: { Image(systemName: "xmark").font(.system(size: 11, weight: .bold)).frame(width: 26, height: 26) }
-                .buttonStyle(BareButtonStyle()).help("Tout désélectionner")
+                .buttonStyle(BareButtonStyle()).help(String(localized: "Tout désélectionner"))
         }
         .padding(.horizontal, 10).padding(.vertical, 6)
         .background(.regularMaterial, in: .capsule)
@@ -319,7 +319,7 @@ struct RemoteFilesView: View {
                 }
             } else {
                 Button("Modifier", systemImage: "pencil") { browser.edit(file) }
-                Button("Ouvrir dans \(model.preferences.editor?.label ?? "l’éditeur par défaut")", systemImage: "arrow.up.forward.app") {
+                Button("Ouvrir dans \(model.preferences.editor?.label ?? String(localized: "l’éditeur par défaut"))", systemImage: "arrow.up.forward.app") {
                     browser.editExternally(file, editor: model.preferences.editor)
                 }
             }
@@ -344,7 +344,7 @@ struct RemoteFilesView: View {
                 Text("Transferts").font(.system(size: 12, weight: .semibold))
                 Spacer()
                 if browser.transfers.contains(where: { $0.state != .running }) {
-                    Button("Effacer les terminés") { browser.clearFinishedTransfers() }
+                    Button(String(localized: "Effacer les terminés")) { browser.clearFinishedTransfers() }
                         .buttonStyle(.plain).font(.system(size: 11, weight: .medium)).foregroundStyle(Theme.link)
                 }
             }
@@ -352,17 +352,17 @@ struct RemoteFilesView: View {
                 HStack(spacing: 10) {
                     Image(systemName: transfer.upload ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
                         .foregroundStyle(transfer.upload ? Theme.accent : Theme.green)
-                    Text(transfer.names.count == 1 ? transfer.names[0] : "\(transfer.names[0]) et \(transfer.names.count - 1) autre\(transfer.names.count > 2 ? "s" : "")")
+                    Text(transfer.names.count == 1 ? transfer.names[0] : (transfer.names.count > 2 ? String(localized: "\(transfer.names[0]) et \(transfer.names.count - 1) autres") : String(localized: "\(transfer.names[0]) et \(transfer.names.count - 1) autre")))
                         .font(.system(size: 12, weight: .medium)).lineLimit(1)
                     if let bytes = transfer.bytes { Text(Format.bytes(bytes)).font(.system(size: 11)).foregroundStyle(Theme.muted) }
                     Spacer()
                     switch transfer.state {
                     case .running:
                         ProgressView().controlSize(.small)
-                        Text(transfer.upload ? "envoi…" : "téléchargement…").font(.system(size: 11)).foregroundStyle(Theme.muted)
+                        Text(transfer.upload ? String(localized: "envoi…") : String(localized: "téléchargement…")).font(.system(size: 11)).foregroundStyle(Theme.muted)
                     case .done:
                         if let folder = transfer.localFolder {
-                            Button("Afficher") {
+                            Button(String(localized: "Afficher")) {
                                 NSWorkspace.shared.activateFileViewerSelecting(transfer.names.map { folder.appendingPathComponent($0) })
                             }
                             .buttonStyle(.plain).font(.system(size: 11, weight: .medium)).foregroundStyle(Theme.link)
@@ -433,7 +433,7 @@ private struct FileTile: View {
                 .font(.system(size: 12, weight: selected ? .semibold : .regular))
                 .lineLimit(2).multilineTextAlignment(.center).truncationMode(.middle)
                 .frame(height: 30, alignment: .top)
-            Text(file.isDirectory ? "Dossier" : file.kind == .link ? "Lien" : Format.bytes(file.size))
+            Text(file.isDirectory ? String(localized: "Dossier") : file.kind == .link ? String(localized: "Lien") : Format.bytes(file.size))
                 .font(.system(size: 10)).foregroundStyle(Theme.muted)
         }
         .padding(.vertical, 10).padding(.horizontal, 6)
@@ -470,7 +470,7 @@ private struct FileRowView: View {
     }
 
     static func date(_ date: Date) -> String {
-        date.formatted(.dateTime.day().month(.abbreviated).year().hour().minute().locale(Locale(identifier: "fr_FR")))
+        date.formatted(.dateTime.day().month(.abbreviated).year().hour().minute().locale(Locale.current))
     }
 }
 
@@ -505,7 +505,7 @@ private struct RemoteEditorView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: 6) {
                         Text(edit.file.name).font(.system(size: 15, weight: .semibold))
-                        if changed { Tag(text: "modifié", foreground: Tag.orange.0, background: Tag.orange.1) }
+                        if changed { Tag(text: String(localized: "modifié"), foreground: Tag.orange.0, background: Tag.orange.1) }
                     }
                     Text(edit.file.path).font(.system(size: 11).monospaced()).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.middle)
                 }
@@ -513,12 +513,12 @@ private struct RemoteEditorView: View {
                 if let notice = browser.notice {
                     Text(notice).font(.system(size: 11)).foregroundStyle(Theme.orange).lineLimit(2).frame(maxWidth: 320, alignment: .trailing)
                 }
-                Button("Ouvrir dans \(model.preferences.editor?.label ?? "l’éditeur")", systemImage: "arrow.up.forward.app") {
+                Button("Ouvrir dans \(model.preferences.editor?.label ?? String(localized: "l’éditeur"))", systemImage: "arrow.up.forward.app") {
                     browser.editing = nil
                     browser.editExternally(edit.file, editor: model.preferences.editor)
                 }
                 .buttonStyle(.small).fixedSize()
-                Button("Annuler les changements") { browser.editing?.text = edit.originalText }
+                Button(String(localized: "Annuler les changements")) { browser.editing?.text = edit.originalText }
                     .buttonStyle(.small).fixedSize().disabled(!changed)
                 Button("Enregistrer sur le serveur…", systemImage: "square.and.arrow.up") {
                     if let current = browser.editing { browser.save(current) }
@@ -532,7 +532,7 @@ private struct RemoteEditorView: View {
                 .scrollContentBackground(.hidden)
                 .padding(10)
                 .cardBackground(radius: 16)
-            Text("⌘S pour enregistrer : un aperçu montre ce qui sera remplacé. Si le fichier change sur le serveur entre-temps, l’envoi est refusé.")
+            Text(String(localized: "⌘S pour enregistrer : un aperçu montre ce qui sera remplacé. Si le fichier change sur le serveur entre-temps, l’envoi est refusé."))
                 .font(.system(size: 11)).foregroundStyle(Theme.muted)
         }
         .frame(maxHeight: .infinity)

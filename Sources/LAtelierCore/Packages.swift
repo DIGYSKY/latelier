@@ -358,7 +358,7 @@ public struct PackageScanner: Sendable {
     private func lockIfOpen(_ package: Package) -> Package {
         guard let app = package.appURL, openApps.contains(app.standardizedFileURL.path) else { return package }
         var package = package
-        package.lockReason = "App ouverte"
+        package.lockReason = String(localized: "App ouverte")
         return package
     }
 
@@ -378,12 +378,12 @@ public struct PackageScanner: Sendable {
         let (infoResult, outdatedResult) = await (info, outdated)
         var part = Part(source: .homebrew)
         guard let infoResult, infoResult.succeeded, let infoData = data(infoResult) else {
-            part.problem = "Homebrew n’a pas répondu (brew info)."
+            part.problem = String(localized: "Homebrew n’a pas répondu (brew info).")
             return part
         }
         let prefix = brew.deletingLastPathComponent().deletingLastPathComponent()
         let newer = data(outdatedResult).map(Brew.parseOutdated) ?? [:]
-        if outdatedResult?.succeeded != true { part.problem = "Impossible de lire les mises à jour Homebrew." }
+        if outdatedResult?.succeeded != true { part.problem = String(localized: "Impossible de lire les mises à jour Homebrew.") }
         part.packages = Brew.parseInstalled(infoData, outdated: newer, prefix: prefix)
         return part
     }
@@ -397,7 +397,7 @@ public struct PackageScanner: Sendable {
         let (listResult, outdatedResult, rootResult) = await (list, outdated, root)
         var part = Part(source: .npm)
         guard let listData = data(listResult) else {
-            part.problem = "npm n’a pas répondu."
+            part.problem = String(localized: "npm n’a pas répondu.")
             return part
         }
         let rootURL = rootResult?.stdout.first.map { URL(fileURLWithPath: $0) }
@@ -436,7 +436,7 @@ public struct PackageScanner: Sendable {
         guard checkRemote, let result = await output(CommandSpec("rustup", ["check"]), timeout: .seconds(30)) else { return nil }
         var part = Part(source: .runtimes)
         part.packages = RustupCheck.parse(result.stdout)
-        if !result.succeeded && part.packages.isEmpty { part.problem = "rustup check a échoué (réseau ?)." }
+        if !result.succeeded && part.packages.isEmpty { part.problem = String(localized: "rustup check a échoué (réseau ?).") }
         return part
     }
 }
@@ -474,10 +474,10 @@ public enum PackagePlans {
         let majors = ready.filter { $0.gap == .major }.count
         var summary = ready.count == 1
             ? "\(ready[0].name) \(ready[0].version) → \(ready[0].latest ?? "?")."
-            : "\(ready.count) paquets, un par un. Si l’un échoue, les autres continuent."
-        if majors > 0 { summary += " Dont \(majors) mise(s) à jour majeure(s) : vérifie les changements incompatibles." }
+            : String(localized: "\(ready.count) paquets, un par un. Si l’un échoue, les autres continuent.")
+        if majors > 0 { summary += String(localized: " Dont \(majors) mise(s) à jour majeure(s) : vérifie les changements incompatibles.") }
         return ActionPlan(
-            title: ready.count == 1 ? "Mettre à jour \(ready[0].name)" : "Mettre à jour \(ready.count) paquets",
+            title: ready.count == 1 ? String(localized: "Mettre à jour \(ready[0].name)") : String(localized: "Mettre à jour \(ready.count) paquets"),
             summary: summary, kind: .paquet, risk: majors > 0 ? .caution : .safe, reversible: false,
             steps: ready.compactMap(\.upgradeCommand).map(ActionStep.command),
             skipped: skipped, stopOnFailure: false
@@ -486,10 +486,10 @@ public enum PackagePlans {
 
     public static func uninstall(_ package: Package) -> ActionPlan? {
         guard package.lockReason == nil, let command = package.uninstallCommand else { return nil }
-        let size = package.bytes.map { " Libère environ \(ByteCountFormatter.string(fromByteCount: $0, countStyle: .file))." } ?? ""
+        let size = package.bytes.map { String(localized: " Libère environ \(ByteCountFormatter.string(fromByteCount: $0, countStyle: .file)).") } ?? ""
         return ActionPlan(
-            title: "Désinstaller \(package.name)",
-            summary: "\(package.source.label) · \(package.version).\(size) Réinstallable à tout moment.",
+            title: String(localized: "Désinstaller \(package.name)"),
+            summary: String(localized: "\(package.source.label) · \(package.version).\(size) Réinstallable à tout moment."),
             kind: .paquet, risk: .caution, reversible: false,
             steps: [.command(command)], estimatedBytes: package.bytes
         )

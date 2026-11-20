@@ -66,9 +66,9 @@ public enum EnergyImpact: Int, Sendable, Comparable {
     public var label: String {
         switch self {
         case .none: "—"
-        case .low: "Faible"
-        case .medium: "Moyenne"
-        case .high: "Élevée"
+        case .low: String(localized: "Faible")
+        case .medium: String(localized: "Moyenne")
+        case .high: String(localized: "Élevée")
         }
     }
 
@@ -489,13 +489,13 @@ public enum ProcessActions {
     public static func quitPlan(_ targets: [ProcessTarget], label: String, force: Bool, reason: String? = nil) -> ActionPlan? {
         guard !targets.isEmpty else { return nil }
         let count = targets.count
-        let what = count == 1 ? "le processus" : "les \(count) processus"
+        let what = count == 1 ? String(localized: "le processus") : String(localized: "les \(count) processus")
         var summary = force
-            ? "Arrête immédiatement \(what) de \(label). Le travail non enregistré sera perdu."
-            : "Demande à \(label) de se fermer. Une app peut proposer d’enregistrer avant de quitter."
+            ? String(localized: "Arrête immédiatement \(what) de \(label). Le travail non enregistré sera perdu.")
+            : String(localized: "Demande à \(label) de se fermer. Une app peut proposer d’enregistrer avant de quitter.")
         if let reason { summary += " " + reason }
         return ActionPlan(
-            title: force ? "Forcer \(label) à quitter" : "Quitter \(label)",
+            title: force ? String(localized: "Forcer \(label) à quitter") : String(localized: "Quitter \(label)"),
             summary: summary,
             kind: .processus, risk: force ? .danger : .caution, reversible: false,
             steps: targets.map { .signal($0, force: force) }, stopOnFailure: false
@@ -512,16 +512,16 @@ public enum ProcessTerminator {
 
         public var errorDescription: String? {
             switch self {
-            case .gone(let name): "« \(name) » ne tourne plus (rien à faire)."
-            case .refused(let name, let reason): "Impossible de quitter « \(name) » : \(reason)."
-            case .stillRunning(let name): "« \(name) » tourne toujours : il attend peut-être une réponse dans une fenêtre, ou ignore la demande. « Forcer à quitter » l’arrête sans attendre."
+            case .gone(let name): String(localized: "« \(name) » ne tourne plus (rien à faire).")
+            case .refused(let name, let reason): String(localized: "Impossible de quitter « \(name) » : \(reason).")
+            case .stillRunning(let name): String(localized: "« \(name) » tourne toujours : il attend peut-être une réponse dans une fenêtre, ou ignore la demande. « Forcer à quitter » l’arrête sans attendre.")
             }
         }
     }
 
     public static func terminate(_ target: ProcessTarget, force: Bool) async throws -> String {
         guard target.isAlive else { throw Failure.gone(target.name) }
-        guard target.pid > 1, target.pid != getpid() else { throw Failure.refused(target.name, "processus protégé") }
+        guard target.pid > 1, target.pid != getpid() else { throw Failure.refused(target.name, String(localized: "processus protégé")) }
         var askedApp = false
         if target.isApp && !force {
             askedApp = await MainActor.run {
@@ -536,7 +536,7 @@ public enum ProcessTerminator {
         // Une app peut demander d'enregistrer : on lui laisse quelques secondes.
         let deadline = Date().addingTimeInterval(force ? 2 : 6)
         while Date() < deadline {
-            if !target.isAlive { return "\(target.name) (PID \(target.pid)) a quitté." }
+            if !target.isAlive { return String(localized: "\(target.name) (PID \(String(target.pid))) a quitté.") }
             try? await Task.sleep(for: .milliseconds(150))
         }
         throw Failure.stillRunning(target.name)

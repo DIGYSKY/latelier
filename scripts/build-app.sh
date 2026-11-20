@@ -21,6 +21,14 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/LAtelier"
 cp Support/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+# Langues : le français est la langue des sources (les clés) ; les autres viennent de Support/Localization/<langue>.json.
+mkdir -p "$APP/Contents/Resources/fr.lproj"
+printf '{}' | plutil -convert binary1 -o "$APP/Contents/Resources/fr.lproj/Localizable.strings" -
+for json in Support/Localization/*.json; do
+    lang="$(basename "$json" .json)"
+    mkdir -p "$APP/Contents/Resources/$lang.lproj"
+    plutil -convert binary1 -o "$APP/Contents/Resources/$lang.lproj/Localizable.strings" "$json"
+done
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" \
     -e "s/io\.github\.digysky\.latelier/${BUNDLE_ID:-io.github.digysky.latelier}/" Support/Info.plist > "$APP/Contents/Info.plist"
 

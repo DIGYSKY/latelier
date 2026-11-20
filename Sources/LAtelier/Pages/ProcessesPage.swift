@@ -19,25 +19,25 @@ struct ProcessesPage: View {
         let projects = model.knownProjects
         let (rows, total) = makeRows(monitor.processes, projects: projects)
         PageScaffold(page: .processus, subtitle: summary(monitor)) {
-            GlassSegments(selection: $byApp, items: [(true, "Par app"), (false, "Liste")])
+            GlassSegments(selection: $byApp, items: [(true, String(localized: "Par app")), (false, String(localized: "Liste"))])
         } content: {
             HStack(spacing: 10) {
-                GlassSegments(selection: $filter, items: [(.all, "Tous"), (.mine, "Mes processus"), (.dev, "Dev"), (.big, "Gros consommateurs")], compact: true)
-                SearchField(prompt: "Nom ou PID", text: $query)
+                GlassSegments(selection: $filter, items: [(.all, String(localized: "Tous")), (.mine, String(localized: "Mes processus")), (.dev, "Dev"), (.big, String(localized: "Gros consommateurs"))], compact: true)
+                SearchField(prompt: String(localized: "Nom ou PID"), text: $query)
                 Spacer()
-                Button(monitor.paused ? "Reprendre" : "Mettre en pause") { monitor.paused.toggle() }
+                Button(monitor.paused ? String(localized: "Reprendre") : String(localized: "Mettre en pause")) { monitor.paused.toggle() }
                     .buttonStyle(.small)
             }
             if monitor.latest == nil {
-                ScanningCard(label: "Lecture des processus…")
+                ScanningCard(label: String(localized: "Lecture des processus…"))
             } else {
                 table(rows)
                 HStack {
                     if total > limit {
-                        Button("Afficher \(min(60, total - limit)) de plus") { limit += 60 }.buttonStyle(.small)
+                        Button(String(localized: "Afficher \(min(60, total - limit)) de plus")) { limit += 60 }.buttonStyle(.small)
                     }
                     Spacer()
-                    Text("Processus du système et des autres comptes : lecture seule. Leur nombre de threads n’est pas lisible sans droits admin.")
+                    Text(String(localized: "Processus du système et des autres comptes : lecture seule. Leur nombre de threads n’est pas lisible sans droits admin."))
                         .font(.system(size: 12)).foregroundStyle(Theme.muted)
                 }
             }
@@ -53,8 +53,8 @@ struct ProcessesPage: View {
     }
 
     private func summary(_ monitor: PerformanceMonitor) -> String {
-        guard let sample = monitor.latest else { return "Gestionnaire des tâches" }
-        return "\(monitor.processes.count) processus · CPU \(Format.percent(sample.cpu)) · mémoire \(Format.memory(sample.memory.used))"
+        guard let sample = monitor.latest else { return String(localized: "Gestionnaire des tâches") }
+        return String(localized: "\(monitor.processes.count) processus · CPU \(Format.percent(sample.cpu)) · mémoire \(Format.memory(sample.memory.used))")
     }
 
     // MARK: Lignes
@@ -153,12 +153,12 @@ struct ProcessesPage: View {
     private func table(_ shown: [Row]) -> some View {
         LazyVStack(spacing: 0) {
             HStack(spacing: 0) {
-                Text("Processus").frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 18)
+                Text(String(localized: "Processus")).frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 18)
                 SortHeader(label: "% CPU", active: sort == .cpu) { sort = .cpu }.frame(width: 90, alignment: .leading)
-                SortHeader(label: "Mémoire", active: sort == .memory) { sort = .memory }.frame(width: 96, alignment: .leading)
+                SortHeader(label: String(localized: "Mémoire"), active: sort == .memory) { sort = .memory }.frame(width: 96, alignment: .leading)
                 SortHeader(label: "Threads", active: sort == .threads) { sort = .threads }.frame(width: 86, alignment: .leading)
-                SortHeader(label: "Énergie", active: sort == .energy) { sort = .energy }.frame(width: 90, alignment: .leading)
-                Text("Utilisateur").frame(width: 90, alignment: .leading)
+                SortHeader(label: String(localized: "Énergie"), active: sort == .energy) { sort = .energy }.frame(width: 90, alignment: .leading)
+                Text(String(localized: "Utilisateur")).frame(width: 90, alignment: .leading)
                 Color.clear.frame(width: 104)
             }
             .font(.system(size: 12, weight: .medium))
@@ -166,7 +166,7 @@ struct ProcessesPage: View {
             .padding(.vertical, 6)
 
             if shown.isEmpty {
-                EmptyState(symbol: "magnifyingglass", title: "Aucun processus ne correspond")
+                EmptyState(symbol: "magnifyingglass", title: String(localized: "Aucun processus ne correspond"))
             }
             ForEach(shown) { row in
                 Rectangle().fill(Theme.hairline).frame(height: 1)
@@ -201,7 +201,7 @@ private struct ProcessRow: View {
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(open ? "Replier \(row.name)" : "Déplier \(row.name)")
+                    .accessibilityLabel(open ? String(localized: "Replier \(row.name)") : String(localized: "Déplier \(row.name)"))
                 } else {
                     Color.clear.frame(width: 18)
                 }
@@ -222,7 +222,7 @@ private struct ProcessRow: View {
                         .padding(.horizontal, 7)
                         .padding(.vertical, 1)
                         .background(Theme.accent.opacity(0.12), in: .capsule)
-                        .help("Lancé depuis \(project.abbreviatingHome())")
+                        .help(String(localized: "Lancé depuis \(project.abbreviatingHome())"))
                 }
             }
             .padding(.leading, row.child ? 40 : 12)
@@ -242,7 +242,7 @@ private struct ProcessRow: View {
                 .frame(width: 90, alignment: .leading)
             Group {
                 if !row.targets.isEmpty && !row.child {
-                    Button("Quitter") { model.quit(row.targets, label: label, force: false) }
+                    Button(String(localized: "Quitter")) { model.quit(row.targets, label: label, force: false) }
                         .buttonStyle(.small)
                 } else if row.readOnly && !row.child {
                     Text("lecture seule").font(.system(size: 11)).foregroundStyle(Theme.muted)
@@ -265,22 +265,22 @@ private struct ProcessRow: View {
     @ViewBuilder
     private var menu: some View {
         if let pid = row.pid {
-            Button("Détails…") { model.processDetail = ProcessDetailRequest(pid: pid) }
+            Button(String(localized: "Détails…")) { model.processDetail = ProcessDetailRequest(pid: pid) }
             Divider()
         }
         if !row.targets.isEmpty {
-            Button("Quitter") { model.quit(row.targets, label: label, force: false) }
-            Button("Forcer à quitter…") { model.quit(row.targets, label: label, force: true) }
+            Button(String(localized: "Quitter")) { model.quit(row.targets, label: label, force: false) }
+            Button(String(localized: "Forcer à quitter…")) { model.quit(row.targets, label: label, force: true) }
             Divider()
         }
         if let path = row.path {
             Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)]) }
         }
         if let project = row.project {
-            Button("Ouvrir le projet \(project.lastPathComponent)") { model.showRepository(project) }
+            Button(String(localized: "Ouvrir le projet \(project.lastPathComponent)")) { model.showRepository(project) }
         }
         if let pid = row.pid {
-            Button("Copier le PID") {
+            Button(String(localized: "Copier le PID")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(String(pid), forType: .string)
             }

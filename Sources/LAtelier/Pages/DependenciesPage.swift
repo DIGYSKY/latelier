@@ -13,14 +13,14 @@ struct DependenciesPage: View {
 
     var body: some View {
         let store = model.analysis
-        PageScaffold(page: .dependances, subtitle: "Quelles bibliothèques, dans quels projets, en quelle version") {
-            SearchField(prompt: "Rechercher une bibliothèque", text: $query)
-            CapsuleToggle(label: "Seulement les obsolètes", isOn: $onlyOutdated)
+        PageScaffold(page: .dependances, subtitle: String(localized: "Quelles bibliothèques, dans quels projets, en quelle version")) {
+            SearchField(prompt: String(localized: "Rechercher une bibliothèque"), text: $query)
+            CapsuleToggle(label: String(localized: "Seulement les obsolètes"), isOn: $onlyOutdated)
         } content: {
             if let analysis = store.value {
                 content(analysis)
             } else {
-                ScanningCard(label: "Lecture des manifestes et lockfiles, puis des dernières versions sur les registres…")
+                ScanningCard(label: String(localized: "Lecture des manifestes et lockfiles, puis des dernières versions sur les registres…"))
             }
         }
         .onAppear { if store.stale && !store.loading { model.scanAnalysis() } }
@@ -49,20 +49,20 @@ struct DependenciesPage: View {
             .filter { q.isEmpty || $0.name.lowercased().contains(q) }
 
         HStack(spacing: 12) {
-            ChoiceChips(selection: $ecosystem, items: [(nil, "Tous", libraries.count)]
+            ChoiceChips(selection: $ecosystem, items: [(nil, String(localized: "Tous"), libraries.count)]
                 + ecosystems.map { e in (e, e.label, libraries.filter { $0.ecosystem == e }.count) })
             Spacer()
             if model.analysis.loading { ProgressView().controlSize(.small) }
         }
 
         if libraries.isEmpty {
-            Card { EmptyState(symbol: "shippingbox", title: "Aucune dépendance trouvée",
-                              message: scope == nil ? "Aucun package.json, Cargo.toml, pyproject.toml, go.mod… dans les projets détectés."
-                                                    : "Ce projet ne déclare aucune dépendance externe (ou son manifeste n’est pas reconnu).") }
+            Card { EmptyState(symbol: "shippingbox", title: String(localized: "Aucune dépendance trouvée"),
+                              message: scope == nil ? String(localized: "Aucun package.json, Cargo.toml, pyproject.toml, go.mod… dans les projets détectés.")
+                                                    : String(localized: "Ce projet ne déclare aucune dépendance externe (ou son manifeste n’est pas reconnu).")) }
         } else {
             LazyVStack(spacing: 0) {
                 if visible.isEmpty {
-                    EmptyState(symbol: "magnifyingglass", title: "Aucune bibliothèque ne correspond")
+                    EmptyState(symbol: "magnifyingglass", title: String(localized: "Aucune bibliothèque ne correspond"))
                 }
                 ForEach(Array(visible.prefix(limit).enumerated()), id: \.element.id) { index, library in
                     if index > 0 { Rectangle().fill(Theme.hairline).frame(height: 1) }
@@ -76,7 +76,7 @@ struct DependenciesPage: View {
 
             HStack {
                 if visible.count > limit {
-                    Button("Afficher \(min(60, visible.count - limit)) de plus") { limit += 60 }.buttonStyle(.small)
+                    Button(String(localized: "Afficher \(min(60, visible.count - limit)) de plus")) { limit += 60 }.buttonStyle(.small)
                 }
                 Spacer()
                 Text(footnote(analysis, shown: min(limit, visible.count), total: visible.count))
@@ -92,7 +92,7 @@ struct DependenciesPage: View {
 
     private func footnote(_ analysis: ProjectAnalysis, shown: Int, total: Int) -> String {
         let projects = Set(analysis.manifests.map(\.project)).count
-        return "\(shown) sur \(total) · dépendances directes de \(projects) projets · dernières versions : npm, crates.io, PyPI, proxy Go, Packagist, Maven Central"
+        return String(localized: "\(shown) sur \(total) · dépendances directes de \(projects) projets · dernières versions : npm, crates.io, PyPI, proxy Go, Packagist, Maven Central")
     }
 }
 
@@ -120,7 +120,7 @@ private struct LibraryRow: View {
                     Text("\(library.uses.count) projet\(library.uses.count > 1 ? "s" : "")")
                         .font(.system(size: 13))
                         .frame(width: 90, alignment: .leading)
-                    Text(library.latest.map { "dernière \($0)" } ?? "—")
+                    Text(library.latest.map { String(localized: "dernière \($0)") } ?? "—")
                         .font(.system(size: 12).monospaced())
                         .lineLimit(1)
                         .frame(width: 140, alignment: .leading)
@@ -133,8 +133,8 @@ private struct LibraryRow: View {
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("\(library.name), \(library.uses.count) projets")
-            .accessibilityValue(open ? "déplié" : "replié")
+            .accessibilityLabel(String(localized: "\(library.name), \(library.uses.count) projets"))
+            .accessibilityValue(open ? String(localized: "déplié") : String(localized: "replié"))
 
             if open { details }
         }
@@ -143,17 +143,17 @@ private struct LibraryRow: View {
     @ViewBuilder
     private var flags: some View {
         if let severity = library.worstSeverity {
-            Tag(text: "Faille \(severity.label.lowercased())", foreground: severity.colors.ink, background: severity.colors.fill)
+            Tag(text: String(localized: "Faille \(severity.label.lowercased())"), foreground: severity.colors.ink, background: severity.colors.fill)
         }
         let outdated = library.outdated.count
         if outdated > 0 {
-            Tag(text: "\(outdated) obsolète\(outdated > 1 ? "s" : "")", foreground: Tag.orange.0, background: Tag.orange.1)
+            Tag(text: (outdated > 1 ? String(localized: "\(outdated) obsolètes") : String(localized: "\(outdated) obsolète")), foreground: Tag.orange.0, background: Tag.orange.1)
         }
         if library.versionCount > 1 {
             Tag(text: "\(library.versionCount) versions", foreground: Tag.blue.0, background: Tag.blue.1)
         }
         if library.worstSeverity == nil && outdated == 0 && library.versionCount <= 1 {
-            Tag(text: library.latest == nil ? "Non vérifiée" : "À jour",
+            Tag(text: library.latest == nil ? String(localized: "Non vérifiée") : String(localized: "À jour"),
                 foreground: library.latest == nil ? Tag.grey.0 : Tag.green.0,
                 background: library.latest == nil ? Tag.grey.1 : Tag.green.1)
         }
@@ -179,11 +179,11 @@ private struct LibraryRow: View {
                 }
             }
             if let plan = DependencyFix.alignPlan(library), let latest = library.latest {
-                Button("Aligner tous les projets sur \(latest)…") { model.preview(plan) }
+                Button(String(localized: "Aligner tous les projets sur \(latest)…")) { model.preview(plan) }
                     .buttonStyle(PillButtonStyle(kind: .smallFilled))
                     .padding(.top, 4)
             } else if !library.outdated.isEmpty {
-                Text("Mise à jour à faire à la main : \(library.outdated.first!.manager.label) n’a pas de commande pour changer la version.")
+                Text(String(localized: "Mise à jour à faire à la main : \(library.outdated.first!.manager.label) n’a pas de commande pour changer la version."))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
         }
@@ -204,9 +204,9 @@ private struct LibraryRow: View {
 
     private func note(_ use: Library.Use) -> String {
         var parts: [String] = []
-        if let gap = use.gap { parts.append("écart \(gap.label.lowercased())") } else if library.latest != nil { parts.append("à jour") }
+        if let gap = use.gap { parts.append(String(localized: "écart \(gap.label.lowercased())")) } else if library.latest != nil { parts.append(String(localized: "à jour")) }
         if use.dev { parts.append("dev") }
-        if use.version.isEmpty { parts.append("sans lockfile") }
+        if use.version.isEmpty { parts.append(String(localized: "sans lockfile")) }
         if let requirement = use.requirement, requirement != use.version, !requirement.isEmpty { parts.append("demande \(requirement)") }
         parts.append(use.manifest)
         return parts.joined(separator: " · ")

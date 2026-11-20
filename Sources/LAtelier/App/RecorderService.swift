@@ -116,10 +116,10 @@ final class RecorderService {
         if focus == id { focus = live.keys.first }
     }
 
-    func addMark(_ label: String = "Repère") {
+    func addMark(_ label: String = String(localized: "Repère")) {
         guard let id = focus ?? live.keys.first, var entry = live[id], let t = entry.session.samples.last?.t else { return }
         let count = entry.session.marks.filter { !$0.auto }.count + 1
-        entry.session.marks.append(RecordingMark(t: t, label: label == "Repère" ? "Repère \(count)" : label, auto: false))
+        entry.session.marks.append(RecordingMark(t: t, label: label == String(localized: "Repère") ? String(localized: "Repère \(count)") : label, auto: false))
         live[id] = entry
     }
 

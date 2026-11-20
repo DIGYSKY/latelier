@@ -37,7 +37,7 @@ struct SourceChips: View {
                 let selected = selection == item.source
                 Button { selection = item.source } label: {
                     HStack(spacing: 5) {
-                        Text(item.source?.label ?? "Tout")
+                        Text(item.source?.label ?? String(localized: "Tout"))
                         Text("\(item.count)").opacity(0.75)
                     }
                     .font(.system(size: 13, weight: selected ? .semibold : .medium))
@@ -144,8 +144,8 @@ extension Package {
 
     /// Description courte : dépendance, cask…
     var detail: String {
-        if !onRequest { return summary.isEmpty ? "Dépendance" : "Dépendance · \(summary)" }
-        if isCask { return summary.isEmpty ? "Cask" : "Cask · \(summary)" }
+        if !onRequest { return summary.isEmpty ? String(localized: "Dépendance") : String(localized: "Dépendance · \(summary)") }
+        if isCask { return summary.isEmpty ? "Cask" : String(localized: "Cask · \(summary)") }
         return summary
     }
 }
@@ -153,7 +153,7 @@ extension Package {
 enum FrenchDate {
     /// « mars 2024 »
     static func monthYear(_ date: Date) -> String {
-        date.formatted(.dateTime.month(.abbreviated).year().locale(Locale(identifier: "fr_FR")))
+        date.formatted(.dateTime.month(.abbreviated).year().locale(Locale.current))
     }
 }
 

@@ -28,10 +28,10 @@ enum RepoTab: String, CaseIterable {
     var label: String {
         switch self {
         case .git: "Git"
-        case .commands: "Commandes"
-        case .dependencies: "Dépendances"
-        case .security: "Sécurité"
-        case .coverage: "Couverture"
+        case .commands: String(localized: "Commandes")
+        case .dependencies: String(localized: "Dépendances")
+        case .security: String(localized: "Sécurité")
+        case .coverage: String(localized: "Couverture")
         }
     }
 }
@@ -44,9 +44,9 @@ private struct RepoListPage: View {
 
     var body: some View {
         let store = model.repos
-        PageScaffold(title: "Projets", subtitle: subtitle) {
-            SearchField(prompt: "Rechercher un projet", text: $query)
-            Button(store.fetching ? "Fetch en cours…" : "Fetch de tous les dépôts", systemImage: "arrow.clockwise") {
+        PageScaffold(title: String(localized: "Projets"), subtitle: subtitle) {
+            SearchField(prompt: String(localized: "Rechercher un projet"), text: $query)
+            Button(store.fetching ? String(localized: "Fetch en cours…") : String(localized: "Fetch de tous les dépôts"), systemImage: "arrow.clockwise") {
                 model.fetchAll()
             }
             .buttonStyle(.secondary)
@@ -55,18 +55,18 @@ private struct RepoListPage: View {
         } content: {
             if model.projectRoots.isEmpty {
                 Card {
-                    EmptyState(symbol: "folder.badge.plus", title: "Aucun dossier de projets",
-                               message: "Ajoutez vos dossiers dans Réglages › Projets.")
+                    EmptyState(symbol: "folder.badge.plus", title: String(localized: "Aucun dossier de projets"),
+                               message: String(localized: "Ajoutez vos dossiers dans Réglages › Projets."))
                 }
             } else if store.scanning && store.repos.isEmpty {
-                ScanningCard(label: "Recherche des dépôts git dans \(model.projectRoots.map { $0.abbreviatingHome() }.joined(separator: ", "))…")
+                ScanningCard(label: String(localized: "Recherche des dépôts git dans \(model.projectRoots.map { $0.abbreviatingHome() }.joined(separator: ", "))…"))
             } else if store.repos.isEmpty {
-                Card { EmptyState(symbol: "arrow.triangle.branch", title: "Aucun dépôt git trouvé") }
+                Card { EmptyState(symbol: "arrow.triangle.branch", title: String(localized: "Aucun dépôt git trouvé")) }
             } else {
                 HStack(spacing: 12) {
                     FilterChips(selection: $filter, counts: counts)
                     Spacer()
-                    GlassSegments(selection: $byName, items: [(false, "Récents"), (true, "Nom")], compact: true)
+                    GlassSegments(selection: $byName, items: [(false, String(localized: "Récents")), (true, String(localized: "Nom"))], compact: true)
                 }
                 globalViews
                 LazyVStack(spacing: 6) {
@@ -75,7 +75,7 @@ private struct RepoListPage: View {
                     }
                 }
                 if visible.isEmpty {
-                    Card { EmptyState(symbol: "magnifyingglass", title: "Aucun projet ne correspond") }
+                    Card { EmptyState(symbol: "magnifyingglass", title: String(localized: "Aucun projet ne correspond")) }
                 }
             }
         }
@@ -95,9 +95,9 @@ private struct RepoListPage: View {
     private var subtitle: String {
         let store = model.repos
         if let message = store.message { return message }
-        if store.scanning { return "Analyse des dépôts…" }
+        if store.scanning { return String(localized: "Analyse des dépôts…") }
         let roots = model.projectRoots.map { $0.abbreviatingHome() }.joined(separator: " et ")
-        return "\(store.repos.count) dépôt\(store.repos.count > 1 ? "s" : "") git dans \(roots) · du plus récemment modifié au plus ancien"
+        return (store.repos.count > 1 ? String(localized: "\(store.repos.count) dépôts git dans \(roots) · du plus récemment modifié au plus ancien") : String(localized: "\(store.repos.count) dépôt git dans \(roots) · du plus récemment modifié au plus ancien"))
     }
 
     private var visible: [RepoStatus] {
@@ -142,7 +142,7 @@ private struct RepoRow: View {
                         .lineLimit(1).truncationMode(.middle)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                Text("⎇ \(repo.branch ?? "détaché")").font(.system(size: 12).monospaced()).lineLimit(1).frame(width: 150, alignment: .leading)
+                Text("⎇ \(repo.branch ?? String(localized: "détaché"))").font(.system(size: 12).monospaced()).lineLimit(1).frame(width: 150, alignment: .leading)
                 StateLabel(repo: repo).frame(width: 140, alignment: .leading)
                 badges.frame(width: 120, alignment: .leading)
                 Text(repo.lastActivity.map { RelativeDate.french($0) } ?? "—").font(.system(size: 12)).foregroundStyle(Theme.muted)
@@ -172,7 +172,7 @@ private struct RepoRow: View {
             if let coverage = model.coverage.value?.first(where: { $0.project.standardizedFileURL == repo.url.standardizedFileURL })?.report?.lines {
                 Text("\(Int(coverage.rounded())) %").font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(coverageColor(coverage, threshold: model.preferences.coverageThreshold))
-                    .help("Couverture de tests")
+                    .help(String(localized: "Couverture de tests"))
             }
         }
     }
@@ -195,7 +195,7 @@ private struct RepoPage: View {
                         Text(repo.name).font(.system(size: 24, weight: .bold))
                         StateLabel(repo: repo)
                     }
-                    Text("\(repo.url.abbreviatingHome()) · ⎇ \(repo.branch ?? "détaché")" + (repo.lastActivity.map { " · modifié \(RelativeDate.french($0))" } ?? ""))
+                    Text("\(repo.url.abbreviatingHome()) · ⎇ \(repo.branch ?? String(localized: "détaché"))" + (repo.lastActivity.map { String(localized: " · modifié \(RelativeDate.french($0))") } ?? ""))
                         .font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.middle)
                 }
                 Spacer()
@@ -235,12 +235,12 @@ enum RepoFilter: String, CaseIterable, Hashable {
 
     var label: String {
         switch self {
-        case .all: "Tous"
-        case .modified: "Modifiés"
-        case .toPush: "À pousser"
-        case .behind: "En retard"
-        case .noRemote: "Sans remote"
-        case .inactive: "Inactifs"
+        case .all: String(localized: "Tous")
+        case .modified: String(localized: "Modifiés")
+        case .toPush: String(localized: "À pousser")
+        case .behind: String(localized: "En retard")
+        case .noRemote: String(localized: "Sans remote")
+        case .inactive: String(localized: "Inactifs")
         }
     }
 
@@ -329,18 +329,18 @@ private struct RepoDetail: View {
             }
             if let operation = repo.operationInProgress {
                 Callout(symbol: "exclamationmark.triangle", tint: .orange) {
-                    Text("\(operation.capitalizedFirst) : terminez-le dans le terminal. L’Atelier ne propose aucune action en attendant.")
+                    Text(String(localized: "\(operation.capitalizedFirst) : terminez-le dans le terminal. L’Atelier ne propose aucune action en attendant."))
                 }
             } else if !repo.hasRemote {
                 Callout(symbol: "exclamationmark.triangle", tint: .orange) {
-                    (Text("Pas de remote. ").bold() + Text("Ce dépôt n’est sauvegardé nulle part. Ajoutez un remote pour le pousser."))
+                    (Text(String(localized: "Pas de remote. ")).bold() + Text(String(localized: "Ce dépôt n’est sauvegardé nulle part. Ajoutez un remote pour le pousser.")))
                 }
             }
 
             changesSection
 
             HStack(alignment: .top, spacing: 18) {
-                section("Derniers commits") {
+                section(String(localized: "Derniers commits")) {
                     if repo.recentCommits.isEmpty {
                         Text("Aucun commit.").font(.system(size: 13)).foregroundStyle(Theme.muted)
                     }
@@ -376,7 +376,7 @@ private struct RepoDetail: View {
         return VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(repo.name).font(.system(size: 20, weight: .bold))
-                Text([repo.url.abbreviatingHome(), repo.remoteURL ?? "aucun remote"].joined(separator: " · "))
+                Text([repo.url.abbreviatingHome(), repo.remoteURL ?? String(localized: "aucun remote")].joined(separator: " · "))
                     .font(.system(size: 12).monospaced())
                     .foregroundStyle(Theme.muted)
                     .lineLimit(1)
@@ -389,10 +389,10 @@ private struct RepoDetail: View {
                 Button(fetching ? "Fetch…" : "Fetch") { fetch() }
                     .buttonStyle(.small)
                     .disabled(!repo.hasRemote || fetching)
-                Button("Pull ↓\(repo.behind)") { model.preview(GitClient.pullPlan(repo)) }
+                Button(String(localized: "Pull ↓\(repo.behind)")) { model.preview(GitClient.pullPlan(repo)) }
                     .buttonStyle(.small)
                     .disabled(busy || repo.upstream == nil || repo.behind == 0)
-                Button(repo.upstream == nil && repo.hasRemote ? "Publier la branche" : "Push ↑\(repo.ahead)") {
+                Button(repo.upstream == nil && repo.hasRemote ? String(localized: "Publier la branche") : String(localized: "Push ↑\(repo.ahead)")) {
                     if let plan = GitClient.pushPlan(repo) { model.preview(plan) }
                 }
                 .buttonStyle(PillButtonStyle(kind: .small))
@@ -405,7 +405,7 @@ private struct RepoDetail: View {
     private var changesSection: some View {
         let chosen = repo.changes.filter { !unchecked.contains($0.id) }
         let plan = GitClient.commitPlan(repo, files: chosen, message: message)
-        return section("Modifications · \(repo.branch ?? "HEAD détaché")") {
+        return section(String(localized: "Modifications · \(repo.branch ?? String(localized: "HEAD détaché"))")) {
             if repo.changes.isEmpty {
                 Text("Aucune modification locale.").font(.system(size: 13)).foregroundStyle(Theme.muted).padding(.vertical, 6)
             } else {
@@ -417,14 +417,14 @@ private struct RepoDetail: View {
                     }
                 }
                 HStack(spacing: 8) {
-                    TextField("Message de commit", text: $message)
+                    TextField(String(localized: "Message de commit"), text: $message)
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 14)
                         .frame(minHeight: 40)
                         .background(Theme.raised, in: .capsule)
                         .overlay(Capsule().strokeBorder(Theme.hairline))
                         .onSubmit { if let plan { model.preview(plan) } }
-                    Button("Commit (\(chosen.count))") { if let plan { model.preview(plan) } }
+                    Button(String(localized: "Commit (\(chosen.count))")) { if let plan { model.preview(plan) } }
                         .buttonStyle(.primary)
                         .disabled(plan == nil || repo.operationInProgress != nil)
                 }
@@ -449,8 +449,8 @@ private struct RepoDetail: View {
         if branch.isCurrent { parts.append("courante") }
         if branch.ahead > 0 { parts.append("↑\(branch.ahead)") }
         if branch.behind > 0 { parts.append("↓\(branch.behind)") }
-        if branch.upstreamGone { parts.append("distant supprimé") }
-        if branch.merged { parts.append("fusionnée · supprimable") }
+        if branch.upstreamGone { parts.append(String(localized: "distant supprimé")) }
+        if branch.merged { parts.append(String(localized: "fusionnée · supprimable")) }
         if branch.upstream == nil && !branch.isCurrent && !branch.merged { parts.append("locale") }
         return parts.joined(separator: " · ")
     }
@@ -493,7 +493,7 @@ private struct FileRow: View {
         .onTapGesture(perform: toggle)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
-        .accessibilityValue(checked ? "inclus dans le commit" : "exclu du commit")
+        .accessibilityValue(checked ? String(localized: "inclus dans le commit") : String(localized: "exclu du commit"))
     }
 
     private var color: Color {

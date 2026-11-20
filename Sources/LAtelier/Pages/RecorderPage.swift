@@ -9,7 +9,7 @@ struct RecorderPage: View {
 
     var body: some View {
         let recorder = model.recorder!
-        PageScaffold(page: .enregistreur, subtitle: "Les processus lancés dans vos projets sont détectés et enregistrés selon votre choix") {
+        PageScaffold(page: .enregistreur, subtitle: String(localized: "Les processus lancés dans vos projets sont détectés et enregistrés selon votre choix")) {
             policyPicker
         } content: {
             ForEach(recorder.pending.prefix(2)) { process in AskBanner(process: process) }
@@ -26,7 +26,7 @@ struct RecorderPage: View {
             selection: Binding(get: { preferences.recorderPolicy }, set: { if let value = $0 { preferences.recorderPolicy = value } }),
             items: RecorderPolicy.allCases.map { ($0, $0.label, nil) }
         )
-        .accessibilityLabel("Quand un processus démarre dans un projet")
+        .accessibilityLabel(String(localized: "Quand un processus démarre dans un projet"))
     }
 }
 
@@ -39,13 +39,13 @@ private struct AskBanner: View {
             Circle().fill(Theme.accent).frame(width: 10, height: 10)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Nouveau processus dans \(process.project.lastPathComponent)").font(.system(size: 13, weight: .semibold))
-                Text("\(process.command) · \(process.name) (PID \(process.pid)) · \(process.project.abbreviatingHome())")
+                Text(String(localized: "\(process.command) · \(process.name) (PID \(String(process.pid))) · \(process.project.abbreviatingHome())"))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.middle)
             }
             Spacer()
-            Button("Enregistrer") { model.recorder.record(process, auto: false) }.buttonStyle(PillButtonStyle(kind: .smallFilled))
-            Button("Toujours pour ce projet") { model.recorder.always(process) }.buttonStyle(.small)
-            Button("Ignorer") { model.recorder.ignore(process) }.buttonStyle(.small)
+            Button(String(localized: "Enregistrer")) { model.recorder.record(process, auto: false) }.buttonStyle(PillButtonStyle(kind: .smallFilled))
+            Button(String(localized: "Toujours pour ce projet")) { model.recorder.always(process) }.buttonStyle(.small)
+            Button(String(localized: "Ignorer")) { model.recorder.ignore(process) }.buttonStyle(.small)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -66,18 +66,18 @@ private struct DetectedCard: View {
             HStack {
                 Text("Processus détectés dans vos projets").font(.system(size: 15, weight: .semibold))
                 Spacer()
-                Text("surveillance de \(model.knownProjects.count) projets · ignore ce qui dure moins de 5 s (git, lint…)")
+                Text(String(localized: "surveillance de \(model.knownProjects.count) projets · ignore ce qui dure moins de 5 s (git, lint…)"))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
             if preferences.recorderPolicy == .off {
                 Rectangle().fill(Theme.hairline).frame(height: 1)
-                Text("Détection désactivée. « Exécuter et enregistrer » reste possible depuis la page d’un projet, onglet Commandes.")
+                Text(String(localized: "Détection désactivée. « Exécuter et enregistrer » reste possible depuis la page d’un projet, onglet Commandes."))
                     .font(.system(size: 13)).foregroundStyle(Theme.muted).padding(18)
             } else if recorder.detected.isEmpty {
                 Rectangle().fill(Theme.hairline).frame(height: 1)
-                Text("Aucun processus de dev ne tourne dans vos projets en ce moment.")
+                Text(String(localized: "Aucun processus de dev ne tourne dans vos projets en ce moment."))
                     .font(.system(size: 13)).foregroundStyle(Theme.muted).padding(18)
             }
             ForEach(recorder.detected) { process in
@@ -95,15 +95,15 @@ private struct DetectedCard: View {
         let excluded = model.preferences.neverRecord.contains(process.project.path)
         let pending = recorder.pending.contains { $0.id == process.id }
         let state: String = if let live {
-            "● Enregistrement \(Clock.format(live.session.duration))"
+            String(localized: "● Enregistrement \(Clock.format(live.session.duration))")
         } else if pending {
-            "En attente de votre choix"
+            String(localized: "En attente de votre choix")
         } else if excluded {
-            "Ignoré (projet exclu)"
+            String(localized: "Ignoré (projet exclu)")
         } else if recorder.isIgnored(process) {
-            "Ignoré"
+            String(localized: "Ignoré")
         } else {
-            "Détecté, non enregistré"
+            String(localized: "Détecté, non enregistré")
         }
         return HStack(spacing: 12) {
             Group {
@@ -117,8 +117,8 @@ private struct DetectedCard: View {
                 .frame(width: 150, alignment: .leading)
             VStack(alignment: .leading, spacing: 1) {
                 Text(process.command).font(.system(size: 12).monospaced()).lineLimit(1).truncationMode(.middle)
-                Text("\(process.name) · PID \(process.pid)" + (process.children > 0 ? " · \(process.children) processus enfant\(process.children > 1 ? "s" : "")" : "")
-                     + (process.fromAtelier ? " · lancé depuis L’Atelier" : ""))
+                Text(String(localized: "\(process.name) · PID \(String(process.pid))") + (process.children > 0 ? (process.children > 1 ? String(localized: " · \(process.children) processus enfants") : String(localized: " · \(process.children) processus enfant")) : "")
+                     + (process.fromAtelier ? String(localized: " · lancé depuis L’Atelier") : ""))
                     .font(.system(size: 11)).foregroundStyle(Theme.muted)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -127,9 +127,9 @@ private struct DetectedCard: View {
                 .frame(width: 190, alignment: .trailing)
             Group {
                 if live != nil {
-                    Button("Arrêter") { recorder.stop(process.id) }.buttonStyle(.small)
+                    Button(String(localized: "Arrêter")) { recorder.stop(process.id) }.buttonStyle(.small)
                 } else if !pending {
-                    Button("Enregistrer") { recorder.record(process, auto: false) }.buttonStyle(.small)
+                    Button(String(localized: "Enregistrer")) { recorder.record(process, auto: false) }.buttonStyle(.small)
                 }
             }
             .frame(width: 100, alignment: .trailing)
@@ -139,12 +139,12 @@ private struct DetectedCard: View {
         .background(live != nil ? Tag.red.1.opacity(0.25) : .clear)
         .contextMenu {
             if excluded {
-                Button("Ne plus exclure \(process.project.lastPathComponent)") { model.preferences.neverRecord.remove(process.project.path) }
+                Button(String(localized: "Ne plus exclure \(process.project.lastPathComponent)")) { model.preferences.neverRecord.remove(process.project.path) }
             } else {
-                Button("Ne jamais enregistrer \(process.project.lastPathComponent)") { model.preferences.neverRecord.insert(process.project.path) }
+                Button(String(localized: "Ne jamais enregistrer \(process.project.lastPathComponent)")) { model.preferences.neverRecord.insert(process.project.path) }
             }
             if model.preferences.alwaysRecord.contains(process.project.path) {
-                Button("Ne plus enregistrer automatiquement ce projet") { model.preferences.alwaysRecord.remove(process.project.path) }
+                Button(String(localized: "Ne plus enregistrer automatiquement ce projet")) { model.preferences.alwaysRecord.remove(process.project.path) }
             }
         }
     }
@@ -182,7 +182,7 @@ private struct LiveCard: View {
                 Spacer()
                 if let last = live?.session.samples.last {
                     legend(color: Theme.accent, "CPU \(Format.percent(last.cpu))")
-                    legend(color: Color(hex: 0x8A4FD8), "Mémoire \(Format.memory(last.memory))")
+                    legend(color: Color(hex: 0x8A4FD8), String(localized: "Mémoire \(Format.memory(last.memory))"))
                 }
             }
             ZStack {
@@ -190,7 +190,7 @@ private struct LiveCard: View {
                     SessionChart(session: live.session)
                 } else {
                     RoundedRectangle(cornerRadius: 14).fill(Theme.raised.opacity(0.4))
-                    Text(live == nil ? "Aucun enregistrement en cours. Lancez un processus dans un projet." : "Premières mesures…")
+                    Text(live == nil ? String(localized: "Aucun enregistrement en cours. Lancez un processus dans un projet.") : String(localized: "Premières mesures…"))
                         .font(.system(size: 13)).foregroundStyle(Theme.muted)
                 }
             }
@@ -241,7 +241,7 @@ struct SessionChart: View {
                 }
             }
         }
-        .accessibilityLabel("Courbes CPU et mémoire de la session")
+        .accessibilityLabel(String(localized: "Courbes CPU et mémoire de la session"))
     }
 
     private func line(_ key: KeyPath<RecordingSample, Double>, top: Double, span: Double, size: CGSize) -> Path {
@@ -276,18 +276,18 @@ private struct SessionsCard: View {
             HStack {
                 Text("Sessions enregistrées").font(.system(size: 15, weight: .semibold))
                 Spacer()
-                Text(reference.map { "Écarts par rapport à « \($0.name) » (la plus ancienne cochée)" } ?? "Cochez deux sessions pour les comparer")
+                Text(reference.map { String(localized: "Écarts par rapport à « \($0.name) » (la plus ancienne cochée)") } ?? String(localized: "Cochez deux sessions pour les comparer"))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
             HStack(spacing: 0) {
-                Text("Comparer").frame(width: 76, alignment: .leading)
+                Text(String(localized: "Comparer")).frame(width: 76, alignment: .leading)
                 Text("Session").frame(maxWidth: .infinity, alignment: .leading)
-                Text("Durée").frame(width: 70, alignment: .leading)
-                Text("CPU moy. / max").frame(width: 120, alignment: .leading)
-                Text("Mémoire max").frame(width: 100, alignment: .leading)
-                Text("Écart vs référence").frame(width: 170, alignment: .leading)
+                Text(String(localized: "Durée")).frame(width: 70, alignment: .leading)
+                Text(String(localized: "CPU moy. / max")).frame(width: 120, alignment: .leading)
+                Text(String(localized: "Mémoire max")).frame(width: 100, alignment: .leading)
+                Text(String(localized: "Écart vs référence")).frame(width: 170, alignment: .leading)
             }
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(Theme.muted)
@@ -308,7 +308,7 @@ private struct SessionsCard: View {
 
     private func row(_ session: RecordingSession, reference: RecordingSession?) -> some View {
         HStack(spacing: 0) {
-            Toggle("Comparer \(session.name)", isOn: Binding(
+            Toggle(String(localized: "Comparer \(session.name)"), isOn: Binding(
                 get: { compared.contains(session.id) },
                 set: { if $0 { compared.insert(session.id) } else { compared.remove(session.id) } }
             ))
@@ -318,10 +318,10 @@ private struct SessionsCard: View {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
                     Text(session.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
-                    Text(session.auto ? "auto" : "manuel").font(.system(size: 10, weight: .semibold)).foregroundStyle(Theme.muted)
+                    Text(session.auto ? "auto" : String(localized: "manuel")).font(.system(size: 10, weight: .semibold)).foregroundStyle(Theme.muted)
                         .padding(.horizontal, 6).padding(.vertical, 1).overlay(Capsule().strokeBorder(Theme.hairline))
                 }
-                Text("\(session.projectName) · \(session.command) · \(session.start.formatted(.dateTime.day().month(.abbreviated).hour().minute().locale(Locale(identifier: "fr_FR"))))")
+                Text("\(session.projectName) · \(session.command) · \(session.start.formatted(.dateTime.day().month(.abbreviated).hour().minute().locale(Locale.current)))")
                     .font(.system(size: 11)).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.middle)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -334,19 +334,19 @@ private struct SessionsCard: View {
         .padding(.horizontal, 18)
         .padding(.vertical, 9)
         .contextMenu {
-            Button("Exporter en JSON…") { model.recorder.export(session, csv: false) }
-            Button("Exporter en CSV…") { model.recorder.export(session, csv: true) }
-            Button("Afficher dans le Finder") {
+            Button(String(localized: "Exporter en JSON…")) { model.recorder.export(session, csv: false) }
+            Button(String(localized: "Exporter en CSV…")) { model.recorder.export(session, csv: true) }
+            Button(String(localized: "Afficher dans le Finder")) {
                 Task { NSWorkspace.shared.activateFileViewerSelecting([await model.recorder.url(for: session)]) }
             }
             Divider()
-            Button("Supprimer la session…") {
+            Button(String(localized: "Supprimer la session…")) {
                 Task {
                     let url = await model.recorder.url(for: session)
                     let bytes = Int64((try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0)
                     model.preview(ActionPlan(
-                        title: "Supprimer la session « \(session.name) »",
-                        summary: "\(session.projectName) · \(Clock.format(session.duration)). Le fichier de la session part à la corbeille.",
+                        title: String(localized: "Supprimer la session « \(session.name) »"),
+                        summary: String(localized: "\(session.projectName) · \(Clock.format(session.duration)). Le fichier de la session part à la corbeille."),
                         kind: .nettoyage, risk: .safe, reversible: true, steps: [.remove(url, bytes: bytes, permanently: false)], estimatedBytes: bytes
                     ))
                 }
@@ -363,7 +363,7 @@ private struct SessionsCard: View {
                 let delta = session.delta(from: reference)
                 HStack(spacing: 8) {
                     deltaText("CPU", delta.cpu)
-                    deltaText("Mém.", delta.memory)
+                    deltaText(String(localized: "Mém."), delta.memory)
                 }
             }
         } else {

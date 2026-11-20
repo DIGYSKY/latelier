@@ -13,15 +13,15 @@ public struct StartupItem: Sendable, Identifiable, Hashable {
 
         public var title: String {
             switch self {
-            case .loginItem: "Éléments de connexion"
-            case .userAgent: "Agents utilisateur"
-            case .systemAgent: "Agents et démons système"
+            case .loginItem: String(localized: "Éléments de connexion")
+            case .userAgent: String(localized: "Agents utilisateur")
+            case .systemAgent: String(localized: "Agents et démons système")
             }
         }
 
         public var location: String {
             switch self {
-            case .loginItem: "Réglages Système › Général › Ouverture"
+            case .loginItem: String(localized: "Réglages Système › Général › Ouverture")
             case .userAgent: "~/Library/LaunchAgents"
             case .systemAgent: "/Library/LaunchAgents · /Library/LaunchDaemons"
             }
@@ -35,7 +35,7 @@ public struct StartupItem: Sendable, Identifiable, Hashable {
             switch self {
             case .low: "faible"
             case .medium: "moyen"
-            case .high: "élevé"
+            case .high: String(localized: "élevé")
             }
         }
 
@@ -92,9 +92,9 @@ public struct Signer: Sendable, Hashable {
     public var valid: Bool
 
     public var label: String {
-        guard valid || name != nil || appStore else { return "Non signé" }
-        let who = apple ? "Apple" : appStore ? (name ?? "App Store") : name ?? "Signature ad hoc"
-        return valid ? "\(who) · vérifié" : "\(who) · signature invalide"
+        guard valid || name != nil || appStore else { return String(localized: "Non signé") }
+        let who = apple ? "Apple" : appStore ? (name ?? "App Store") : name ?? String(localized: "Signature ad hoc")
+        return valid ? String(localized: "\(who) · vérifié") : String(localized: "\(who) · signature invalide")
     }
 
     public static func of(path: String) -> Signer? {
@@ -248,7 +248,7 @@ public struct StartupScanner: Sendable {
             records = BTMRecord.parse(output.stdout, uid: uid)
         } else {
             records = []
-            problems.append("Éléments de connexion illisibles (sfltool).")
+            problems.append(String(localized: "Éléments de connexion illisibles (sfltool)."))
         }
 
         var items: [StartupItem] = []
@@ -264,7 +264,7 @@ public struct StartupScanner: Sendable {
             guard let data = try? Data(contentsOf: url), let plist = LaunchPlist.parse(data) else {
                 let label = url.deletingPathExtension().lastPathComponent
                 items.append(StartupItem(
-                    kind: .userAgent, label: label, name: label, detail: "Fichier vide ou illisible : launchd l’ignore",
+                    kind: .userAgent, label: label, name: label, detail: String(localized: "Fichier vide ou illisible : launchd l’ignore"),
                     url: url, executable: nil, enabled: false, running: false, impact: .low, signer: nil, orphan: false,
                     brewService: nil, parentApp: nil, leftover: true
                 ))
@@ -277,7 +277,7 @@ public struct StartupScanner: Sendable {
             let brew = plist.label.hasPrefix("homebrew.mxcl.") ? String(plist.label.dropFirst("homebrew.mxcl.".count)) : nil
             items.append(StartupItem(
                 kind: .userAgent, label: plist.label, name: plist.label,
-                detail: brew != nil ? "brew services · voir Paquets › Services" : Self.describe(plist, orphan: plist.orphan),
+                detail: brew != nil ? String(localized: "brew services · voir Paquets › Services") : Self.describe(plist, orphan: plist.orphan),
                 url: url, executable: plist.program, enabled: enabled, running: running, impact: plist.impact,
                 signer: plist.program.flatMap(Signer.of), orphan: plist.orphan, brewService: brew,
                 parentApp: Self.appName(plist.program), blockedInSettings: blocked
@@ -320,9 +320,9 @@ public struct StartupScanner: Sendable {
             let developer = record.developer ?? parent?.developer
             let detail: String
             if isApp {
-                detail = "Ouvre \(record.name) à la connexion"
+                detail = String(localized: "Ouvre \(record.name) à la connexion")
             } else if let appName {
-                detail = "Assistant en arrière-plan de l’app"
+                detail = String(localized: "Assistant en arrière-plan de l’app")
             } else {
                 detail = record.name
             }
@@ -331,7 +331,7 @@ public struct StartupScanner: Sendable {
             if signer == nil, let developer { signer = Signer(name: developer, teamID: nil, apple: false, valid: true) }
             items.append(StartupItem(
                 kind: .loginItem, label: record.bundleID ?? record.identifier, name: isApp ? record.name : (appName ?? record.name),
-                detail: appExists ? detail : "\(appName ?? record.name) n’est plus installé",
+                detail: appExists ? detail : String(localized: "\(appName ?? record.name) n’est plus installé"),
                 url: appPath.map { URL(fileURLWithPath: $0) }, executable: record.executable,
                 enabled: record.enabled && record.allowed, running: false, impact: isApp ? .medium : .low,
                 signer: signer, orphan: !appExists, brewService: nil, parentApp: appName
@@ -348,12 +348,12 @@ public struct StartupScanner: Sendable {
 
     static func describe(_ plist: LaunchPlist, orphan: Bool) -> String {
         if orphan, let program = plist.program {
-            return "\(appName(program) ?? (program as NSString).lastPathComponent) n’est plus installé"
+            return String(localized: "\(appName(program) ?? (program as NSString).lastPathComponent) n’est plus installé")
         }
         var parts: [String] = []
-        if plist.keepAlive { parts.append("toujours actif") } else if plist.runAtLoad { parts.append("à l’ouverture de session") }
-        if plist.periodic { parts.append("périodique") }
-        if parts.isEmpty { parts.append("à la demande") }
+        if plist.keepAlive { parts.append(String(localized: "toujours actif")) } else if plist.runAtLoad { parts.append(String(localized: "à l’ouverture de session")) }
+        if plist.periodic { parts.append(String(localized: "périodique")) }
+        if parts.isEmpty { parts.append(String(localized: "à la demande")) }
         return parts.joined(separator: " · ")
     }
 
@@ -397,10 +397,10 @@ public struct StartupScanner: Sendable {
             : [CommandSpec("/bin/launchctl", ["bootout", "\(domain)/\(item.label)"]),
                CommandSpec("/bin/launchctl", ["disable", "\(domain)/\(item.label)"])]
         return ActionPlan(
-            title: enable ? "Réactiver \(item.label)" : "Désactiver \(item.label)",
+            title: enable ? String(localized: "Réactiver \(item.label)") : String(localized: "Désactiver \(item.label)"),
             summary: enable
-                ? "L’agent sera de nouveau lancé à l’ouverture de session, et démarré tout de suite."
-                : "L’agent est arrêté et ne sera plus lancé à l’ouverture de session. Le fichier reste en place : on peut le réactiver d’ici.",
+                ? String(localized: "L’agent sera de nouveau lancé à l’ouverture de session, et démarré tout de suite.")
+                : String(localized: "L’agent est arrêté et ne sera plus lancé à l’ouverture de session. Le fichier reste en place : on peut le réactiver d’ici."),
             kind: .systeme, risk: .caution, reversible: true,
             // bootout échoue si l'agent n'était pas chargé : ce n'est pas bloquant.
             steps: steps.map(ActionStep.command), stopOnFailure: false
@@ -416,9 +416,9 @@ public struct StartupScanner: Sendable {
         let bytes = Int64((try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0)
         steps.append(.remove(url, bytes: bytes, permanently: false))
         return ActionPlan(
-            title: "Supprimer l’agent \(item.label)",
+            title: String(localized: "Supprimer l’agent \(item.label)"),
             summary: item.leftover
-                ? "Ce fichier est vide : il ne lance rien. Il part à la corbeille."
+                ? String(localized: "Ce fichier est vide : il ne lance rien. Il part à la corbeille.")
                 : "\(item.detail). Le fichier de l’agent part à la corbeille.",
             kind: .systeme, risk: .safe, reversible: true, steps: steps, estimatedBytes: bytes, stopOnFailure: false
         )

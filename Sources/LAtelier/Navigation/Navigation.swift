@@ -8,10 +8,10 @@ enum SidebarGroup: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .stockage: "Stockage"
-        case .projets: "Projets"
-        case .serveurs: "Serveurs"
-        case .paquets: "Paquets"
+        case .stockage: String(localized: "Stockage")
+        case .projets: String(localized: "Projets")
+        case .serveurs: String(localized: "Serveurs")
+        case .paquets: String(localized: "Paquets")
         case .performance: "Performance"
         case .news: "News"
         }
@@ -41,12 +41,12 @@ enum SidebarGroup: String, CaseIterable, Identifiable {
 
     var tagline: String {
         switch self {
-        case .stockage: "Ce qui occupe le disque, et ce qu’on peut libérer sans risque."
-        case .projets: "Dépôts git, commandes, dépendances, sécurité et couverture."
-        case .serveurs: "Vos connexions SSH, le terminal en un clic, et les fichiers des serveurs."
-        case .paquets: "Tout ce qui est installé, ce qui est obsolète, les mises à jour."
-        case .performance: "Le gestionnaire des tâches : CPU, mémoire, GPU, réseau, processus."
-        case .news: "L’actualité de tes langages et la cybersécurité qui te concerne."
+        case .stockage: String(localized: "Ce qui occupe le disque, et ce qu’on peut libérer sans risque.")
+        case .projets: String(localized: "Dépôts git, commandes, dépendances, sécurité et couverture.")
+        case .serveurs: String(localized: "Vos connexions SSH, le terminal en un clic, et les fichiers des serveurs.")
+        case .paquets: String(localized: "Tout ce qui est installé, ce qui est obsolète, les mises à jour.")
+        case .performance: String(localized: "Le gestionnaire des tâches : CPU, mémoire, GPU, réseau, processus.")
+        case .news: String(localized: "L’actualité de tes langages et la cybersécurité qui te concerne.")
         }
     }
 
@@ -116,50 +116,50 @@ enum Page: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .accueil: "Accueil"
-        case .stockageVue: "Vue d’ensemble"
-        case .systeme: "Système"
-        case .appsNettoyage: "Nettoyage"
-        case .desinstalleur: "Désinstalleur"
+        case .accueil: String(localized: "Accueil")
+        case .stockageVue: String(localized: "Vue d’ensemble")
+        case .systeme: String(localized: "Système")
+        case .appsNettoyage: String(localized: "Nettoyage")
+        case .desinstalleur: String(localized: "Désinstalleur")
         case .docker: "Docker"
-        case .dev: "Développement"
+        case .dev: String(localized: "Développement")
         case .caches: "Caches"
-        case .explorateur: "Explorateur"
+        case .explorateur: String(localized: "Explorateur")
         case .sonar: "Sonar"
-        case .depots: "Projets"
-        case .modifications: "Modifications"
-        case .commandes: "Commandes"
-        case .dependances: "Dépendances"
-        case .securite: "Sécurité"
-        case .couverture: "Couverture"
-        case .serveurs: "Serveurs"
-        case .majs: "Mises à jour"
-        case .inventaire: "Inventaire"
+        case .depots: String(localized: "Projets")
+        case .modifications: String(localized: "Modifications")
+        case .commandes: String(localized: "Commandes")
+        case .dependances: String(localized: "Dépendances")
+        case .securite: String(localized: "Sécurité")
+        case .couverture: String(localized: "Couverture")
+        case .serveurs: String(localized: "Serveurs")
+        case .majs: String(localized: "Mises à jour")
+        case .inventaire: String(localized: "Inventaire")
         case .runtimes: "Runtimes"
         case .services: "Services"
-        case .perfVue: "Vue d’ensemble"
-        case .moniteur: "Moniteur"
-        case .processus: "Processus"
-        case .reseau: "Réseau"
-        case .demarrage: "Démarrage"
-        case .enregistreur: "Enregistreur"
-        case .pourVous: "Pour vous"
-        case .cyber: "Cybersécurité"
-        case .langages: "Langages"
-        case .favoris: "Favoris"
+        case .perfVue: String(localized: "Vue d’ensemble")
+        case .moniteur: String(localized: "Moniteur")
+        case .processus: String(localized: "Processus")
+        case .reseau: String(localized: "Réseau")
+        case .demarrage: String(localized: "Démarrage")
+        case .enregistreur: String(localized: "Enregistreur")
+        case .pourVous: String(localized: "Pour vous")
+        case .cyber: String(localized: "Cybersécurité")
+        case .langages: String(localized: "Langages")
+        case .favoris: String(localized: "Favoris")
         case .sources: "Sources"
-        case .historique: "Historique"
-        case .reglages: "Réglages"
+        case .historique: String(localized: "Historique")
+        case .reglages: String(localized: "Réglages")
         }
     }
 
     /// Titre complet pour l'en-tête, avec le parent quand il aide (« Applications · Nettoyage »).
     var headerTitle: String {
         switch self {
-        case .appsNettoyage, .desinstalleur: "Applications · \(title)"
-        case .modifications, .commandes, .dependances, .securite, .couverture: "Tous les projets · \(title)"
+        case .appsNettoyage, .desinstalleur: String(localized: "Applications · \(title)")
+        case .modifications, .commandes, .dependances, .securite, .couverture: String(localized: "Tous les projets · \(title)")
         case .stockageVue, .perfVue: "\(group!.title) · \(title)"
-        case .pourVous: "News · pour vous"
+        case .pourVous: String(localized: "News · pour vous")
         default: title
         }
     }

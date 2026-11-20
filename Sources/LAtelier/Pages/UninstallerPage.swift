@@ -18,9 +18,9 @@ struct UninstallerPage: View {
         let store = model.installedApps
         let entries = store.value ?? []
         let list = sorted(entries.filter { query.isEmpty || $0.app.name.localizedCaseInsensitiveContains(query) })
-        PageScaffold(page: .desinstalleur, subtitle: entries.isEmpty ? "L’app et tous ses fichiers, en une fois"
-                     : "\(entries.count) apps installées · l’app et tous ses fichiers, en une fois") {
-            TextField("Rechercher une app", text: $query)
+        PageScaffold(page: .desinstalleur, subtitle: entries.isEmpty ? String(localized: "L’app et tous ses fichiers, en une fois")
+                     : String(localized: "\(entries.count) apps installées · l’app et tous ses fichiers, en une fois")) {
+            TextField(String(localized: "Rechercher une app"), text: $query)
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 14)
                 .frame(width: 220, height: 36)
@@ -29,14 +29,14 @@ struct UninstallerPage: View {
             Button { model.scanInstalledApps() } label: { Image(systemName: "arrow.clockwise") }
                 .buttonStyle(PillButtonStyle(kind: .small))
                 .disabled(store.loading)
-                .help("Relire les apps installées")
+                .help(String(localized: "Relire les apps installées"))
         } content: {
-            GlassSegments(selection: $sort, items: [(.size, "Plus lourdes"), (.used, "Moins utilisées"),
-                                                    (.unused, "Inutilisées depuis 3 mois"), (.name, "Nom")], compact: true)
+            GlassSegments(selection: $sort, items: [(.size, String(localized: "Plus lourdes")), (.used, String(localized: "Moins utilisées")),
+                                                    (.unused, String(localized: "Inutilisées depuis 3 mois")), (.name, String(localized: "Nom"))], compact: true)
             if store.loading && entries.isEmpty {
-                ScanningCard(label: "Lecture des apps de /Applications et de leurs données…")
+                ScanningCard(label: String(localized: "Lecture des apps de /Applications et de leurs données…"))
             } else if list.isEmpty {
-                Card { EmptyState(symbol: "magnifyingglass", title: "Aucune app", message: query.isEmpty ? "Aucune app dans /Applications." : "Aucune app ne correspond à « \(query) ».") }
+                Card { EmptyState(symbol: "magnifyingglass", title: String(localized: "Aucune app"), message: query.isEmpty ? String(localized: "Aucune app dans /Applications.") : String(localized: "Aucune app ne correspond à « \(query) ».")) }
             } else {
                 let current = list.first { $0.id == selectedID } ?? list[0]
                 HStack(alignment: .top, spacing: 14) {
@@ -64,13 +64,13 @@ struct UninstallerPage: View {
     }
 
     private func usedLabel(_ app: InstalledApp) -> (String, Bool) {
-        if model.runningTarget(for: app) != nil { return ("Ouverte", false) }
-        guard let date = app.lastUsed else { return ("Dernière utilisation inconnue", false) }
+        if model.runningTarget(for: app) != nil { return (String(localized: "Ouverte"), false) }
+        guard let date = app.lastUsed else { return (String(localized: "Dernière utilisation inconnue"), false) }
         let days = Int(Date().timeIntervalSince(date) / 86_400)
-        if days < 1 { return ("Utilisée aujourd’hui", false) }
-        if days < 2 { return ("Utilisée hier", false) }
-        if days < 30 { return ("Utilisée il y a \(days) j", false) }
-        return ("Pas utilisée depuis \(days / 30) mois", days >= 90)
+        if days < 1 { return (String(localized: "Utilisée aujourd’hui"), false) }
+        if days < 2 { return (String(localized: "Utilisée hier"), false) }
+        if days < 30 { return (String(localized: "Utilisée il y a \(days) j"), false) }
+        return (String(localized: "Pas utilisée depuis \(days / 30) mois"), days >= 90)
     }
 
     private func appList(_ list: [AppEntry], current: AppEntry) -> some View {
@@ -122,16 +122,16 @@ struct UninstallerPage: View {
                 Image(nsImage: NSWorkspace.shared.icon(forFile: app.url.path)).resizable().frame(width: 48, height: 48)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(app.name).font(.system(size: 19, weight: .bold))
-                    Text(["Version \(app.version ?? "?")", app.bundleID].compactMap { $0 }.joined(separator: " · "))
+                    Text([String(localized: "Version \(app.version ?? "?")"), app.bundleID].compactMap { $0 }.joined(separator: " · "))
                         .font(.system(size: 12)).foregroundStyle(Theme.muted).textSelection(.enabled)
                 }
                 Spacer()
-                Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([app.url]) }
+                Button(String(localized: "Afficher dans le Finder")) { NSWorkspace.shared.activateFileViewerSelecting([app.url]) }
                     .buttonStyle(PillButtonStyle(kind: .small))
             }
 
             VStack(spacing: 0) {
-                partRow(path: app.url.path, kind: app.fromAppStore ? "Application (App Store)" : "Application", bytes: app.bytes, on: true, fixed: true) {}
+                partRow(path: app.url.path, kind: app.fromAppStore ? String(localized: "Application (App Store)") : "Application", bytes: app.bytes, on: true, fixed: true) {}
                 ForEach(entry.parts) { part in
                     Divider().opacity(0.5)
                     partRow(path: part.part.url.abbreviatingHome(), kind: part.part.kind, bytes: part.bytes, on: isOn(part),
@@ -142,27 +142,27 @@ struct UninstallerPage: View {
             }
             .background(Theme.raised.opacity(0.55), in: .rect(cornerRadius: 14, style: .continuous))
 
-            Toggle("Garder les réglages (réinstallation plus tard)", isOn: $keepPreferences)
+            Toggle(String(localized: "Garder les réglages (réinstallation plus tard)"), isOn: $keepPreferences)
                 .toggleStyle(.checkbox)
                 .disabled(!entry.parts.contains { $0.part.isPreference })
 
             if running != nil {
-                notice("\(app.name) est ouverte. Elle sera quittée proprement avant la désinstallation.", color: Theme.orange)
+                notice(String(localized: "\(app.name) est ouverte. Elle sera quittée proprement avant la désinstallation."), color: Theme.orange)
             }
             if let cask = entry.cask {
-                notice("Installée via Homebrew : la désinstallation passera par brew uninstall --cask \(cask), puis ses données iront à la corbeille.", color: Theme.accent)
+                notice(String(localized: "Installée via Homebrew : la désinstallation passera par brew uninstall --cask \(cask), puis ses données iront à la corbeille."), color: Theme.accent)
             } else if !app.deletable {
-                notice("Cette app appartient au système (App Store ou installeur) : le Finder demandera votre mot de passe pour la mettre à la corbeille.", color: Theme.muted)
+                notice(String(localized: "Cette app appartient au système (App Store ou installeur) : le Finder demandera votre mot de passe pour la mettre à la corbeille."), color: Theme.muted)
             }
             if entry.parts.contains(where: { $0.part.isContainer }) {
-                Text("Le conteneur d’une app sandboxée n’est pas mesuré : macOS demande une autorisation pour le lire.")
+                Text(String(localized: "Le conteneur d’une app sandboxée n’est pas mesuré : macOS demande une autorisation pour le lire."))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
 
             HStack {
                 (Text("À libérer ") + Text(Format.bytes(total)).bold()).font(.system(size: 15))
                 Spacer()
-                Button("Désinstaller \(app.name)…") { uninstall(entry, parts: chosen, running: running) }
+                Button(String(localized: "Désinstaller \(app.name)…")) { uninstall(entry, parts: chosen, running: running) }
                     .buttonStyle(.primary(tint: Theme.red))
             }
         }
@@ -189,7 +189,7 @@ struct UninstallerPage: View {
                 Text(kind).font(.system(size: 11)).foregroundStyle(Theme.muted)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            Text(bytes.map(Format.bytes) ?? "non mesuré").font(.system(size: 13, weight: .semibold)).monospacedDigit()
+            Text(bytes.map(Format.bytes) ?? String(localized: "non mesuré")).font(.system(size: 13, weight: .semibold)).monospacedDigit()
                 .foregroundStyle(bytes == nil ? Theme.muted : .primary)
         }
         .padding(.horizontal, 12)
@@ -198,7 +198,7 @@ struct UninstallerPage: View {
         .onTapGesture { if !fixed { toggle() } }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
-        .accessibilityValue(on ? "coché" : "non coché")
+        .accessibilityValue(on ? String(localized: "coché") : String(localized: "non coché"))
     }
 
     private func uninstall(_ entry: AppEntry, parts: [AppEntry.PartSize], running: ProcessTarget?) {

@@ -14,7 +14,7 @@ struct LAtelierApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("L’Atelier", id: "main") {
+        WindowGroup(String(localized: "L’Atelier"), id: "main") {
             // Captures : LATELIER_MENU_PREVIEW=1 montre le menu de la barre des menus dans la fenêtre.
             if ProcessInfo.processInfo.environment["LATELIER_MENU_PREVIEW"] == "1" {
                 MenuBarContent().environment(model)
@@ -28,17 +28,17 @@ struct LAtelierApp: App {
         .commands {
             SidebarCommands()
             CommandGroup(replacing: .appSettings) {
-                Button("Réglages…") { model.selection = .reglages }
+                Button(String(localized: "Réglages…")) { model.selection = .reglages }
                     .keyboardShortcut(",", modifiers: .command)
             }
             CommandGroup(replacing: .help) {
-                Button("Signaler un problème…") { model.reportIssue(.bug) }
-                Button("Proposer une idée…") { model.reportIssue(.idea) }
+                Button(String(localized: "Signaler un problème…")) { model.reportIssue(.bug) }
+                Button(String(localized: "Proposer une idée…")) { model.reportIssue(.idea) }
                 Divider()
-                Button("Nouveautés de L’Atelier") {
+                Button(String(localized: "Nouveautés de L’Atelier")) {
                     if let url = URL(string: "https://github.com/\(model.repository)/releases") { NSWorkspace.shared.open(url) }
                 }
-                Button("Revoir l’accueil…") { model.showOnboarding = true }
+                Button(String(localized: "Revoir l’accueil…")) { model.showOnboarding = true }
             }
         }
 
@@ -100,11 +100,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func statusMenu() -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(item("Ouvrir L’Atelier", #selector(openMain)))
-        menu.addItem(item("Moniteur", #selector(openMonitor)))
-        menu.addItem(item("Réglages…", #selector(openSettings), key: ","))
+        menu.addItem(item(String(localized: "Ouvrir L’Atelier"), #selector(openMain)))
+        menu.addItem(item(String(localized: "Moniteur"), #selector(openMonitor)))
+        menu.addItem(item(String(localized: "Réglages…"), #selector(openSettings), key: ","))
         menu.addItem(.separator())
-        menu.addItem(item("Quitter L’Atelier", #selector(quit), key: "q"))
+        menu.addItem(item(String(localized: "Quitter L’Atelier"), #selector(quit), key: "q"))
         return menu
     }
 

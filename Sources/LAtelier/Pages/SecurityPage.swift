@@ -16,14 +16,14 @@ struct SecurityPage: View {
     var body: some View {
         let store = model.analysis
         PageScaffold(page: .securite, subtitle: subtitle) {
-            Button("Analyser maintenant") { model.scanAnalysis(force: true) }
+            Button(String(localized: "Analyser maintenant")) { model.scanAnalysis(force: true) }
                 .buttonStyle(.secondary)
                 .disabled(store.loading)
         } content: {
             if let analysis = store.value {
                 content(scope.map { Self.limited(analysis, to: $0) } ?? analysis)
             } else {
-                ScanningCard(label: "Lecture des dépendances de chaque projet et interrogation d’OSV.dev…")
+                ScanningCard(label: String(localized: "Lecture des dépendances de chaque projet et interrogation d’OSV.dev…"))
             }
         }
         .onAppear {
@@ -39,10 +39,10 @@ struct SecurityPage: View {
     }
 
     private var subtitle: String {
-        guard let analysis = model.analysis.value else { return "Seuls des noms et versions de paquets sont envoyés à OSV.dev" }
-        if model.analysis.loading { return "Analyse en cours…" }
-        let ago = analysis.checkedAt.formatted(.relative(presentation: .named, unitsStyle: .wide).locale(Locale(identifier: "fr_FR")))
-        return "\(analysis.projectCount) projets analysés via OSV.dev · \(ago) · seuls noms et versions de paquets sont envoyés"
+        guard let analysis = model.analysis.value else { return String(localized: "Seuls des noms et versions de paquets sont envoyés à OSV.dev") }
+        if model.analysis.loading { return String(localized: "Analyse en cours…") }
+        let ago = analysis.checkedAt.formatted(.relative(presentation: .named, unitsStyle: .wide).locale(Locale.current))
+        return String(localized: "\(analysis.projectCount) projets analysés via OSV.dev · \(ago) · seuls noms et versions de paquets sont envoyés")
     }
 
     /// Arrivée depuis une news : la faille de cette dépendance est dépliée.
@@ -94,11 +94,11 @@ struct SecurityPage: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 Text("Vulnérabilités dans les dépendances").font(.system(size: 15, weight: .semibold))
-                Text("\(scoped.reduce(0) { $0 + $1.findings.count }) failles dans \(scoped.count) paquets")
+                Text(String(localized: "\(scoped.reduce(0) { $0 + $1.findings.count }) failles dans \(scoped.count) paquets"))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
                 Spacer()
                 if scope == nil { projectMenu(analysis, names: names) }
-                Toggle("Directes seulement", isOn: $directOnly)
+                Toggle(String(localized: "Directes seulement"), isOn: $directOnly)
                     .toggleStyle(.checkbox)
                     .font(.system(size: 12))
             }
@@ -108,8 +108,8 @@ struct SecurityPage: View {
             }
             if visible.isEmpty {
                 Card {
-                    EmptyState(symbol: "checkmark.shield", title: all.isEmpty ? "Aucune faille connue" : "Rien pour ce filtre",
-                               message: all.isEmpty ? "OSV.dev ne connaît aucune faille pour les versions utilisées." : nil)
+                    EmptyState(symbol: "checkmark.shield", title: all.isEmpty ? String(localized: "Aucune faille connue") : String(localized: "Rien pour ce filtre"),
+                               message: all.isEmpty ? String(localized: "OSV.dev ne connaît aucune faille pour les versions utilisées.") : nil)
                 }
             }
             LazyVStack(spacing: 8) {
@@ -122,12 +122,12 @@ struct SecurityPage: View {
             }
             HStack(spacing: 10) {
                 if visible.count > limit {
-                    Button("Afficher \(min(25, visible.count - limit)) de plus") { limit += 25 }.buttonStyle(.small)
+                    Button(String(localized: "Afficher \(min(25, visible.count - limit)) de plus")) { limit += 25 }.buttonStyle(.small)
                 }
                 Spacer()
                 let fixable = visible.prefix(limit).filter { DependencyFix.fix($0) != nil }
                 if fixable.count > 1, let plan = DependencyFix.fixPlan(Array(fixable)) {
-                    Button("Corriger les \(fixable.count) paquets affichés…") { model.preview(plan) }
+                    Button(String(localized: "Corriger les \(fixable.count) paquets affichés…")) { model.preview(plan) }
                         .buttonStyle(.small)
                 }
             }
@@ -166,15 +166,15 @@ struct SecurityPage: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selected ? .isSelected : [])
-                .accessibilityLabel("\(level.label) : \(packages.filter { $0.severity == level }.count) paquets")
+                .accessibilityLabel(String(localized: "\(level.label) : \(packages.filter { $0.severity == level }.count) paquets"))
             }
         }
     }
 
     private func projectMenu(_ analysis: ProjectAnalysis, names: [URL: String]) -> some View {
         let projects = Set(analysis.vulnerabilities.compactMap(\.project)).sorted { (names[$0] ?? "") < (names[$1] ?? "") }
-        return Menu(project.flatMap { names[$0] } ?? "Tous les projets") {
-            Button("Tous les projets") { project = nil }
+        return Menu(project.flatMap { names[$0] } ?? String(localized: "Tous les projets")) {
+            Button(String(localized: "Tous les projets")) { project = nil }
             Divider()
             ForEach(projects, id: \.self) { url in
                 Button("\(names[url] ?? url.lastPathComponent) (\(analysis.vulnerabilityCount(project: url)))") { project = url }
@@ -191,7 +191,7 @@ struct SecurityPage: View {
     private var installedPackages: some View {
         let vulnerable = model.packages.packages.filter { !$0.vulnerabilities.isEmpty }
         if !vulnerable.isEmpty {
-            Card(title: "Paquets installés globalement", trailing: "npm -g et cargo") {
+            Card(title: String(localized: "Paquets installés globalement"), trailing: String(localized: "npm -g et cargo")) {
                 ForEach(vulnerable) { package in
                     let worst = package.vulnerabilities.map(\.severity).max() ?? .unknown
                     HStack(spacing: 12) {
@@ -203,7 +203,7 @@ struct SecurityPage: View {
                         }
                         Spacer()
                         if package.hasUpdate {
-                            Button("Voir la mise à jour") { model.selection = .majs }.buttonStyle(.small)
+                            Button(String(localized: "Voir la mise à jour")) { model.selection = .majs }.buttonStyle(.small)
                         }
                     }
                 }
@@ -217,7 +217,7 @@ struct SecurityPage: View {
         let secrets = analysis.secrets
         let red = Color(hex: 0xFF3B30)
         return VStack(alignment: .leading, spacing: 8) {
-            Text("Secrets commités · \(secrets.count)")
+            Text(String(localized: "Secrets commités · \(secrets.count)"))
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(secrets.isEmpty ? Color.primary : Tag.red.0)
             if secrets.isEmpty {
@@ -231,16 +231,16 @@ struct SecurityPage: View {
                             + Text(secret.file + (secret.line.map { ":\($0)" } ?? "")).font(.system(size: 12).monospaced()))
                             .font(.system(size: 13))
                             .lineLimit(1)
-                        Text(secret.isEnvFile ? "suivi par git, contient \(secret.detail)" : "\(secret.kind) : \(secret.detail)")
+                        Text(secret.isEnvFile ? String(localized: "suivi par git, contient \(secret.detail)") : "\(secret.kind) : \(secret.detail)")
                             .font(.system(size: 12))
                             .foregroundStyle(Theme.muted)
                             .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     if secret.isEnvFile {
-                        Button("Ne plus suivre") { model.preview(SecretScanner.untrackPlan(secret)) }
+                        Button(String(localized: "Ne plus suivre")) { model.preview(SecretScanner.untrackPlan(secret)) }
                             .buttonStyle(.small)
-                            .help("git rm --cached, puis ajout au .gitignore (aperçu avant)")
+                            .help(String(localized: "git rm --cached, puis ajout au .gitignore (aperçu avant)"))
                     } else {
                         Button("Ouvrir") { NSWorkspace.shared.open(secret.project.appending(path: secret.file)) }
                             .buttonStyle(.small)
@@ -248,13 +248,13 @@ struct SecurityPage: View {
                 }
             }
             if secrets.count > 5 {
-                Button(allSecrets ? "Réduire" : "Afficher les \(secrets.count - 5) autres") { allSecrets.toggle() }
+                Button(allSecrets ? String(localized: "Réduire") : String(localized: "Afficher les \(secrets.count - 5) autres")) { allSecrets.toggle() }
                     .buttonStyle(.plain)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Theme.accent)
             }
             if !secrets.isEmpty {
-                Text("À faire : changer la clé chez le fournisseur ; elle reste dans l’historique git.")
+                Text(String(localized: "À faire : changer la clé chez le fournisseur ; elle reste dans l’historique git."))
                     .font(.system(size: 12)).foregroundStyle(Tag.red.0.opacity(0.85))
             }
         }
@@ -272,7 +272,7 @@ struct SecurityPage: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Runtimes en fin de vie · \(analysis.endOfLife.count)").font(.system(size: 15, weight: .semibold))
             if analysis.endOfLife.isEmpty {
-                Text("Aucun projet ne fixe une version de Node ou Python arrivée en fin de vie.")
+                Text(String(localized: "Aucun projet ne fixe une version de Node ou Python arrivée en fin de vie."))
                     .font(.system(size: 13)).foregroundStyle(Theme.muted)
             }
             ForEach(analysis.endOfLife) { pin in
@@ -281,7 +281,7 @@ struct SecurityPage: View {
                     + Text("(\(Set(pin.uses.map(\.file)).sorted().joined(separator: ", ")))").foregroundStyle(Tag.orange.0))
                     .font(.system(size: 13))
             }
-            Button("Voir les runtimes installés →") { model.selection = .runtimes }
+            Button(String(localized: "Voir les runtimes installés →")) { model.selection = .runtimes }
                 .buttonStyle(.plain)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.accent)
@@ -300,22 +300,22 @@ struct SecurityPage: View {
                 Text("Rien à signaler.").font(.system(size: 13)).foregroundStyle(Theme.muted)
             }
             if !hygiene.withoutRemote.isEmpty {
-                line("\(plural(hygiene.withoutRemote.count, "dépôt")) sans remote (non sauvegardé\(hygiene.withoutRemote.count > 1 ? "s" : ""))",
+                line((hygiene.withoutRemote.count > 1 ? String(localized: "\(plural(hygiene.withoutRemote.count, String(localized: "dépôt"))) sans remote (non sauvegardés)") : String(localized: "\(plural(hygiene.withoutRemote.count, String(localized: "dépôt"))) sans remote (non sauvegardé)")),
                      help: hygiene.withoutRemote.joined(separator: ", "))
             }
             if !hygiene.withoutLockfile.isEmpty {
-                line("\(plural(hygiene.withoutLockfile.count, "projet")) sans lockfile",
+                line(String(localized: "\(plural(hygiene.withoutLockfile.count, "projet")) sans lockfile"),
                      help: hygiene.withoutLockfile.map { "\($0.project) (\($0.manifest))" }.joined(separator: ", "))
             }
             if !hygiene.duplicateLockfiles.isEmpty {
-                line("\(plural(hygiene.duplicateLockfiles.count, "projet")) avec deux lockfiles",
+                line(String(localized: "\(plural(hygiene.duplicateLockfiles.count, "projet")) avec deux lockfiles"),
                      help: hygiene.duplicateLockfiles.map { "\($0.project) : \($0.files.joined(separator: " + "))" }.joined(separator: "\n"))
             }
             if !hygiene.trackedEnvFiles.isEmpty {
-                line("\(plural(hygiene.trackedEnvFiles.count, "fichier")) .env suivi\(hygiene.trackedEnvFiles.count > 1 ? "s" : "") par git, sans valeur sensible",
+                line((hygiene.trackedEnvFiles.count > 1 ? String(localized: "\(plural(hygiene.trackedEnvFiles.count, "fichier")) .env suivis par git, sans valeur sensible") : String(localized: "\(plural(hygiene.trackedEnvFiles.count, "fichier")) .env suivi par git, sans valeur sensible")),
                      help: hygiene.trackedEnvFiles.map { "\($0.projectName)/\($0.file)" }.joined(separator: "\n"))
             }
-            Button("Voir les modifications →") { model.selection = .modifications }
+            Button(String(localized: "Voir les modifications →")) { model.selection = .modifications }
                 .buttonStyle(.plain)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.accent)
@@ -355,7 +355,7 @@ private struct VulnerabilityRow: View {
                             Text(" · ")
                             Text("\(package.dependency.name)@\(package.dependency.version) · \(package.headline.vulnerability.displayID)")
                                 .font(.system(size: 12).monospaced())
-                            if !package.dependency.direct { Text(" · indirecte") }
+                            if !package.dependency.direct { Text(String(localized: " · indirecte")) }
                             if package.dependency.dev { Text(" · dev") }
                         }
                         .font(.system(size: 12))
@@ -366,18 +366,18 @@ private struct VulnerabilityRow: View {
                     .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .accessibilityValue(open ? "déplié" : "replié")
+                .accessibilityValue(open ? String(localized: "déplié") : String(localized: "replié"))
                 action
                 if let project = package.project {
                     Button("Corriger avec Claude", systemImage: "sparkles") {
                         model.askClaude(project, prompt: ClaudePrompts.fixVulnerability(
                             package: package.dependency.name, version: package.dependency.version, fixed: package.fixedVersion,
                             ids: package.findings.map(\.vulnerability.displayID), manifest: package.file
-                        ), context: "Faille dans \(package.dependency.name)")
+                        ), context: String(localized: "Faille dans \(package.dependency.name)"))
                     }
                     .labelStyle(.iconOnly)
                     .buttonStyle(.small)
-                    .help("Corriger avec Claude : la consigne est montrée avant l’ouverture")
+                    .help(String(localized: "Corriger avec Claude : la consigne est montrée avant l’ouverture"))
                 }
             }
             if open { details }
@@ -392,21 +392,21 @@ private struct VulnerabilityRow: View {
 
     private var title: String {
         let extra = package.findings.count - 1
-        return package.headline.vulnerability.summary + (extra > 0 ? " (+\(extra) autre\(extra > 1 ? "s" : ""))" : "")
+        return package.headline.vulnerability.summary + (extra > 0 ? (extra > 1 ? String(localized: " (+\(extra) autres)") : String(localized: " (+\(extra) autre)")) : "")
     }
 
     @ViewBuilder
     private var action: some View {
         if let fixed = package.fixedVersion {
             if DependencyFix.fix(package) != nil {
-                Button("Mettre à jour vers \(fixed)") {
+                Button(String(localized: "Mettre à jour vers \(fixed)")) {
                     if let plan = DependencyFix.fixPlan([package]) { model.preview(plan) }
                 }
                 .buttonStyle(PillButtonStyle(kind: .smallFilled))
                 .disabled(!toolAvailable)
-                .help(toolAvailable ? (DependencyFix.fix(package)?.displayString ?? "") : "\(toolName) introuvable sur cette machine")
+                .help(toolAvailable ? (DependencyFix.fix(package)?.displayString ?? "") : String(localized: "\(toolName) introuvable sur cette machine"))
             } else {
-                Text("Corrigé en \(fixed) · à changer dans \(package.file)")
+                Text(String(localized: "Corrigé en \(fixed) · à changer dans \(package.file)"))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
         } else {
@@ -430,7 +430,7 @@ private struct VulnerabilityRow: View {
                         .frame(width: 170, alignment: .leading)
                     Text(finding.vulnerability.summary).font(.system(size: 12)).lineLimit(1)
                     Spacer()
-                    Text(finding.fixedVersion.map { "corrigé en \($0)" } ?? "sans correctif")
+                    Text(finding.fixedVersion.map { String(localized: "corrigé en \($0)") } ?? String(localized: "sans correctif"))
                         .font(.system(size: 12).monospaced())
                         .foregroundStyle(Theme.muted)
                 }

@@ -33,8 +33,8 @@ struct NewsPage: View {
             }
             .buttonStyle(PillButtonStyle(kind: .small))
             .disabled(news.refreshing)
-            .help("Relire les sources")
-            Button("Tout marquer comme lu") { news.markAllRead(items) }
+            .help(String(localized: "Relire les sources"))
+            Button(String(localized: "Tout marquer comme lu")) { news.markAllRead(items) }
                 .buttonStyle(PillButtonStyle(kind: .secondary))
                 .disabled(items.allSatisfy { news.isRead($0) })
         } content: {
@@ -60,14 +60,14 @@ struct NewsPage: View {
     }
 
     private func subtitle(unread: Int, _ news: NewsStore) -> String {
-        var text = "\(unread) non lue\(unread > 1 ? "s" : "")"
+        var text = (unread > 1 ? String(localized: "\(unread) non lues") : String(localized: "\(unread) non lue"))
         switch mode {
-        case .forYou: text += " · sujets choisis d’après vos projets et paquets"
-        case .cyber: text += " · avis de sécurité croisés avec vos dépendances et paquets"
+        case .forYou: text += String(localized: " · sujets choisis d’après vos projets et paquets")
+        case .cyber: text += String(localized: " · avis de sécurité croisés avec vos dépendances et paquets")
         case .languages: text += " · blogs officiels des langages et outils"
         case .favorites: text = "\(news.favorites.count) article\(news.favorites.count > 1 ? "s" : "") gardé\(news.favorites.count > 1 ? "s" : "")"
         }
-        if let last = news.state.lastRefresh { text += " · lu \(FrenchDate.relative(last))" }
+        if let last = news.state.lastRefresh { text += String(localized: " · lu \(FrenchDate.relative(last))") }
         return text
     }
 
@@ -97,16 +97,16 @@ struct NewsPage: View {
         var list: [(id: String, label: String)] = []
         switch mode {
         case .forYou:
-            list = [("main", "Pour vous"), ("all", "Tout")]
+            list = [("main", String(localized: "Pour vous")), ("all", String(localized: "Tout"))]
         case .cyber:
-            list = [("main", "Tous les avis"), ("mine", "Vous concernent"), ("critical", "Critiques"), ("kev", "Activement exploitées")]
+            list = [("main", String(localized: "Tous les avis")), ("mine", String(localized: "Vous concernent")), ("critical", String(localized: "Critiques")), ("kev", String(localized: "Activement exploitées"))]
         case .languages, .favorites:
-            list = [("main", mode == .favorites ? "★ Favoris" : "Tous")]
+            list = [("main", mode == .favorites ? String(localized: "★ Favoris") : String(localized: "Tous"))]
             var counts: [String: Int] = [:]
             for item in items { counts[item.topic, default: 0] += 1 }
             list += counts.sorted { ($1.value, $0.key) < ($0.value, $1.key) }.map { ($0.key, $0.key) }
         }
-        if mode != .forYou { list.append(("unread", "Non lues")) }
+        if mode != .forYou { list.append(("unread", String(localized: "Non lues"))) }
         return GlassSegments(selection: Binding(get: { filter }, set: { filter = $0; limit = 60 }), items: list, compact: true)
     }
 
@@ -115,7 +115,7 @@ struct NewsPage: View {
     @ViewBuilder
     private func articles(_ items: [NewsItem], _ news: NewsStore) -> some View {
         if !news.loaded || (news.state.lastRefresh == nil && news.refreshing) {
-            ScanningCard(label: "Lecture des sources…")
+            ScanningCard(label: String(localized: "Lecture des sources…"))
         } else if items.isEmpty {
             Card {
                 EmptyState(
@@ -133,7 +133,7 @@ struct NewsPage: View {
                     }
                 }
                 if items.count > limit {
-                    Button("Afficher \(min(60, items.count - limit)) de plus (\(items.count - limit) restants)") { limit += 60 }
+                    Button(String(localized: "Afficher \(min(60, items.count - limit)) de plus (\(items.count - limit) restants)")) { limit += 60 }
                         .buttonStyle(PillButtonStyle(kind: .small))
                         .padding(.top, 4)
                 }
@@ -142,20 +142,20 @@ struct NewsPage: View {
     }
 
     private func emptyTitle(_ news: NewsStore) -> String {
-        if news.state.lastRefresh == nil { return "Pas encore de news" }
+        if news.state.lastRefresh == nil { return String(localized: "Pas encore de news") }
         return switch mode {
-        case .favorites: "Aucun favori"
+        case .favorites: String(localized: "Aucun favori")
         case .cyber: filter == "mine" ? "Aucun avis ne vous concerne" : "Aucun avis"
-        default: "Rien de nouveau"
+        default: String(localized: "Rien de nouveau")
         }
     }
 
     private func emptyMessage(_ news: NewsStore) -> String {
-        if news.state.lastRefresh == nil { return "Les sources seront lues dès que la connexion le permet. Le bouton ↻ relance la lecture." }
+        if news.state.lastRefresh == nil { return String(localized: "Les sources seront lues dès que la connexion le permet. Le bouton ↻ relance la lecture.") }
         return switch mode {
-        case .favorites: "L’étoile d’un article le garde ici, même quand il quitte le flux."
-        case .cyber: "Les avis qui touchent une dépendance d’un projet ou un paquet installé sont signalés ici."
-        default: "Aucun article pour ce filtre. Les sujets suivis se règlent dans News › Sources."
+        case .favorites: String(localized: "L’étoile d’un article le garde ici, même quand il quitte le flux.")
+        case .cyber: String(localized: "Les avis qui touchent une dépendance d’un projet ou un paquet installé sont signalés ici.")
+        default: String(localized: "Aucun article pour ce filtre. Les sujets suivis se règlent dans News › Sources.")
         }
     }
 }
@@ -191,13 +191,13 @@ private struct AlertBanner: View {
                     .font(.system(size: 20))
                     .foregroundStyle(Tag.red.0)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Vous êtes concerné : \(item.title)")
+                    Text(String(localized: "Vous êtes concerné : \(item.title)"))
                         .font(.system(size: 14, weight: .semibold)).lineLimit(2)
                     Text(detail(match))
                         .font(.system(size: 13)).lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                Text(match.map(AppModel.fixLabel) ?? "Voir →")
+                Text(match.map(AppModel.fixLabel) ?? String(localized: "Voir →"))
                     .font(.system(size: 13, weight: .semibold))
             }
             .foregroundStyle(Tag.red.0)
@@ -216,7 +216,7 @@ private struct AlertBanner: View {
         if let project = match.project { text += " dans \(model.projectName(project))" } else { text += " · \(match.place)" }
         if let fixed = match.fixed { text += ". Corrigé en \(fixed)." }
         let others = Set(matches.compactMap(\.project)).count - (match.project == nil ? 0 : 1)
-        if others > 0 { text += " Et \(others) autre\(others > 1 ? "s" : "") projet\(others > 1 ? "s" : "")." }
+        if others > 0 { text += (others > 1 ? String(localized: " Et \(others) autres projets.") : String(localized: " Et \(others) autre projet.")) }
         return text
     }
 }
@@ -240,7 +240,7 @@ private struct ArticleRow: View {
                 .fill(read ? Color.clear : Theme.accent)
                 .frame(width: 8, height: 8)
                 .padding(.top, 7)
-                .accessibilityLabel(read ? "" : "Non lu")
+                .accessibilityLabel(read ? "" : String(localized: "Non lu"))
             VStack(alignment: .leading, spacing: 4) {
                 meta(matches: matches, confirmed: confirmed)
                 Button(action: toggle) {
@@ -251,11 +251,11 @@ private struct ArticleRow: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .accessibilityValue(expanded ? "déplié" : "replié")
+                .accessibilityValue(expanded ? String(localized: "déplié") : String(localized: "replié"))
                 if !expanded, let first = matches.first(where: \.confirmed) ?? matches.first {
                     HStack(spacing: 8) {
                         Text("\(first.package) \(first.version ?? "")" + (first.project.map { " · \(model.projectName($0))" } ?? " · \(first.place)")
-                             + (matches.count > 1 ? " et \(matches.count - 1) autre\(matches.count > 2 ? "s" : "")" : ""))
+                             + (matches.count > 1 ? (matches.count > 2 ? String(localized: " et \(matches.count - 1) autres") : String(localized: " et \(matches.count - 1) autre")) : ""))
                             .font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1)
                         Button(AppModel.fixLabel(first)) {
                             model.news.markRead(item)
@@ -274,19 +274,19 @@ private struct ArticleRow: View {
                     .contentShape(.circle)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(starred ? "Retirer des favoris" : "Ajouter aux favoris")
+            .accessibilityLabel(starred ? String(localized: "Retirer des favoris") : String(localized: "Ajouter aux favoris"))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .background(matches.isEmpty || read ? Theme.cardFill : Theme.raised, in: .rect(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.cardBorder))
         .contextMenu {
-            Button(read ? "Marquer comme non lu" : "Marquer comme lu") {
+            Button(read ? String(localized: "Marquer comme non lu") : String(localized: "Marquer comme lu")) {
                 if read { model.news.markUnread(item) } else { model.news.markRead(item) }
             }
             if let link = item.link {
-                Link("Ouvrir dans le navigateur", destination: link)
-                Button("Copier le lien") {
+                Link(String(localized: "Ouvrir dans le navigateur"), destination: link)
+                Button(String(localized: "Copier le lien")) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(link.absoluteString, forType: .string)
                 }
@@ -303,12 +303,12 @@ private struct ArticleRow: View {
             Text(FrenchDate.relative(item.date))
             if let severity = item.severity, item.category == .cyber {
                 Text("·")
-                Text(item.exploited ? "exploitée" : severityLabel(severity))
+                Text(item.exploited ? String(localized: "exploitée") : severityLabel(severity))
                     .fontWeight(.semibold)
                     .foregroundStyle(item.isSevere ? Tag.red.0 : Theme.muted)
             }
             if !matches.isEmpty {
-                Text(confirmed ? "· Vous concerne" : "· Peut vous concerner")
+                Text(confirmed ? String(localized: "· Vous concerne") : String(localized: "· Peut vous concerner"))
                     .fontWeight(.bold)
                     .foregroundStyle(confirmed ? Tag.red.0 : Tag.orange.0)
             }
@@ -321,7 +321,7 @@ private struct ArticleRow: View {
     private func severityLabel(_ severity: String) -> String {
         switch severity {
         case "critical": "critique"
-        case "high": "élevée"
+        case "high": String(localized: "élevée")
         case "moderate", "medium": "moyenne"
         case "low": "faible"
         default: severity
@@ -355,7 +355,7 @@ private struct ArticleRow: View {
         }
         HStack(spacing: 14) {
             if let link = item.link {
-                Link("Lire l’article complet ↗", destination: link)
+                Link(String(localized: "Lire l’article complet ↗"), destination: link)
                     .font(.system(size: 13, weight: .semibold))
             }
             if let cve = item.cve {
@@ -388,7 +388,7 @@ private struct MatchRow: View {
     private var label: String {
         var text = "\(match.package) \(match.version ?? "")"
         if let project = match.project {
-            text += " · \(model.projectName(project)) (\(match.place)\(match.direct ? "" : ", indirecte"))"
+            text += " · \(model.projectName(project)) (\(match.place)\(match.direct ? "" : String(localized: ", indirecte")))"
         } else {
             text += " · \(match.place)"
         }
@@ -424,7 +424,7 @@ private struct SourcesPanel: View {
                 .toggleStyle(.checkbox)
                 .frame(minHeight: 30)
             }
-            Button("+ Ajouter un flux RSS") { model.selection = .sources }
+            Button(String(localized: "+ Ajouter un flux RSS")) { model.selection = .sources }
                 .buttonStyle(.plain)
                 .font(.system(size: 13))
                 .frame(maxWidth: .infinity, minHeight: 34)

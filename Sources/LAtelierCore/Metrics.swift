@@ -58,7 +58,7 @@ public enum MemoryPressure: Int, Sendable {
     public var label: String {
         switch self {
         case .normal: "normale"
-        case .warning: "élevée"
+        case .warning: String(localized: "élevée")
         case .critical: "critique"
         }
     }
@@ -113,7 +113,7 @@ public struct PowerSnapshot: Sendable, Equatable {
     public var thermalLabel: String {
         switch thermal {
         case .nominal: "normal"
-        case .fair: "tiède"
+        case .fair: String(localized: "tiède")
         case .serious: "chaud"
         case .critical: "critique"
         @unknown default: "inconnu"

@@ -6,12 +6,12 @@ public enum CommandCategory: Int, Sendable, CaseIterable, Codable, Comparable {
 
     public var title: String {
         switch self {
-        case .run: "Lancer"
-        case .test: "Tester"
-        case .build: "Construire"
-        case .quality: "Qualité"
-        case .deploy: "Déployer"
-        case .other: "Autres"
+        case .run: String(localized: "Lancer")
+        case .test: String(localized: "Tester")
+        case .build: String(localized: "Construire")
+        case .quality: String(localized: "Qualité")
+        case .deploy: String(localized: "Déployer")
+        case .other: String(localized: "Autres")
         }
     }
 
@@ -303,7 +303,7 @@ public enum ProjectCommandDetector {
             else if deps.contains("@biomejs/biome") { line = ("lint", "biome check .") }
             if let line, let edit = addScript(line.0, line.1, to: json, file: file) {
                 result.append(CommandSuggestion(
-                    kind: .addLint, title: "Ajouter une commande « lint »",
+                    kind: .addLint, title: String(localized: "Ajouter une commande « lint »"),
                     why: "\(line.1.split(separator: " ").first!) est dans les dépendances mais aucun script « lint » n’existe.",
                     preview: "\"\(line.0)\": \"\(line.1)\"", edit: edit
                 ))
@@ -315,8 +315,8 @@ public enum ProjectCommandDetector {
             else if deps.contains("jest") { line = ("test:coverage", "jest --coverage") }
             if let line, let edit = addScript(line.0, line.1, to: json, file: file) {
                 result.append(CommandSuggestion(
-                    kind: .addCoverage, title: "Ajouter « test:coverage »",
-                    why: "Pour mesurer la couverture des tests (Projets › Couverture).",
+                    kind: .addCoverage, title: String(localized: "Ajouter « test:coverage »"),
+                    why: String(localized: "Pour mesurer la couverture des tests (Projets › Couverture)."),
                     preview: "\"\(line.0)\": \"\(line.1)\"", edit: edit
                 ))
             }
@@ -324,8 +324,8 @@ public enum ProjectCommandDetector {
         if !names.contains("typecheck"), deps.contains("typescript"), !bodies.contains("tsc") {
             if let edit = addScript("typecheck", "tsc --noEmit", to: json, file: file) {
                 result.append(CommandSuggestion(
-                    kind: .addTypecheck, title: "Ajouter « typecheck »",
-                    why: "TypeScript est installé mais rien ne vérifie les types sans construire.",
+                    kind: .addTypecheck, title: String(localized: "Ajouter « typecheck »"),
+                    why: String(localized: "TypeScript est installé mais rien ne vérifie les types sans construire."),
                     preview: "\"typecheck\": \"tsc --noEmit\"", edit: edit
                 ))
             }

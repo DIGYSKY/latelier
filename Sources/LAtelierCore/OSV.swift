@@ -6,11 +6,11 @@ public enum Severity: Int, Sendable, Codable, CaseIterable, Comparable {
 
     public var label: String {
         switch self {
-        case .critical: "Critique"
-        case .high: "Élevée"
-        case .moderate: "Modérée"
-        case .low: "Faible"
-        case .unknown: "Non notée"
+        case .critical: String(localized: "Critique")
+        case .high: String(localized: "Élevée")
+        case .moderate: String(localized: "Modérée")
+        case .low: String(localized: "Faible")
+        case .unknown: String(localized: "Non notée")
         }
     }
 
@@ -178,7 +178,7 @@ public struct OSVClient: Sendable {
     public enum Failure: Error, LocalizedError {
         case unreachable(String)
         public var errorDescription: String? {
-            switch self { case .unreachable(let reason): "OSV.dev injoignable : \(reason)" }
+            switch self { case .unreachable(let reason): String(localized: "OSV.dev injoignable : \(reason)") }
         }
     }
 
@@ -237,7 +237,7 @@ public struct OSVClient: Sendable {
         guard (response as? HTTPURLResponse)?.statusCode == 200,
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let results = object["results"] as? [[String: Any]] else {
-            throw Failure.unreachable("réponse inattendue (code \((response as? HTTPURLResponse)?.statusCode ?? 0))")
+            throw Failure.unreachable(String(localized: "réponse inattendue (code \((response as? HTTPURLResponse)?.statusCode ?? 0))"))
         }
         return results.map { result in
             ((result["vulns"] as? [[String: Any]]) ?? []).compactMap { vuln in
