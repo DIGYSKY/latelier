@@ -15,16 +15,23 @@ final class PortProbe {
     func check(_ port: Int) {
         if let last = checked[port], Date().timeIntervalSince(last) < 30 { return }
         checked[port] = Date()
-        guard let url = URL(string: "http://localhost:\(port)/") else { return }
-        var request = URLRequest(url: url, timeoutInterval: 1.5)
-        request.httpMethod = "HEAD"
         Task {
-            // Une vraie réponse HTTP a des en-têtes (une base de données ou un autre protocole n'en renvoie pas).
-            let ok = (try? await URLSession.shared.data(for: request)).map { response in
-                guard let http = response.1 as? HTTPURLResponse else { return false }
-                return (100..<600).contains(http.statusCode) && !http.allHeaderFields.isEmpty
-            } ?? false
-            http[port] = ok
+            http[port] = await Self.speaksHTTP(port)
+        }
+    }
+
+    /// Envoie « HEAD / HTTP/1.0 » sur le port local et exige une réponse qui commence par « HTTP/ ».
+    /// (Une base de données ou un autre protocole répond autrement, ou pas du tout.)
+    static func speaksHTTP(_ port: Int) async -> Bool {
+        let task = URLSession.shared.streamTask(withHostName: "localhost", port: port)
+        task.resume()
+        defer { task.cancel() }
+        do {
+            try await task.write(Data("HEAD / HTTP/1.0\r\nHost: localhost\r\n\r\n".utf8), timeout: 1.5)
+            let (data, _) = try await task.readData(ofMinLength: 5, maxLength: 64, timeout: 1.5)
+            return String(decoding: data ?? Data(), as: UTF8.self).hasPrefix("HTTP/")
+        } catch {
+            return false
         }
     }
 
@@ -34,28 +41,58 @@ final class PortProbe {
 /// Boutons d'un port en écoute : ouvrir dans le navigateur (si HTTP), copier l'adresse.
 struct PortActions: View {
     let port: ListeningPort
+    /// Icônes seules (cartes étroites), pour laisser la place au nom du processus.
+    var compact = false
     private var probe: PortProbe { .shared }
 
     var body: some View {
         let http = probe.http[port.port] == true
-        HStack(spacing: 6) {
+        HStack(spacing: compact ? 4 : 6) {
             if http {
                 Button {
                     if let url = URL(string: PortProbe.address(port.port, http: true)) { NSWorkspace.shared.open(url) }
-                } label: { Label("Ouvrir", systemImage: "safari").fixedSize() }
-                    .buttonStyle(PillButtonStyle(kind: .small))
-                    .help("Ouvrir http://localhost:\(port.port) dans le navigateur")
+                } label: {
+                    if compact { icon("safari") } else { Label("Ouvrir", systemImage: "safari").fixedSize() }
+                }
+                .buttonStyle(compactStyle)
+                .help("Ouvrir http://localhost:\(port.port) dans le navigateur")
             }
             Button {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(PortProbe.address(port.port, http: http), forType: .string)
-            } label: { Image(systemName: "doc.on.doc") }
-                .buttonStyle(PillButtonStyle(kind: .small))
+            } label: { compact ? AnyView(icon("doc.on.doc")) : AnyView(Image(systemName: "doc.on.doc")) }
+                .buttonStyle(compactStyle)
                 .help("Copier \(PortProbe.address(port.port, http: http))")
                 .accessibilityLabel("Copier l’adresse")
         }
         .onAppear { probe.check(port.port) }
     }
+
+    /// Petite icône ronde (cartes étroites).
+    private func icon(_ symbol: String) -> some View {
+        Image(systemName: symbol)
+            .font(.system(size: 11, weight: .medium))
+            .frame(width: 26, height: 26)
+            .background(Theme.raised, in: .circle)
+            .overlay(Circle().strokeBorder(Theme.hairline))
+            .contentShape(.circle)
+    }
+
+    private var compactStyle: AnyButtonStyle { compact ? AnyButtonStyle(BareButtonStyle()) : AnyButtonStyle(PillButtonStyle(kind: .small)) }
+}
+
+/// Bouton sans décor (l'étiquette dessine tout), légèrement estompé quand on appuie.
+struct BareButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.opacity(configuration.isPressed ? 0.6 : 1)
+    }
+}
+
+/// Style de bouton choisi à l'exécution.
+struct AnyButtonStyle: ButtonStyle {
+    private let make: (Configuration) -> AnyView
+    init<S: ButtonStyle>(_ style: S) { make = { AnyView(style.makeBody(configuration: $0)) } }
+    func makeBody(configuration: Configuration) -> some View { make(configuration) }
 }
 
 extension View {

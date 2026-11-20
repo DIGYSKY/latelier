@@ -120,7 +120,7 @@ struct UpdatesPage: View {
         .padding(.vertical, 10)
         .background {
             Capsule().fill(.regularMaterial)
-                .overlay(Capsule().fill(Color.white.opacity(0.35)))
+                .overlay(Capsule().fill(Theme.headerFill))
                 .overlay(Capsule().strokeBorder(Theme.cardBorder, lineWidth: 1))
                 .shadow(color: Theme.shadow.opacity(0.22), radius: 16, y: 12)
         }

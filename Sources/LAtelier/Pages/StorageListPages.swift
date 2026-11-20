@@ -86,7 +86,7 @@ struct AppsCleanupPage: View {
     private var deadLinksBanner: some View {
         let links = model.deadLinks
         return HStack(spacing: 12) {
-            Image(systemName: "lock.fill").font(.system(size: 16)).foregroundStyle(Color(hex: 0x4A2A8A))
+            Image(systemName: "lock.fill").font(.system(size: 16)).foregroundStyle(Color.adaptive(light: NSColor(hex: 0x4A2A8A), dark: NSColor(hex: 0xC9B3FF)))
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(links.count) lien\(links.count > 1 ? "s" : "") mort\(links.count > 1 ? "s" : "") dans /usr/local/bin")
                     .font(.system(size: 14, weight: .semibold))

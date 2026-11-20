@@ -289,11 +289,12 @@ private struct PortsCard: View {
                 HStack(spacing: 10) {
                     Text(":\(String(port.port))").font(.system(size: 13, weight: .bold).monospaced()).frame(minWidth: 52, alignment: .leading)
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("\(info.process) · PID \(port.pid)").font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                        Text(info.process).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                            .help("\(info.process) · PID \(port.pid)")
                         Text(info.note).font(.system(size: 11)).foregroundStyle(port.exposed ? Tag.orange.0 : Theme.muted).lineLimit(1)
                     }
                     Spacer(minLength: 0)
-                    PortActions(port: port)
+                    PortActions(port: port, compact: true).fixedSize()
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)

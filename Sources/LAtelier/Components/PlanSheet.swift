@@ -285,7 +285,7 @@ struct PlanSheet: View {
         .padding(.leading, 28)
         .padding(.trailing, 20)
         .padding(.vertical, 14)
-        .background(Color.white.opacity(0.4))
+        .background(Theme.headerFill)
         .overlay(alignment: .top) { Rectangle().fill(Theme.hairline).frame(height: 1) }
     }
 }

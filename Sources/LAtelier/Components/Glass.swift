@@ -6,14 +6,24 @@ import SwiftUI
 // fenêtre en verre blanc, cartes blanches translucides, boutons capsule.
 
 enum Theme {
-    static let accent = Color(hex: 0x0A6CDB)
-    static let red = Color(hex: 0xB42318)
-    static let orange = Color(hex: 0x9A4F00)
+    // En sombre, les couleurs de texte sont éclaircies pour garder un contraste lisible.
+    static let accent = Color.adaptive(light: NSColor(hex: 0x0A6CDB), dark: NSColor(hex: 0x3B8CF0))
+    static let red = Color.adaptive(light: NSColor(hex: 0xB42318), dark: NSColor(hex: 0xFF7B70))
+    static let orange = Color.adaptive(light: NSColor(hex: 0x9A4F00), dark: NSColor(hex: 0xFFB45C))
+    static let green = Color.adaptive(light: NSColor(hex: 0x1E7B34), dark: NSColor(hex: 0x7EE2A0))
+    /// Liens et identifiants (hash de commit, étiquettes bleues).
+    static let link = Color.adaptive(light: NSColor(hex: 0x0A5BBF), dark: NSColor(hex: 0x8CC2FF))
     static let muted = Color.adaptive(light: NSColor(hex: 0x4F4F56), dark: NSColor(white: 0.68, alpha: 1))
 
     /// Remplissage des cartes : blanc à 62 % en clair.
     static let cardFill = Color.adaptive(light: NSColor(white: 1, alpha: 0.62), dark: NSColor(white: 1, alpha: 0.07))
-    static let cardBorder = Color.adaptive(light: NSColor(white: 1, alpha: 0.85), dark: NSColor(white: 1, alpha: 0.12))
+    static let cardBorder = Color.adaptive(light: NSColor(white: 1, alpha: 0.85), dark: NSColor(white: 1, alpha: 0.06))
+    /// Reflet en haut des cartes : fort en clair, à peine visible en sombre.
+    static let cardShine = Color.adaptive(light: NSColor(white: 1, alpha: 0.95), dark: NSColor(white: 1, alpha: 0.12))
+    /// En-têtes de groupes et bandeaux dans une carte.
+    static let headerFill = Color.adaptive(light: NSColor(white: 1, alpha: 0.45), dark: NSColor(white: 1, alpha: 0.04))
+    /// Lignes et pastilles posées sur une carte.
+    static let rowFill = Color.adaptive(light: NSColor(white: 1, alpha: 0.5), dark: NSColor(white: 1, alpha: 0.05))
     /// Pastille active, boutons secondaires.
     static let raised = Color.adaptive(light: NSColor(white: 1, alpha: 0.9), dark: NSColor(white: 1, alpha: 0.14))
     static let hairline = Color.adaptive(light: NSColor(white: 0, alpha: 0.08), dark: NSColor(white: 1, alpha: 0.1))
@@ -184,7 +194,7 @@ extension View {
                 .overlay(alignment: .top) {
                     // Reflet en haut de la carte.
                     RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .strokeBorder(LinearGradient(colors: [.white.opacity(0.95), .white.opacity(0)], startPoint: .top, endPoint: .center), lineWidth: 1)
+                        .strokeBorder(LinearGradient(colors: [Theme.cardShine, .clear], startPoint: .top, endPoint: .center), lineWidth: 1)
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Theme.cardBorder, lineWidth: 1)
@@ -270,7 +280,7 @@ struct RiskBadge: View {
 
     var color: Color {
         switch risk {
-        case .safe: Color(hex: 0x1E7B34)
+        case .safe: Theme.green
         case .caution: Theme.orange
         case .danger: Theme.red
         case .protected: Theme.muted

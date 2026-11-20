@@ -74,7 +74,7 @@ struct DevPage: View {
                 ForEach(DevArtifactScanner.Kind.allCases, id: \.self) { chip($0, $0.label) }
             }
             .padding(4)
-            .background(Color.white.opacity(0.5), in: .capsule)
+            .background(Theme.rowFill, in: .capsule)
             .overlay(Capsule().strokeBorder(Theme.cardBorder))
         }
     }

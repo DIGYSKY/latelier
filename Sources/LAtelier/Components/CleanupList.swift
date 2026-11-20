@@ -48,7 +48,7 @@ private struct GroupCard: View {
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
-            .background(Color.white.opacity(group.tone == .normal ? 0.45 : 0.3))
+            .background(Theme.headerFill)
 
             ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
                 Rectangle().fill(Theme.hairline).frame(height: 1)
@@ -81,7 +81,7 @@ private struct CleanupRow: View {
                     if let tag = item.tag {
                         Text(tag)
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(Color(hex: 0x0A5BBF))
+                            .foregroundStyle(Theme.link)
                             .padding(.horizontal, 7)
                             .padding(.vertical, 2)
                             .background(Theme.accent.opacity(0.12), in: .capsule)
@@ -146,7 +146,7 @@ struct CleanupBar: View {
         .padding(.vertical, 10)
         .background {
             Capsule().fill(.regularMaterial)
-                .overlay(Capsule().fill(Color.white.opacity(0.35)))
+                .overlay(Capsule().fill(Theme.headerFill))
                 .overlay(Capsule().strokeBorder(Theme.cardBorder, lineWidth: 1))
                 .shadow(color: Theme.shadow.opacity(0.22), radius: 16, y: 12)
         }

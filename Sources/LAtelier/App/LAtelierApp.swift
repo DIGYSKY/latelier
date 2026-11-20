@@ -8,9 +8,14 @@ struct LAtelierApp: App {
 
     var body: some Scene {
         WindowGroup("L’Atelier", id: "main") {
-            RootView()
-                .environment(model)
-                .frame(minWidth: 960, minHeight: 620)
+            // Captures : LATELIER_MENU_PREVIEW=1 montre le menu de la barre des menus dans la fenêtre.
+            if ProcessInfo.processInfo.environment["LATELIER_MENU_PREVIEW"] == "1" {
+                MenuBarContent().environment(model)
+            } else {
+                RootView()
+                    .environment(model)
+                    .frame(minWidth: 960, minHeight: 620)
+            }
         }
         .defaultSize(width: 1280, height: 840)
         .commands {

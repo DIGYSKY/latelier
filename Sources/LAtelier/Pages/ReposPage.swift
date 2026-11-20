@@ -151,7 +151,7 @@ private struct RepoRow: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 11)
-            .background(Color.white.opacity(0.5), in: .rect(cornerRadius: 16, style: .continuous))
+            .background(Theme.rowFill, in: .rect(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.cardBorder))
             .contentShape(.rect)
         }
@@ -284,7 +284,7 @@ private struct FilterChips: View {
             }
         }
         .padding(4)
-        .background(Color.white.opacity(0.5), in: .capsule)
+        .background(Theme.rowFill, in: .capsule)
         .overlay(Capsule().strokeBorder(Theme.cardBorder))
     }
 }
@@ -304,10 +304,10 @@ struct StateLabel: View {
         case .modified: ("\(repo.changes.count) modifié\(repo.changes.count > 1 ? "s" : "")", Theme.orange)
         case .diverged: ("↑\(repo.ahead) ↓\(repo.behind) divergé", Theme.red)
         case .ahead: ("↑\(repo.ahead) à pousser", Theme.orange)
-        case .behind: ("↓\(repo.behind) en retard", Color(hex: 0x0A4A99))
+        case .behind: ("↓\(repo.behind) en retard", Tag.blue.0)
         case .noRemote: ("Sans remote", Theme.orange)
         case .noUpstream: ("Branche non publiée", Theme.orange)
-        case .clean: ("À jour", Color(hex: 0x145C2A))
+        case .clean: ("À jour", Tag.green.0)
         }
     }
 }
@@ -346,7 +346,7 @@ private struct RepoDetail: View {
                     }
                     ForEach(repo.recentCommits, id: \.hash) { commit in
                         HStack(alignment: .firstTextBaseline, spacing: 10) {
-                            Text(commit.hash).font(.system(size: 12).monospaced()).foregroundStyle(Color(hex: 0x0A5BBF))
+                            Text(commit.hash).font(.system(size: 12).monospaced()).foregroundStyle(Theme.link)
                             Text(commit.subject).font(.system(size: 13)).lineLimit(1)
                             Spacer(minLength: 6)
                             Text(RelativeDate.french(commit.date)).font(.system(size: 12)).foregroundStyle(Theme.muted)
@@ -488,7 +488,7 @@ private struct FileRow: View {
         }
         .padding(.horizontal, 10)
         .frame(minHeight: 34)
-        .background(Color.white.opacity(0.6), in: .rect(cornerRadius: 10, style: .continuous))
+        .background(Theme.rowFill, in: .rect(cornerRadius: 10, style: .continuous))
         .contentShape(.rect)
         .onTapGesture(perform: toggle)
         .accessibilityElement(children: .combine)
@@ -498,7 +498,7 @@ private struct FileRow: View {
 
     private var color: Color {
         switch change.code {
-        case "?", "A": Color(hex: 0x145C2A)
+        case "?", "A": Tag.green.0
         case "D", "U": Theme.red
         default: Theme.orange
         }

@@ -82,7 +82,7 @@ private struct RepoGroupCard: View {
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
-            .background(Color.white.opacity(0.45))
+            .background(Theme.headerFill)
 
             ForEach(repos) { repo in
                 Rectangle().fill(Theme.hairline).frame(height: 1)
