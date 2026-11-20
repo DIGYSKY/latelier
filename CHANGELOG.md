@@ -4,6 +4,14 @@
 
 All notable changes to L’Atelier are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [1.0.0-beta.3] — 2026-11-20
+
+### Fixed
+- **No more administrator password at launch.** Reading login items (`sfltool`, protected by macOS) happened during “Analyze everything at launch”, so macOS asked for the administrator password at every launch. Login items are now read only when you ask, from Performance › Login Items.
+
+### Improved
+- **Clearer updates.** The update preview shows the new and current versions with an “Install the Update” button, and ends with “L’Atelier x is installed” and **Relaunch Now** / **Later**. If you choose Later, a banner on the Home screen reminds you to relaunch.
+
 ## [1.0.0-beta.2] — 2026-11-20
 
 ### Fixed

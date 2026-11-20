@@ -4,6 +4,14 @@
 
 Les changements notables de L’Atelier sont listés ici. Les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [1.0.0-beta.3] — 2026-11-20
+
+### Corrigé
+- **Plus de mot de passe administrateur au lancement.** La lecture des éléments de connexion (`sfltool`, protégé par macOS) se faisait pendant « Tout analyser au démarrage » : macOS demandait le mot de passe administrateur à chaque lancement. Ces éléments ne sont plus lus que sur demande, depuis Performance › Démarrage.
+
+### Amélioré
+- **Des mises à jour plus claires.** L’aperçu montre la nouvelle et l’actuelle version, avec un bouton « Installer la mise à jour », et se termine par « L’Atelier x est installé » et **Redémarrer maintenant** / **Plus tard**. Si vous choisissez Plus tard, un bandeau sur l’Accueil rappelle de redémarrer.
+
 ## [1.0.0-beta.2] — 2026-11-20
 
 ### Corrigé
