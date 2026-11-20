@@ -122,6 +122,12 @@ struct DockerPage: View {
                 .buttonStyle(.primary)
                 .disabled(store.loading)
         } content: {
+            if !model.preferences.includeDocker {
+                Card {
+                    EmptyState(symbol: "shippingbox", title: "Docker est exclu des analyses",
+                               message: "Réglages › Stockage › Inclure Docker. Le bouton Analyser lit quand même Docker à la demande.")
+                }
+            }
             if store.loading && report == nil {
                 ScanningCard(label: "Lecture de docker system df -v…")
             } else if let report {
@@ -170,8 +176,8 @@ struct DockerPage: View {
                 }
             }
         }
-        .onAppear { if store.stale && !store.loading { model.scanDocker() } }
-        .onChange(of: store.stale) { _, stale in if stale && !store.loading { model.scanDocker() } }
+        .onAppear { if model.preferences.includeDocker && store.stale && !store.loading { model.scanDocker() } }
+        .onChange(of: store.stale) { _, stale in if model.preferences.includeDocker && stale && !store.loading { model.scanDocker() } }
         .onChange(of: store.finishedAt) {
             model.dockerSelection = Set(groups.flatMap(\.items).filter { $0.selectedByDefault && !$0.isLocked }.map(\.id))
         }

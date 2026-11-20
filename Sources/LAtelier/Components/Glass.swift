@@ -50,6 +50,8 @@ extension NSColor {
 /// Fond de fenêtre : dégradé vif, voilé de blanc pour l'effet verre.
 struct Backdrop: View {
     @Environment(\.colorScheme) private var scheme
+    /// Réglages › Général › Transparence : « reduced », « normal », « max ».
+    var glass = "normal"
 
     var body: some View {
         let dark = scheme == .dark
@@ -58,7 +60,8 @@ struct Backdrop: View {
             RadialGradient(colors: [Color(hex: 0x8EC5FF), .clear], center: UnitPoint(x: 0.08, y: 0), startRadius: 0, endRadius: 700)
             RadialGradient(colors: [Color(hex: 0xC7A4FF), .clear], center: UnitPoint(x: 0.95, y: 0.15), startRadius: 0, endRadius: 620)
             RadialGradient(colors: [Color(hex: 0x6FE0CF), .clear], center: UnitPoint(x: 0.55, y: 1.05), startRadius: 0, endRadius: 760)
-            (dark ? Color.black.opacity(0.62) : Color.white.opacity(0.55))
+            let wash = glass == "reduced" ? 0.22 : glass == "max" ? -0.25 : 0
+            (dark ? Color.black.opacity(0.62 + wash) : Color.white.opacity(0.55 + wash))
         }
         .ignoresSafeArea()
     }

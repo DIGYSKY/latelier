@@ -58,7 +58,7 @@ struct SonarPage: View {
 
     private func scan(_ zone: SonarZone) {
         let apps = Set(AppInventory.installed().map { $0.name.lowercased() })
-        model.sonar.scan(zone, allowPersonal: model.preferences.allowPersonalFolders, excluded: model.projectRoots, installedApps: apps)
+        model.sonar.scan(zone, allowPersonal: model.preferences.allowPersonalFolders, excluded: model.projectRoots + model.excludedFolders, installedApps: apps)
     }
 
     private func gauge(_ sonar: SonarStore) -> some View {

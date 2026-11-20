@@ -40,7 +40,8 @@ final class NewsStore {
             updateInventory(manifests: source.manifests, packages: source.packages)
             while !Task.isCancelled {
                 let interval = TimeInterval(preferences.newsIntervalHours * 3600)
-                if !refreshing, state.lastRefresh.map({ Date().timeIntervalSince($0) >= interval }) ?? true {
+                let paused = preferences.pauseOnBattery && PowerSnapshot.current().onBattery
+                if !refreshing, !paused, state.lastRefresh.map({ Date().timeIntervalSince($0) >= interval }) ?? true {
                     await refresh()
                 }
                 try? await Task.sleep(for: .seconds(15 * 60))
@@ -75,7 +76,9 @@ final class NewsStore {
     private var followedNames: Set<String> { Set(followed.map(\.name)) }
 
     func isEnabled(_ source: NewsSource) -> Bool {
-        state.overrides[source.id] ?? NewsCatalog.enabledByDefault(source, topics: followedNames)
+        // Réglages › Confidentialité : pas de requêtes vers GitHub Advisories.
+        if source.kind == .githubAdvisories && !preferences.remoteAdvisories { return false }
+        return state.overrides[source.id] ?? NewsCatalog.enabledByDefault(source, topics: followedNames)
     }
 
     var enabledSources: [NewsSource] { sources.filter(isEnabled) }
@@ -256,14 +259,17 @@ final class NewsStore {
 
     /// Notification macOS seulement pour une alerte critique qui touche la machine (désactivable).
     private func notify(_ added: [NewsItem]) {
-        let alerts = added.filter { $0.isCritical && confirmed($0) && !state.notified.contains($0.id) }
+        let alerts = added.filter { item in
+            confirmed(item) && !state.notified.contains(item.id)
+                && ((item.isCritical && preferences.newsNotifications) || preferences.notifyNews)
+        }
         state.notified.formUnion(added.map(\.id))
-        guard preferences.newsNotifications, !alerts.isEmpty else { return }
+        guard !alerts.isEmpty else { return }
         let center = UNUserNotificationCenter.current()
         let first = alerts[0]
         let match = matches[first.id]?.first
         let content = UNMutableNotificationContent()
-        content.title = alerts.count == 1 ? "Faille critique qui vous concerne" : "\(alerts.count) failles critiques vous concernent"
+        content.title = alerts.count == 1 ? (first.isCritical ? "Faille critique qui vous concerne" : "Une news vous concerne") : "\(alerts.count) avis vous concernent"
         content.body = first.title + (match.map { " · \($0.package) \($0.version ?? "") (\($0.project?.lastPathComponent ?? $0.place))" } ?? "")
         content.sound = .default
         let request = UNNotificationRequest(identifier: first.id, content: content, trigger: nil)
@@ -283,10 +289,10 @@ extension AppModel {
     /// Manifestes des projets et paquets installés, lus sur le disque (sans réseau).
     func newsInventory() async -> (manifests: [ProjectManifest], packages: [Package]) {
         let known = knownProjects
-        let roots = projectRoots
+        let scanner = repoScanner
         let loaded = packages.packages
         let manifests = await Task.detached {
-            let projects = known.isEmpty ? RepoScanner(roots: roots).repositories() : known
+            let projects = known.isEmpty ? scanner.repositories() : known
             return projects.flatMap(DependencyReader.read)
         }.value
         if !loaded.isEmpty { return (manifests, loaded) }

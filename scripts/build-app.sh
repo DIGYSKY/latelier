@@ -16,8 +16,16 @@ BIN="$(swift build -c "$CONFIG" --show-bin-path)/LAtelier"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/LAtelier"
-sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Support/Info.plist > "$APP/Contents/Info.plist"
+cp Support/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" \
+    -e "s/local\.latelier/${BUNDLE_ID:-local.latelier}/" Support/Info.plist > "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
 
-codesign --force --options runtime --timestamp=none --sign "${SIGN_IDENTITY:--}" "$APP"
+# Developer ID : runtime renforcé + horodatage (obligatoires pour la notarisation). Sinon signature ad hoc.
+if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+    codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
+else
+    codesign --force --options runtime --timestamp=none --sign - "$APP"
+fi
+codesign --verify --strict "$APP"
 echo "$APP"

@@ -334,8 +334,9 @@ public struct RepoScanner: Sendable {
     public var roots: [URL]
     public var maxDepth = 6
 
-    public init(roots: [URL]) {
+    public init(roots: [URL], maxDepth: Int = 6) {
         self.roots = roots
+        self.maxDepth = maxDepth
     }
 
     private static let skipped: Set<String> = ["node_modules", "Library", "Applications", "target", "build", "dist", "vendor", "Pods"]

@@ -107,6 +107,9 @@ public struct PowerSnapshot: Sendable, Equatable {
     public var onBattery: Bool
     public var thermal: ProcessInfo.ThermalState
 
+    /// État de l'alimentation maintenant (batterie, secteur).
+    public static func current() -> PowerSnapshot { SystemSampler.power() }
+
     public var thermalLabel: String {
         switch thermal {
         case .nominal: "normal"

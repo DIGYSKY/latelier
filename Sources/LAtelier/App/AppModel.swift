@@ -74,11 +74,17 @@ final class AppModel {
         recorder.start()
         news = NewsStore(preferences: preferences)
         news.start { [weak self] in await self?.newsInventory() ?? ([], []) }
-        Task { await reloadHistory() }
+        packages.offerMajors = preferences.offerMajors
+        startBackgroundChecks()
     }
 
     func preview(_ plan: ActionPlan) {
-        pendingPlan = plan
+        // Méthode par défaut choisie dans Réglages › Stockage (modifiable dans l'aperçu).
+        if preferences.permanentByDefault, plan.allowsPermanent, plan.removesFiles, !plan.removesPermanently {
+            pendingPlan = plan.removing(permanently: true)
+        } else {
+            pendingPlan = plan
+        }
     }
 
     // MARK: - Analyses
@@ -103,11 +109,41 @@ final class AppModel {
     func scanDev() {
         let roots = projectRoots
         let runner = runner
+        let months = preferences.inactiveMonths
+        let excluded = excludedFolders
         devScan.run {
             let busy = await ProcessDirectories(runner: runner).current()
-            return await DevArtifactScanner(roots: roots, busyDirectories: busy).scan()
+            var scanner = DevArtifactScanner(roots: roots, busyDirectories: busy)
+            scanner.inactiveAfter = TimeInterval(months) * 30 * 86_400
+            return await scanner.scan()
+        } transform: { groups in
+            Self.excluding(groups, excluded)
         }
     }
+
+    /// Dossiers exclus dans Réglages › Stockage (chemins absolus).
+    var excludedFolders: [URL] {
+        preferences.excludedFolders.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
+    }
+
+    /// Retire des groupes ce qui est sous un dossier exclu.
+    static func excluding(_ groups: [CleanupGroup], _ excluded: [URL]) -> [CleanupGroup] {
+        guard !excluded.isEmpty else { return groups }
+        let prefixes = excluded.map { $0.standardizedFileURL.path }
+        func isExcluded(_ url: URL) -> Bool { prefixes.contains { url.path == $0 || url.path.hasPrefix($0 + "/") } }
+        return groups.compactMap { group in
+            var group = group
+            group.items = group.items.compactMap { item in
+                var item = item
+                item.entries = item.entries.filter { !isExcluded($0.url) }
+                return item.entries.isEmpty && item.action == .remove && item.displayBytes == nil ? nil : item
+            }
+            return group.items.isEmpty ? nil : group
+        }
+    }
+
+    /// Recherche des dépôts, à la profondeur choisie dans les réglages.
+    var repoScanner: RepoScanner { RepoScanner(roots: projectRoots, maxDepth: preferences.repoDepth) }
 
     /// « com.spotify.client » → « Spotify », si l'app est installée.
     private static func appName(forBundleID id: String) -> String? {
@@ -133,9 +169,9 @@ final class AppModel {
     // MARK: - Projets
 
     func scanRepos() {
-        let roots = projectRoots
+        let scanner = repoScanner
         let git = GitClient(runner: runner)
-        repos.run { await RepoScanner(roots: roots).scan(git: git) }
+        repos.run { await scanner.scan(git: git) }
     }
 
     /// Exécute sans aperçu une action sans risque (fetch), mais la note dans l'historique.

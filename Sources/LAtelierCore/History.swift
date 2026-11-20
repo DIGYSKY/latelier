@@ -91,6 +91,17 @@ public actor HistoryStore {
         try save(entries)
     }
 
+    /// Retire les entrées plus anciennes que `days` jours ; rend le nombre retiré.
+    @discardableResult
+    public func prune(olderThan days: Int, now: Date = .now) throws -> Int {
+        let entries = try load()
+        let limit = now.addingTimeInterval(-Double(days) * 86_400)
+        let kept = entries.filter { $0.date >= limit }
+        guard kept.count != entries.count else { return 0 }
+        try save(kept)
+        return entries.count - kept.count
+    }
+
     public func clear() throws {
         try save([])
     }

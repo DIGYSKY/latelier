@@ -31,7 +31,7 @@ struct StorageOverviewPage: View {
             if model.systemScan.stale && !model.systemScan.scanning { model.scanSystem() }
             if model.cacheScan.stale && !model.cacheScan.scanning { model.scanCaches() }
             if model.leftoverScan.stale && !model.leftoverScan.scanning { model.scanLeftovers() }
-            if model.docker.stale && !model.docker.loading { model.scanDocker() }
+            if model.preferences.includeDocker && model.docker.stale && !model.docker.loading { model.scanDocker() }
         }
         .onChange(of: store.stale) { _, stale in if stale && !store.loading { model.scanOverview() } }
     }
@@ -52,7 +52,7 @@ struct StorageOverviewPage: View {
         model.scanDev()
         model.scanCaches()
         model.scanLeftovers()
-        model.scanDocker()
+        if model.preferences.includeDocker { model.scanDocker() }
     }
 
     // MARK: Répartition

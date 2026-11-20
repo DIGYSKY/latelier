@@ -426,3 +426,10 @@ Swift Package (pas de projet Xcode à maintenir) ; Xcode peut ouvrir `Package.sw
 - Désinstalleur : la règle de sécurité autorise `/Applications/X.app` (et `~/Applications`) seulement ; app d'un autre propriétaire → le Finder demande le mot de passe ; cask → `brew uninstall --cask`.
 - Docker : volumes « données » (postgres, mysql, db, data…) jamais cochés ; conteneurs actifs et volumes utilisés verrouillés.
 - Sonar : fichiers ≥ 50 Mo, doublons par taille puis SHA-256, rien ne part sans l'aperçu (corbeille seulement). `LATELIER_SONAR_HOME` balaie un dossier de test.
+
+### Notes de développement — Réglages et distribution (étape 10)
+- Réglages en 6 sections (Général, Stockage, Projets, Vérifications, Notifications, Confidentialité) ; chaque réglage agit réellement. Pas de télémétrie : la ligne l’indique au lieu d’un faux interrupteur.
+- Tâches de fond (`BackgroundChecks.swift`, une minute entre deux passages) : vérifications paquets + dépendances selon la fréquence, fetch automatique (désactivé par défaut), espace disque < 10 %, processus > 80 % CPU pendant 5 min. Suspendues sur batterie si demandé. Historique purgé au-delà de la durée choisie.
+- Icône de la barre des menus (`MenuBarExtra`) : fermer la fenêtre laisse alors l’app tourner.
+- Distribution : `make dmg` (= `scripts/release.sh`). Avec `SIGN_IDENTITY="Developer ID Application: …"` et `NOTARY_PROFILE` (créé par `xcrun notarytool store-credentials`), l’app et le .dmg sont signés, notarisés et agrafés ; `BUNDLE_ID` remplace `local.latelier`. Sans certificat : signature ad hoc, .dmg utilisable sur cette machine seulement.
+- Icône : `make icon` régénère `Support/AppIcon.icns` à partir de `scripts/make-icon.swift`.

@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct RootView: View {
@@ -14,7 +15,9 @@ struct RootView: View {
         }
         .toolbar(removing: .title)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-        .background { Backdrop() }
+        .background { Backdrop(glass: model.preferences.glass) }
+        .onAppear { applyAppearance(model.preferences.appearance) }
+        .onChange(of: model.preferences.appearance) { _, value in applyAppearance(value) }
         .tint(Theme.accent)
         .sheet(item: $model.pendingPlan) { plan in
             PlanSheet(plan: plan)
@@ -27,6 +30,16 @@ struct RootView: View {
         } message: {
             Text(model.launchError ?? "")
         }
+    }
+}
+
+/// Réglages › Général › Apparence.
+@MainActor
+func applyAppearance(_ value: String) {
+    NSApp.appearance = switch value {
+    case "light": NSAppearance(named: .aqua)
+    case "dark": NSAppearance(named: .darkAqua)
+    default: nil
     }
 }
 

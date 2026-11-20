@@ -33,6 +33,81 @@ final class ToolPreferences {
     var allowPersonalFolders: Bool {
         didSet { defaults.set(allowPersonalFolders, forKey: "allowPersonalFolders") }
     }
+    // MARK: Général
+    /// « system », « light », « dark »
+    var appearance: String {
+        didSet { defaults.set(appearance, forKey: "appearance") }
+    }
+    /// Intensité de l'effet verre : « reduced », « normal », « max »
+    var glass: String {
+        didSet { defaults.set(glass, forKey: "glass") }
+    }
+    var menuBarIcon: Bool {
+        didSet { defaults.set(menuBarIcon, forKey: "menuBarIcon") }
+    }
+
+    // MARK: Stockage
+    /// Méthode proposée d'abord dans l'aperçu (la corbeille reste toujours possible).
+    var permanentByDefault: Bool {
+        didSet { defaults.set(permanentByDefault, forKey: "permanentByDefault") }
+    }
+    /// Un projet est inactif après ce nombre de mois : ses artefacts sont cochés.
+    var inactiveMonths: Int {
+        didSet { defaults.set(inactiveMonths, forKey: "inactiveMonths") }
+    }
+    /// Dossiers jamais analysés ni proposés.
+    var excludedFolders: [String] {
+        didSet { defaults.set(excludedFolders, forKey: "excludedFolders") }
+    }
+    var includeDocker: Bool {
+        didSet { defaults.set(includeDocker, forKey: "includeDocker") }
+    }
+
+    // MARK: Projets
+    var repoDepth: Int {
+        didSet { defaults.set(repoDepth, forKey: "repoDepth") }
+    }
+    /// git fetch en arrière-plan (désactivé par défaut : contacte les dépôts distants).
+    var autoFetch: Bool {
+        didSet { defaults.set(autoFetch, forKey: "autoFetch") }
+    }
+    var detectSecrets: Bool {
+        didSet { defaults.set(detectSecrets, forKey: "detectSecrets") }
+    }
+
+    // MARK: Vérifications
+    /// Paquets, dépendances, failles : « hourly », « daily », « manual »
+    var checkInterval: String {
+        didSet { defaults.set(checkInterval, forKey: "checkInterval") }
+    }
+    var pauseOnBattery: Bool {
+        didSet { defaults.set(pauseOnBattery, forKey: "pauseOnBattery") }
+    }
+    var offerMajors: Bool {
+        didSet { defaults.set(offerMajors, forKey: "offerMajors") }
+    }
+
+    // MARK: Notifications
+    var notifyLowSpace: Bool {
+        didSet { defaults.set(notifyLowSpace, forKey: "notifyLowSpace") }
+    }
+    /// News qui vous concernent, même non critiques.
+    var notifyNews: Bool {
+        didSet { defaults.set(notifyNews, forKey: "notifyNews") }
+    }
+    var notifyHeavyProcess: Bool {
+        didSet { defaults.set(notifyHeavyProcess, forKey: "notifyHeavyProcess") }
+    }
+
+    // MARK: Confidentialité
+    /// OSV.dev et GitHub Advisories (noms et versions de paquets seulement).
+    var remoteAdvisories: Bool {
+        didSet { defaults.set(remoteAdvisories, forKey: "remoteAdvisories") }
+    }
+    var historyDays: Int {
+        didSet { defaults.set(historyDays, forKey: "historyDays") }
+    }
+
     /// Fréquence de lecture des news, en heures.
     var newsIntervalHours: Int {
         didSet { defaults.set(newsIntervalHours, forKey: "newsIntervalHours") }
@@ -52,6 +127,27 @@ final class ToolPreferences {
         alwaysRecord = Set(defaults.stringArray(forKey: "alwaysRecord") ?? [])
         neverRecord = Set(defaults.stringArray(forKey: "neverRecord") ?? [])
         allowPersonalFolders = defaults.bool(forKey: "allowPersonalFolders")
+        let store = UserDefaults.standard
+        let bool = { (key: String, fallback: Bool) in store.object(forKey: key) as? Bool ?? fallback }
+        let int = { (key: String, fallback: Int) in store.object(forKey: key) as? Int ?? fallback }
+        appearance = defaults.string(forKey: "appearance") ?? "system"
+        glass = defaults.string(forKey: "glass") ?? "normal"
+        menuBarIcon = bool("menuBarIcon", true)
+        permanentByDefault = bool("permanentByDefault", false)
+        inactiveMonths = int("inactiveMonths", 3)
+        excludedFolders = defaults.stringArray(forKey: "excludedFolders") ?? []
+        includeDocker = bool("includeDocker", true)
+        repoDepth = int("repoDepth", 6)
+        autoFetch = bool("autoFetch", false)
+        detectSecrets = bool("detectSecrets", true)
+        checkInterval = defaults.string(forKey: "checkInterval") ?? "daily"
+        pauseOnBattery = bool("pauseOnBattery", true)
+        offerMajors = bool("offerMajors", true)
+        notifyLowSpace = bool("notifyLowSpace", true)
+        notifyNews = bool("notifyNews", false)
+        notifyHeavyProcess = bool("notifyHeavyProcess", false)
+        remoteAdvisories = bool("remoteAdvisories", true)
+        historyDays = int("historyDays", 90)
         let hours = defaults.integer(forKey: "newsIntervalHours")
         newsIntervalHours = hours == 0 ? 3 : hours
         newsNotifications = defaults.object(forKey: "newsNotifications") as? Bool ?? true

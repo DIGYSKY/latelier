@@ -7,7 +7,7 @@ struct LAtelierApp: App {
     @ViewState private var model = AppModel()
 
     var body: some Scene {
-        WindowGroup("L’Atelier") {
+        WindowGroup("L’Atelier", id: "main") {
             RootView()
                 .environment(model)
                 .frame(minWidth: 960, minHeight: 620)
@@ -20,6 +20,13 @@ struct LAtelierApp: App {
                     .keyboardShortcut(",", modifiers: .command)
             }
         }
+
+        MenuBarExtra(isInserted: Binding(get: { model.preferences.menuBarIcon }, set: { model.preferences.menuBarIcon = $0 })) {
+            MenuBarContent().environment(model)
+        } label: {
+            Image(systemName: "wrench.adjustable")
+        }
+        .menuBarExtraStyle(.window)
     }
 }
 
@@ -30,5 +37,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate()
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+    /// Avec l'icône de la barre des menus, fermer la fenêtre laisse L’Atelier tourner (alertes, vérifications).
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        !(UserDefaults.standard.object(forKey: "menuBarIcon") as? Bool ?? true)
+    }
 }

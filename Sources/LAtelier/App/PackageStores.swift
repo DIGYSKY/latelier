@@ -15,7 +15,9 @@ final class PackageStore {
     var selection: Set<String> = []
     private var task: Task<Void, Never>?
 
-    var updates: [Package] { packages.filter(\.hasUpdate) }
+    /// Faux : les mises à jour majeures ne sont pas proposées (Réglages › Vérifications).
+    var offerMajors = true
+    var updates: [Package] { packages.filter { $0.hasUpdate && (offerMajors || $0.gap != .major) } }
 
     func run(_ work: @escaping @Sendable () async -> PackageScanner.Result) {
         task?.cancel()
@@ -93,9 +95,9 @@ extension AppModel {
     func scanRuntimes() {
         let runner = runner
         let known = repos.repos.map(\.url)
-        let roots = projectRoots
+        let scanner = repoScanner
         runtimes.run {
-            let projects = known.isEmpty ? RepoScanner(roots: roots).repositories() : known
+            let projects = known.isEmpty ? scanner.repositories() : known
             return await RuntimeScanner(runner: runner, projects: projects).scan()
         }
     }
@@ -104,10 +106,12 @@ extension AppModel {
     func scanAnalysis(force: Bool = false) {
         let runner = runner
         let known = repos.repos.map(\.url)
-        let roots = projectRoots
+        let scanner = repoScanner
+        let remote = preferences.remoteAdvisories
+        let secrets = preferences.detectSecrets
         analysis.run {
-            let projects = known.isEmpty ? RepoScanner(roots: roots).repositories() : known
-            return await ProjectAnalyzer(runner: runner, projects: projects).analyze(force: force)
+            let projects = known.isEmpty ? scanner.repositories() : known
+            return await ProjectAnalyzer(runner: runner, projects: projects, checkRemote: remote, scanSecrets: secrets).analyze(force: force)
         }
     }
 

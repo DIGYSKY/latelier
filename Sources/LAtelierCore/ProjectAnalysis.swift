@@ -421,11 +421,14 @@ public struct ProjectAnalyzer: Sendable {
     public let runner: CommandRunner
     public let projects: [URL]
     public let checkRemote: Bool
+    /// Faux : pas de recherche de secrets (réglage « Détecter les secrets commités »).
+    public var scanSecrets = true
 
-    public init(runner: CommandRunner, projects: [URL], checkRemote: Bool = true) {
+    public init(runner: CommandRunner, projects: [URL], checkRemote: Bool = true, scanSecrets: Bool = true) {
         self.runner = runner
         self.projects = projects
         self.checkRemote = checkRemote
+        self.scanSecrets = scanSecrets
     }
 
     public func analyze(force: Bool = false) async -> ProjectAnalysis {
@@ -443,6 +446,7 @@ public struct ProjectAnalyzer: Sendable {
         let runner = runner
         let projects = projects
         let checkRemote = checkRemote
+        let scanSecrets = scanSecrets
 
         async let registry = checkRemote ? RegistryClient().latest(libraries.map { (ecosystem: $0.0, name: $0.1) }, force: force) : [:]
         async let osv: Result<[String: [Vulnerability]], Error> = {
@@ -450,7 +454,7 @@ public struct ProjectAnalyzer: Sendable {
             do { return .success(try await OSVClient().vulnerabilities(of: allDependencies)) } catch { return .failure(error) }
         }()
         async let secrets = withTaskGroup(of: [SecretFinding].self) { group in
-            for project in projects { group.addTask { await SecretScanner.scan(repo: project, runner: runner) } }
+            for project in projects where scanSecrets { group.addTask { await SecretScanner.scan(repo: project, runner: runner) } }
             var all: [SecretFinding] = []
             for await found in group { all += found }
             return all.sorted { ($0.projectName, $0.file) < ($1.projectName, $1.file) }
