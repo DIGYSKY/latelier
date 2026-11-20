@@ -506,8 +506,7 @@ public actor JSONStore<Value: Codable & Sendable> {
     private let fallback: Value
 
     public init(name: String, fallback: Value, directory: URL? = nil) {
-        let base = directory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("local.latelier")
+        let base = directory ?? AppPaths.supportDirectory
         url = base.appendingPathComponent(name)
         self.fallback = fallback
     }

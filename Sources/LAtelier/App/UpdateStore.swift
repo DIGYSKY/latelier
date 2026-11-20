@@ -90,38 +90,47 @@ final class UpdateStore {
 
     func install(_ release: AppRelease) {
         let installed = Bundle.main.bundleURL
-        let work = FileManager.default.temporaryDirectory.appendingPathComponent("latelier-update-\(UUID().uuidString.prefix(8))", isDirectory: true)
-        try? FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
+        let requirement = Self.designatedRequirement()
         if installedFromSource, let source = sourcePath {
+            guard let steps = UpdatePlanner.fromSource(release, source: source, installed: installed, requirement: requirement) else {
+                state = .failed("Numéro de version inattendu (« \(release.tag) ») : mise à jour refusée.")
+                return
+            }
             present(ActionPlan(
                 title: "\(Self.planPrefix) \(release.version)",
-                summary: "Depuis les sources (\(source.abbreviatingHome())) : récupère le tag \(release.tag), compile sur ce Mac, remplace l’app. L’ancienne version va à la corbeille ; L’Atelier redémarre ensuite.",
-                kind: .paquet, risk: .caution, reversible: true,
-                steps: UpdatePlanner.fromSource(release, source: source, installed: installed, work: work)
+                summary: "Depuis les sources (\(source.abbreviatingHome())) : récupère le tag \(release.tag), compile sur ce Mac"
+                    + (requirement != nil ? ", vérifie la signature" : "")
+                    + ", puis échange les deux versions. En cas d’échec, l’actuelle reste en place ; sinon elle va à la corbeille et L’Atelier redémarre.",
+                kind: .paquet, risk: .caution, reversible: true, steps: steps
             ))
+            return
+        }
+        // Signée ad hoc, l'app ne peut pas vérifier que la nouvelle version vient du même auteur :
+        // on refuse plutôt que d'installer une image disque non authentifiée.
+        guard let requirement else {
+            state = .failed("Cette copie de L’Atelier n’est pas signée par le certificat du projet : la mise à jour automatique ne peut pas vérifier l’auteur. Réinstallez avec install.sh ou depuis la page des versions.")
             return
         }
         guard let dmg = release.dmg, let checksumURL = release.checksum else {
             state = .failed("La version \(release.version) ne contient pas d’image disque avec son empreinte (.dmg et .dmg.sha256).")
             return
         }
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent("latelier-update-\(UUID().uuidString.prefix(8))", isDirectory: true)
+        try? FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
         Task {
             do {
                 var request = URLRequest(url: checksumURL, timeoutInterval: 20)
                 request.setValue("LAtelier", forHTTPHeaderField: "User-Agent")
                 let (data, _) = try await URLSession.shared.data(for: request)
-                guard let sha = UpdateChecker.checksum(in: String(decoding: data, as: UTF8.self)) else {
-                    state = .failed("Empreinte SHA-256 illisible dans \(checksumURL.lastPathComponent).")
+                guard let sha = UpdateChecker.checksum(in: String(decoding: data, as: UTF8.self)),
+                      let steps = UpdatePlanner.fromRelease(release, dmg: dmg, sha256: sha, installed: installed, requirement: requirement, work: work) else {
+                    state = .failed("Empreinte ou numéro de version illisible : mise à jour refusée.")
                     return
                 }
-                let requirement = Self.designatedRequirement()
-                var summary = "Télécharge \(dmg.lastPathComponent), vérifie son empreinte SHA-256"
-                summary += requirement != nil ? " et que l’app est signée par le même certificat que celle-ci" : " (signature ad hoc : le certificat ne peut pas être comparé)"
-                summary += ", puis remplace \(installed.abbreviatingHome()). L’ancienne version va à la corbeille ; L’Atelier redémarre ensuite."
                 present(ActionPlan(
-                    title: "\(Self.planPrefix) \(release.version)", summary: summary,
-                    kind: .paquet, risk: .caution, reversible: true,
-                    steps: UpdatePlanner.fromRelease(release, dmg: dmg, sha256: sha, installed: installed, requirement: requirement, work: work)
+                    title: "\(Self.planPrefix) \(release.version)",
+                    summary: "Télécharge \(dmg.lastPathComponent), vérifie son empreinte SHA-256 et que l’app est signée par le même certificat que celle-ci, puis échange les deux versions. En cas d’échec, l’actuelle reste en place ; sinon elle va à la corbeille et L’Atelier redémarre.",
+                    kind: .paquet, risk: .caution, reversible: true, steps: steps
                 ))
             } catch {
                 state = .failed("Téléchargement de l’empreinte impossible : \(error.localizedDescription)")

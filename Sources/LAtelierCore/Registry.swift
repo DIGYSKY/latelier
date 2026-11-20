@@ -13,7 +13,7 @@ public struct RegistryInfo: Sendable, Codable, Hashable {
     }
 }
 
-/// Petit cache JSON sur disque (~/Library/Caches/local.latelier), pour ne pas tout redemander à chaque analyse.
+/// Petit cache JSON sur disque (~/Library/Caches/io.github.digysky.latelier), pour ne pas tout redemander à chaque analyse.
 public actor DiskCache<Value: Codable & Sendable> {
     private let file: URL
     private var values: [String: Value]?
@@ -23,7 +23,7 @@ public actor DiskCache<Value: Codable & Sendable> {
     }
 
     public static var defaultDirectory: URL {
-        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appending(path: "local.latelier")
+        AppPaths.cacheDirectory
     }
 
     public func get(_ key: String) -> Value? {

@@ -381,3 +381,15 @@ final class RepoStore {
         stale = true
     }
 }
+
+extension AppModel {
+    /// Projets actifs (modifiés depuis moins de « projet inactif après », Réglages › Stockage)
+    /// touchés par une faille critique : la pastille de Projets, l'Accueil et la barre des menus.
+    var criticalActiveProjects: [URL]? {
+        guard let analysis = analysis.value else { return nil }
+        let activity = Dictionary(repos.repos.compactMap { repo in repo.lastActivity.map { (repo.url.standardizedFileURL, $0) } },
+                                  uniquingKeysWith: { a, _ in a })
+        return SecurityAlerts.activeCriticalProjects(analysis.vulnerablePackages, lastActivity: activity,
+                                                     inactiveAfter: TimeInterval(preferences.inactiveMonths) * 30 * 86_400)
+    }
+}

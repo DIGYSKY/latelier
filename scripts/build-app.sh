@@ -22,7 +22,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/LAtelier"
 cp Support/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" \
-    -e "s/local\.latelier/${BUNDLE_ID:-local.latelier}/" Support/Info.plist > "$APP/Contents/Info.plist"
+    -e "s/io\.github\.digysky\.latelier/${BUNDLE_ID:-io.github.digysky.latelier}/" Support/Info.plist > "$APP/Contents/Info.plist"
 
 # Dépôt GitHub d'où viennent les mises à jour : GITHUB_REPO=propriétaire/nom, sinon le remote origin.
 REPO="${GITHUB_REPO:-}"

@@ -122,7 +122,7 @@ par défaut, et tout est consigné dans un **historique** consultable.
 ## Installation
 
 > [!NOTE]
-> L’Atelier demande **macOS 26 (Tahoe) ou plus récent**, sur un Mac Apple silicon ou Intel.
+> L’Atelier demande **macOS 26 (Tahoe) ou plus récent**, sur un Mac Apple silicon.
 
 ### Option 1 : compiler sur votre Mac (recommandé)
 

@@ -5,6 +5,8 @@
 #   scripts/publish-release.sh                 → notes générées depuis les commits
 #   NOTES_FILE=notes.md scripts/publish-release.sh
 # Nécessite gh (GitHub CLI) connecté, et un dépôt « origin » sur GitHub.
+# Les bêtas (1.0.0-beta.N) sont publiées comme des versions normales, pas des « pre-releases » :
+# l'app ignore les pre-releases, et chaque correctif de la bêta doit arriver à tout le monde.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

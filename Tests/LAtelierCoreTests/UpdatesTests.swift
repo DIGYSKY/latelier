@@ -12,6 +12,10 @@ struct UpdatesTests {
         #expect(!UpdateChecker.isNewer("0.1.0", than: "0.1"))
         #expect(UpdateChecker.isNewer("1.0.0", than: "1.0.0-beta"))
         #expect(!UpdateChecker.isNewer("1.0.0-beta", than: "1.0.0"))
+        #expect(UpdateChecker.isNewer("1.0.0-beta.10", than: "1.0.0-beta.9"))
+        #expect(UpdateChecker.isNewer("1.0.0-beta.2", than: "1.0.0-beta.1"))
+        #expect(!UpdateChecker.isNewer("1.0.0-beta.1", than: "1.0.0-beta.1"))
+        #expect(UpdateChecker.isNewer("1.0.0-rc.1", than: "1.0.0-beta.3"))
     }
 
     @Test func parsesGitHubRelease() throws {
@@ -36,19 +40,46 @@ struct UpdatesTests {
         #expect(UpdateChecker.checksum(in: "rien") == nil)
     }
 
-    @Test func releasePlanVerifiesBeforeReplacing() {
+    @Test func releasePlanVerifiesBeforeReplacing() throws {
         let release = AppRelease(version: "0.2.0", tag: "v0.2.0")
         let installed = URL(fileURLWithPath: "/Applications/L’Atelier.app")
-        let steps = UpdatePlanner.fromRelease(release, dmg: URL(string: "https://example.com/a.dmg")!, sha256: "abc",
-                                              installed: installed, requirement: "identifier \"local.latelier\"", work: URL(fileURLWithPath: "/tmp/w"))
+        let steps = try #require(UpdatePlanner.fromRelease(release, dmg: URL(string: "https://example.com/a.dmg")!, sha256: String(repeating: "a", count: 64),
+                                                           installed: installed, requirement: "identifier \"io.github.digysky.latelier\"", work: URL(fileURLWithPath: "/tmp/w")))
         let text = steps.map(\.displayString)
         #expect(text[0].hasPrefix("/usr/bin/curl"))
         #expect(text[1].contains("shasum -a 256 -c"))
+        #expect(text[2].contains("hdiutil detach"))                     // démontage même si la copie échoue
         #expect(text[3].contains("-R=identifier"))
-        // L'ancienne version n'est retirée (corbeille) qu'après toutes les vérifications.
-        let removal = steps.firstIndex { if case .remove(_, _, false) = $0 { true } else { false } }
-        #expect(removal == steps.count - 2)
-        #expect(text.last!.contains("[ ! -e"))
+        #expect(text[3].contains("nouvelle version"))                    // la copie est vérifiée, pas l'image
+        #expect(text[4].contains("/bin/mv") && text[4].contains("ancienne version"))  // échange avec retour arrière
+        // L'ancienne version ne part à la corbeille qu'à la toute fin.
+        if case .remove(let url, _, false) = steps.last! { #expect(url.lastPathComponent == "L’Atelier (ancienne version).app") } else { Issue.record("dernière étape") }
+        #expect(SafetyGuard.isApplicationBundle("/Applications/L’Atelier (ancienne version).app"))
+    }
+
+    /// Si la nouvelle version ne peut pas prendre la place de l'actuelle, l'actuelle reste où elle était.
+    @Test func swapRollsBackOnFailure() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("latelier-swap-\(UUID().uuidString.prefix(6))")
+        let installed = root.appendingPathComponent("L’Atelier.app")
+        try FileManager.default.createDirectory(at: installed, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let steps = try #require(UpdatePlanner.fromRelease(AppRelease(version: "1.0.0", tag: "v1.0.0"), dmg: URL(string: "https://e.com/a.dmg")!,
+                                                           sha256: String(repeating: "a", count: 64), installed: installed, requirement: "x", work: root))
+        guard case .command(let swap) = steps[4] else { Issue.record("étape d'échange"); return }
+        // Pas de « nouvelle version » préparée : le second mv échoue.
+        let result = try await CommandRunner().run(swap)
+        #expect(!result.succeeded)
+        #expect(FileManager.default.fileExists(atPath: installed.path))
+        #expect(!FileManager.default.fileExists(atPath: root.appendingPathComponent("L’Atelier (ancienne version).app").path))
+    }
+
+    @Test func rejectsSuspiciousVersions() {
+        #expect(UpdateChecker.isValidVersion("v1.0.0-beta.2"))
+        #expect(!UpdateChecker.isValidVersion("--upload-pack=x"))
+        #expect(!UpdateChecker.isValidVersion("1.0/../../x"))
+        #expect(UpdateChecker.parse(Data(#"{"tag_name":"-x","assets":[]}"#.utf8)) == nil)
+        #expect(UpdatePlanner.fromRelease(AppRelease(version: "../x", tag: "v1"), dmg: URL(string: "https://e.com/a.dmg")!, sha256: String(repeating: "a", count: 64),
+                                          installed: URL(fileURLWithPath: "/Applications/A.app"), requirement: "x", work: URL(fileURLWithPath: "/tmp")) == nil)
     }
 }
 
@@ -65,15 +96,17 @@ struct UpdateLiveTests {
         try "ancienne".write(to: installed.appendingPathComponent("Contents/marker"), atomically: true, encoding: .utf8)
         let work = root.appendingPathComponent("work")
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
-        let requirement = ProcessInfo.processInfo.environment["LATELIER_UPDATE_REQUIREMENT"]
-        let steps = UpdatePlanner.fromRelease(AppRelease(version: "test", tag: "vtest"), dmg: dmg, sha256: sha,
-                                              installed: installed, requirement: requirement, work: work)
+        let requirement = try #require(ProcessInfo.processInfo.environment["LATELIER_UPDATE_REQUIREMENT"])
+        let steps = try #require(UpdatePlanner.fromRelease(AppRelease(version: "9.9.9", tag: "v9.9.9"), dmg: dmg, sha256: sha,
+                                                           installed: installed, requirement: requirement, work: work))
         let plan = ActionPlan(title: "test", summary: "", kind: .paquet, risk: .safe, reversible: true, steps: steps)
         let entry = await PlanExecutor().execute(plan)
         for log in entry.commands where log.exitStatus != 0 { print("ÉCHEC \(log.command)\n\(log.output)") }
         #expect(entry.outcome == .success)
         #expect(FileManager.default.fileExists(atPath: installed.appendingPathComponent("Contents/MacOS/LAtelier").path))
         #expect(!FileManager.default.fileExists(atPath: installed.appendingPathComponent("Contents/marker").path))
+        #expect(!FileManager.default.fileExists(atPath: root.appendingPathComponent("L’Atelier (ancienne version).app").path))
+        #expect(!FileManager.default.fileExists(atPath: root.appendingPathComponent("L’Atelier (nouvelle version).app").path))
         try? FileManager.default.removeItem(at: root)
     }
 }

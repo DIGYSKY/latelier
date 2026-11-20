@@ -573,13 +573,36 @@ public struct SSHCommands: Sendable {
     /// Renomme sans écraser : refuse si la cible existe.
     public func rename(_ path: String, to newPath: String) -> CommandSpec {
         let target = ShellQuote.quote(newPath)
-        return ssh("if [ -e \(target) ] || [ -L \(target) ]; then echo \"« \(newPath) » existe déjà.\" >&2; exit 1; fi; mv -- \(ShellQuote.quote(path)) \(target)")
+        // Le nom n'entre dans le script que quoté (il peut contenir " $ ` …) ; mv -n ferme la course test → mv.
+        let message = ShellQuote.quote("« \(newPath) » existe déjà : rien n’a été renommé.")
+        return ssh("if [ -e \(target) ] || [ -L \(target) ]; then printf '%s\\n' \(message) >&2; exit 1; fi; mv -n -- \(ShellQuote.quote(path)) \(target) && [ ! -e \(ShellQuote.quote(path)) ]")
     }
 
     /// Corbeille du serveur : `~/.latelier-corbeille/<date>/`, récupérable à la main.
+    /// Un sous-dossier unique par mise à la corbeille (mktemp) : deux fichiers homonymes ne s'écrasent jamais.
     public func trash(_ paths: [String], stamp: String) -> CommandSpec {
-        let folder = "\"$HOME\"/.latelier-corbeille/\(stamp)"
-        return ssh("mkdir -p \(folder) && mv -- \(paths.map(ShellQuote.quote).joined(separator: " ")) \(folder)/")
+        let base = "\"$HOME\"/.latelier-corbeille"
+        return ssh("mkdir -p \(base) && d=$(mktemp -d \(base)/\(ShellQuote.quote(stamp + "-XXXXXX"))) && mv -n -- \(paths.map(ShellQuote.quote).joined(separator: " ")) \"$d\"/ && echo \"$d\"")
+    }
+
+    /// Noms (parmi `names`) qui existent déjà dans `directory`, vérifiés sur le serveur au moment voulu.
+    public func existing(_ names: [String], in directory: String) -> CommandSpec {
+        let checks = names.map { name in
+            let path = ShellQuote.quote(RemotePath.join(directory, name))
+            return "if [ -e \(path) ] || [ -L \(path) ]; then printf '%s\\n' \(ShellQuote.quote(name)); fi"
+        }
+        return ssh(checks.joined(separator: "; ") + "; true")
+    }
+
+    /// Remplace le contenu d'un fichier par `uploaded` (déjà envoyé à côté), seulement si le fichier
+    /// n'a pas changé depuis son ouverture (`expected` = ligne `ls -ld` d'alors). `cat >` garde les droits,
+    /// le propriétaire et le bit exécutable du fichier d'origine.
+    public func replace(_ path: String, with uploaded: String, ifUnchanged expected: String) -> CommandSpec {
+        let target = ShellQuote.quote(path)
+        let temp = ShellQuote.quote(uploaded)
+        let now = "$(LC_ALL=C ls -ld --time-style=+%s -- \(target) 2>/dev/null || LC_ALL=C ls -ld -- \(target))"
+        let changed = ShellQuote.quote("Le fichier a été modifié sur le serveur entre-temps : rien n’a été remplacé.")
+        return ssh("if [ \"\(now)\" != \(ShellQuote.quote(expected)) ]; then rm -f -- \(temp); printf '%s\\n' \(changed) >&2; exit 1; fi; cat -- \(temp) > \(target) && rm -f -- \(temp)")
     }
 
     public func delete(_ paths: [String]) -> CommandSpec {

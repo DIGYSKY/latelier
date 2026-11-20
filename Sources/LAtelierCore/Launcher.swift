@@ -142,8 +142,7 @@ public enum Launcher {
 
     /// Dossier des scripts de lancement (dans les caches, purgés au fil de l'eau).
     static func writeScript(_ text: String) throws -> URL {
-        let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("local.latelier/launch", isDirectory: true)
+        let dir = AppPaths.cacheDirectory.appendingPathComponent("launch", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         // On garde les 20 derniers.
         if let old = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.contentModificationDateKey]) {

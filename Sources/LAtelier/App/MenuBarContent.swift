@@ -113,8 +113,8 @@ struct MenuBarContent: View {
         let concerning = model.news.concerningSevere
         if concerning > 0 { list.append(("\(concerning) avis de sécurité vous concerne\(concerning > 1 ? "nt" : "")", "exclamationmark.shield", Theme.red, .pourVous)) }
         if let analysis = model.analysis.value {
-            let critical = analysis.vulnerablePackages.filter { $0.severity == .critical }.count
-            if critical > 0 { list.append(("\(critical) dépendance\(critical > 1 ? "s" : "") à faille critique", "lock.shield", Theme.red, .securite)) }
+            let critical = model.criticalActiveProjects?.count ?? 0
+            if critical > 0 { list.append(("\(critical) projet\(critical > 1 ? "s" : "") actif\(critical > 1 ? "s" : "") à faille critique", "lock.shield", Theme.red, .securite)) }
             if !analysis.secrets.isEmpty { list.append(("\(analysis.secrets.count) secret\(analysis.secrets.count > 1 ? "s" : "") commité\(analysis.secrets.count > 1 ? "s" : "")", "key", Theme.red, .securite)) }
         }
         if let release = model.updates.available {

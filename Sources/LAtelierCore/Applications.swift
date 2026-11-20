@@ -237,7 +237,7 @@ public struct LeftoverScanner: Sendable {
 
     /// Identifiants qui ne sont pas des apps (bibliothèques, outils) : ignorés.
     static let ignoredPrefixes = ["com.apple.", "group.", "org.sparkle-project", "io.sentry", "com.crashlytics", "com.firebase",
-                                  "com.google.gmp", "com.launchdarkly", "local.latelier", "com.breakpad", "com.docker.install",
+                                  "com.google.gmp", "com.launchdarkly", "local.latelier", "io.github.digysky.latelier", "com.breakpad", "com.docker.install",
                                   "org.python", "org.nodejs", "com.plausiblelabs", "com.segment",
                                   // Outils et bibliothèques, pas des apps :
                                   "org.swift.", "org.cups.", "org.webkit.", "com.qtproject", "org.cef.", "org.chromium.", "com.electron.",

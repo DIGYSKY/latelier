@@ -1,10 +1,17 @@
 import AppKit
 import SwiftUI
+import LAtelierCore
 
 @main
 struct LAtelierApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @ViewState private var model = AppModel()
+    @ViewState private var model: AppModel
+
+    init() {
+        // Reprend réglages, historique et caches de l'ancien identifiant (local.latelier), avant tout le reste.
+        LegacyMigration.run()
+        _model = ViewState(wrappedValue: AppModel())
+    }
 
     var body: some Scene {
         WindowGroup("L’Atelier", id: "main") {

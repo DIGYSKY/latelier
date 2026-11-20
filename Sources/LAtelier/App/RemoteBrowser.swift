@@ -28,7 +28,7 @@ struct RemoteEdit: Identifiable {
     let originalText: String
     var text: String
     /// Ligne `ls -ld` du fichier à l'ouverture : s'il a changé sur le serveur, on prévient.
-    let remoteStamp: String
+    var remoteStamp: String
     var external = false
     var localModified: Date?
 }
@@ -174,21 +174,33 @@ final class RemoteBrowser {
     func upload(_ urls: [URL], into directory: String? = nil) {
         guard let target = directory ?? path, !urls.isEmpty else { return }
         let names = urls.map(\.lastPathComponent)
-        let existing = target == path ? Set(files.map(\.name)) : []
-        let conflicts = names.filter { existing.contains($0) }
-        let bytes = urls.reduce(Int64(0)) { $0 + DiskUsage.measure($1).bytes }
-        let plan = ActionPlan(
-            title: "Envoyer \(names.count == 1 ? "« \(names[0]) »" : "\(names.count) éléments") sur \(alias)",
-            summary: conflicts.isEmpty
-                ? "Copie dans \(target) (\(Format.bytes(bytes)))."
-                : "Remplacera sur le serveur : \(conflicts.joined(separator: ", ")). L’ancienne version sera perdue.",
-            kind: .serveur, risk: conflicts.isEmpty ? .safe : .caution, reversible: false,
-            steps: [.command(commands.upload(urls, to: target))], estimatedBytes: bytes
-        )
-        if conflicts.isEmpty {
-            run(plan, transfer: RemoteTransfer(upload: true, names: names, bytes: bytes))
-        } else {
-            store?.present(plan)
+        let check = commands.existing(names, in: target)
+        let runner = runner
+        Task {
+            // Les conflits sont vérifiés sur le serveur juste avant (la liste affichée peut être périmée).
+            let result = try? await runner.run(check, timeout: .seconds(20))
+            let verified = result?.succeeded == true
+            let conflicts = verified ? (result?.stdout ?? []).filter { !$0.isEmpty } : []
+            let bytes = urls.reduce(Int64(0)) { $0 + DiskUsage.measure($1).bytes }
+            let summary: String
+            if !verified {
+                summary = "Copie dans \(target) (\(Format.bytes(bytes))). L’absence de fichiers du même nom n’a pas pu être vérifiée : un fichier existant serait remplacé."
+            } else if conflicts.isEmpty {
+                summary = "Copie dans \(target) (\(Format.bytes(bytes)))."
+            } else {
+                summary = "Remplacera sur le serveur : \(conflicts.joined(separator: ", ")). L’ancienne version sera perdue ; un dossier envoyé se mélange au dossier existant."
+            }
+            let plan = ActionPlan(
+                title: "Envoyer \(names.count == 1 ? "« \(names[0]) »" : "\(names.count) éléments") sur \(alias)",
+                summary: summary, kind: .serveur, risk: verified && conflicts.isEmpty ? .safe : .caution, reversible: false,
+                steps: [.command(commands.upload(urls, to: target))], estimatedBytes: bytes
+            )
+            // Sans aperçu seulement si rien n'est remplacé (vérifié à l'instant).
+            if verified && conflicts.isEmpty {
+                run(plan, transfer: RemoteTransfer(upload: true, names: names, bytes: bytes))
+            } else {
+                store?.present(plan)
+            }
         }
     }
 
@@ -305,8 +317,7 @@ final class RemoteBrowser {
     static let editorLimit: Int64 = 2_000_000
 
     private var cacheFolder: URL {
-        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("local.latelier/ssh/\(alias)", isDirectory: true)
+        AppPaths.cacheDirectory.appendingPathComponent("ssh/\(alias)", isDirectory: true)
     }
 
     /// Ouvre dans l'éditeur intégré (texte de moins de 2 Mo).
@@ -393,11 +404,15 @@ final class RemoteBrowser {
                 ? "fichier modifié"
                 : "\(added.count) ligne\(added.count > 1 ? "s" : "") ajoutée\(added.count > 1 ? "s" : "") ou modifiée\(added.count > 1 ? "s" : ""), \(removed.count) retirée\(removed.count > 1 ? "s" : "")"
             savingPath = edit.file.path
+            // Envoi à côté, puis remplacement seulement si le fichier n'a pas changé entre-temps
+            // (vérifié au moment de l'exécution, pas à l'ouverture de l'aperçu).
+            let staged = RemotePath.join(RemotePath.parent(edit.file.path), ".\(edit.file.name).latelier-\(UUID().uuidString.prefix(8))")
             store?.present(ActionPlan(
                 title: "Enregistrer « \(edit.file.name) » sur \(alias)",
-                summary: "Remplace \(edit.file.path) (\(change)). L’original reçu reste sur ce Mac : \(edit.original.abbreviatingHome()).",
+                summary: "Remplace \(edit.file.path) (\(change)), en gardant ses droits. Refusé si le fichier change sur le serveur d’ici là. L’original reçu reste sur ce Mac : \(edit.original.abbreviatingHome()).",
                 kind: .serveur, risk: .caution, reversible: false,
-                steps: [.command(commands.put(edit.local, as: edit.file.path))]
+                steps: [.command(commands.put(edit.local, as: staged)),
+                        .command(commands.replace(edit.file.path, with: staged, ifUnchanged: now.isEmpty ? edit.remoteStamp : now))]
             ))
         }
     }
@@ -419,10 +434,17 @@ final class RemoteBrowser {
         refresh()
     }
 
-    /// Après un envoi, la version du serveur devient la nouvelle référence.
+    /// Après un envoi, la version du serveur devient la nouvelle référence (date et taille comprises).
     func markSaved(_ path: String) {
-        if let index = watched.firstIndex(where: { $0.file.path == path }) {
-            watched[index].localModified = Self.modified(watched[index].local)
+        guard let index = watched.firstIndex(where: { $0.file.path == path }) else { return }
+        watched[index].localModified = Self.modified(watched[index].local)
+        let stat = commands.stat(path)
+        let runner = runner
+        Task {
+            if let line = (try? await runner.run(stat, timeout: .seconds(20)))?.stdout.first,
+               let index = watched.firstIndex(where: { $0.file.path == path }) {
+                watched[index].remoteStamp = line
+            }
         }
     }
 

@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key>
-	<string>local.latelier</string>
+	<string>io.github.digysky.latelier</string>
 	<key>CFBundleName</key>
 	<string>L’Atelier</string>
 	<key>CFBundleDisplayName</key>

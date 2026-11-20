@@ -65,7 +65,7 @@ public struct CommandLog: Sendable, Codable, Hashable {
     }
 }
 
-/// Historique sur disque, en JSON, dans `~/Library/Application Support/local.latelier/`.
+/// Historique sur disque, en JSON, dans `~/Library/Application Support/io.github.digysky.latelier/`.
 public actor HistoryStore {
     public let fileURL: URL
     private let limit: Int
@@ -132,10 +132,48 @@ public actor HistoryStore {
 }
 
 public enum AppPaths {
-    public static let bundleIdentifier = "local.latelier"
+    public static let bundleIdentifier = "io.github.digysky.latelier"
+    /// Identifiant des premières versions (avant la bêta publique) : ses données sont reprises au lancement.
+    public static let legacyIdentifier = "local.latelier"
 
     public static var supportDirectory: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(bundleIdentifier, isDirectory: true)
+    }
+
+    public static var cacheDirectory: URL {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(bundleIdentifier, isDirectory: true)
+    }
+}
+
+/// Reprend les réglages et les données de l'ancien identifiant (`local.latelier`), une seule fois.
+/// Rien n'est supprimé : les dossiers sont déplacés seulement si le nouveau n'existe pas encore.
+public enum LegacyMigration {
+    public static let doneKey = "migratedFromLegacyIdentifier"
+
+    @discardableResult
+    public static func run(
+        defaults: UserDefaults = .standard,
+        legacyDefaults: [String: Any]? = UserDefaults.standard.persistentDomain(forName: AppPaths.legacyIdentifier),
+        bases: [URL] = [
+            FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0],
+            FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0],
+        ]
+    ) -> [String] {
+        guard !defaults.bool(forKey: doneKey) else { return [] }
+        var moved: [String] = []
+        for (key, value) in legacyDefaults ?? [:] where defaults.object(forKey: key) == nil {
+            defaults.set(value, forKey: key)
+        }
+        let fm = FileManager.default
+        for base in bases {
+            let old = base.appendingPathComponent(AppPaths.legacyIdentifier, isDirectory: true)
+            let new = base.appendingPathComponent(AppPaths.bundleIdentifier, isDirectory: true)
+            guard fm.fileExists(atPath: old.path), !fm.fileExists(atPath: new.path) else { continue }
+            if (try? fm.moveItem(at: old, to: new)) != nil { moved.append(new.path) }
+        }
+        defaults.set(true, forKey: doneKey)
+        return moved
     }
 }

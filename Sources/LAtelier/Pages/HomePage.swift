@@ -39,7 +39,7 @@ struct HomePage: View {
                         value: model.repos.finishedAt == nil ? "—" : "\(model.repos.repos.count)",
                         sub: projectsSub, page: .depots)
                 KpiTile(label: "Sécurité", symbol: "lock.shield", color: Theme.red,
-                        value: serious.map { "\($0)" } ?? "—", sub: serious == nil ? "analyse en cours…" : "paquets à faille grave",
+                        value: serious.map { "\($0)" } ?? "—", sub: serious == nil ? "analyse en cours…" : serious == 0 ? "aucun projet actif à faille critique" : "projet\(serious! > 1 ? "s" : "") actif\(serious! > 1 ? "s" : "") à faille critique",
                         page: .securite)
                 KpiTile(label: "Mises à jour", symbol: "cube.box", color: Theme.orange,
                         value: model.packages.finishedAt == nil ? "—" : "\(model.packages.updates.count)",
@@ -101,7 +101,7 @@ struct HomePage: View {
     }
 
     private var serious: Int? {
-        model.analysis.value?.vulnerablePackages.filter { $0.severity >= .high }.count
+        model.criticalActiveProjects?.count
     }
 
     private var projectsSub: String {
@@ -119,10 +119,11 @@ struct HomePage: View {
     private var todo: [(symbol: String, color: Color, text: String, page: Page)] {
         var items: [(symbol: String, color: Color, text: String, page: Page)] = []
         if let analysis = model.analysis.value {
-            let critical = analysis.vulnerablePackages.filter { $0.severity == .critical }
+            let active = Set(model.criticalActiveProjects ?? [])
+            let critical = analysis.vulnerablePackages.filter { $0.severity == .critical && $0.project.map { active.contains($0.standardizedFileURL) } == true }
             if !critical.isEmpty {
-                let projects = Set(critical.map(\.projectName)).count
-                items.append(("exclamationmark.shield", Theme.red, "\(critical.count) paquets à faille critique dans \(projects) projet\(projects > 1 ? "s" : "")", .securite))
+                let projects = active.count
+                items.append(("exclamationmark.shield", Theme.red, "\(critical.count) paquet\(critical.count > 1 ? "s" : "") à faille critique dans \(projects) projet\(projects > 1 ? "s" : "") actif\(projects > 1 ? "s" : "")", .securite))
             }
             if !analysis.secrets.isEmpty {
                 items.append(("key", Theme.red, "\(analysis.secrets.count) secret\(analysis.secrets.count > 1 ? "s" : "") commité\(analysis.secrets.count > 1 ? "s" : "")", .securite))

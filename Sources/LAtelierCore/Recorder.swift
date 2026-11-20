@@ -321,8 +321,7 @@ public actor RecordingStore {
     public let directory: URL
 
     public init(directory: URL? = nil) {
-        self.directory = directory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("local.latelier/recordings", isDirectory: true)
+        self.directory = directory ?? AppPaths.supportDirectory.appendingPathComponent("recordings", isDirectory: true)
     }
 
     public func url(for session: RecordingSession) -> URL { directory.appendingPathComponent("\(session.id.uuidString).json") }

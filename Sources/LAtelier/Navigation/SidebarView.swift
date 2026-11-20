@@ -57,9 +57,9 @@ struct SidebarView: View {
             let unread = model.news.unreadForYou
             return unread > 0 ? Badge(text: "\(unread)", color: Theme.accent) : nil
         case .projets:
-            guard let analysis = model.analysis.value else { return nil }
-            let serious = analysis.vulnerablePackages.filter { $0.severity >= .high }.count
-            return serious > 0 ? Badge(text: "\(serious)", color: Theme.red) : nil
+            // Projets actifs touchés par une faille critique (pas chaque paquet de chaque vieux projet).
+            guard let count = model.criticalActiveProjects?.count, count > 0 else { return nil }
+            return Badge(text: "\(count)", color: Theme.red)
         case .paquets:
             let updates = model.packages.updates.count
             return updates > 0 ? Badge(text: "\(updates)", color: Theme.orange) : nil

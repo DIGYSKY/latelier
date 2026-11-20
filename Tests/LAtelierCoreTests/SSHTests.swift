@@ -85,6 +85,27 @@ struct SSHConfigTests {
     }
 }
 
+@Suite("SSH : ~/.ssh/config en lien symbolique")
+struct SSHConfigSymlinkTests {
+    @Test func writesThroughTheLink() throws {
+        let home = FileManager.default.temporaryDirectory.appendingPathComponent("latelier-home-\(UUID().uuidString.prefix(6))").resolvingSymlinksInPath()
+        let ssh = home.appendingPathComponent(".ssh")
+        let dotfiles = home.appendingPathComponent("dotfiles")
+        try FileManager.default.createDirectory(at: ssh, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: dotfiles, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: home) }
+        let real = dotfiles.appendingPathComponent("ssh_config")
+        try "Host a\n    HostName b\n".write(to: real, atomically: true, encoding: .utf8)
+        let link = ssh.appendingPathComponent("config")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+        let config = SSHConfig(url: link, text: try String(contentsOf: link, encoding: .utf8))
+        let after = config.adding(SSHHost(alias: "c", hostName: "d"))
+        try PlanExecutor.write(FileEdit(file: link, before: config.text, after: after, added: [], backup: false), safety: SafetyGuard(root: home))
+        #expect(try FileManager.default.destinationOfSymbolicLink(atPath: link.path) == real.path)  // toujours un lien
+        #expect(try String(contentsOf: real, encoding: .utf8).contains("Host c"))
+    }
+}
+
 @Suite("SSH : fichiers distants")
 struct RemoteListingTests {
     @Test func parsesGNUEpochAndBSD() throws {
@@ -123,10 +144,18 @@ struct RemoteListingTests {
         #expect(SSHCommands.scpPath("/a/b*[1].txt") == "/a/b\\*\\[1\\].txt")
     }
 
+    @Test func renameNeverInterpretsTheNewName() {
+        let command = SSHCommands(alias: "prod", controlDirectory: "/tmp/x").rename("/srv/a", to: "/srv/x\"; rm -rf ~; echo \"$(id)`id`")
+        let script = command.arguments.last!
+        // Le nom n'apparaît que dans des guillemets simples : ni « " », ni $( ), ni ` ` ne sont interprétés.
+        #expect(!script.contains("\"; rm -rf ~; echo \"$(id)") || script.contains("'/srv/x\"; rm -rf ~; echo \"$(id)`id`'"))
+        #expect(script.contains("mv -n --"))
+    }
+
     @Test func commandsQuoteRemotePaths() {
         let commands = SSHCommands(alias: "prod", controlDirectory: "/tmp/x")
         let rename = commands.rename("/srv/a b", to: "/srv/c'd")
-        #expect(rename.arguments.last!.contains("mv -- '/srv/a b' '/srv/c'\\''d'"))
+        #expect(rename.arguments.last!.contains("mv -n -- '/srv/a b' '/srv/c'\\''d'"))
         #expect(commands.download(["/srv/a b"], to: URL(fileURLWithPath: "/tmp/d")).arguments.suffix(2) == ["prod:/srv/a b", "/tmp/d/"])
         #expect(SSHFailure.explain("deploy@x: Permission denied (publickey).").title == "Accès refusé")
     }
@@ -191,7 +220,7 @@ struct SSHServerLiveTests {
         #expect(RemoteListing.parse(try await run(ssh.list(base)).stdout, directory: base).map { $0.name } == ["pris"])
         // Nettoyage : dossier de test et corbeille de test.
         #expect(try await run(ssh.delete([base])).succeeded)
-        #expect(try await run(ssh.ssh("rm -rf -- \"$HOME\"/.latelier-corbeille/\(stamp) && rmdir \"$HOME\"/.latelier-corbeille 2>/dev/null; true")).succeeded)
+        #expect(try await run(ssh.ssh("rm -rf -- \"$HOME\"/.latelier-corbeille/\(stamp)-* && rmdir \"$HOME\"/.latelier-corbeille 2>/dev/null; true")).succeeded)
         try? FileManager.default.removeItem(at: local)
     }
 }

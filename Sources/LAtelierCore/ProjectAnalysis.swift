@@ -506,3 +506,19 @@ public struct ProjectAnalyzer: Sendable {
         return analysis
     }
 }
+
+/// Ce qui mérite une alerte : les projets **actifs** touchés par une faille **critique**.
+/// (Compter chaque paquet vulnérable de chaque vieux projet donnait des pastilles à 900 et plus.)
+public enum SecurityAlerts {
+    public static func activeCriticalProjects(
+        _ vulnerable: [VulnerablePackage], lastActivity: [URL: Date], inactiveAfter: TimeInterval, now: Date = .now
+    ) -> [URL] {
+        let projects = Set(vulnerable.filter { $0.severity == .critical }.compactMap { $0.project?.standardizedFileURL })
+        return projects.filter { project in
+            // Projet inconnu de la liste des dépôts : on le garde (mieux vaut une alerte de trop).
+            guard let date = lastActivity[project] else { return true }
+            return now.timeIntervalSince(date) <= inactiveAfter
+        }
+        .sorted { $0.path < $1.path }
+    }
+}

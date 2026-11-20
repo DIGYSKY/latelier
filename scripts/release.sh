@@ -8,7 +8,7 @@
 #
 # Préparer le profil de notarisation une fois :
 #   xcrun notarytool store-credentials latelier --apple-id <e-mail> --team-id <TEAMID>
-# BUNDLE_ID remplace l’identifiant « local.latelier » (ex. com.exemple.latelier).
+# BUNDLE_ID remplace l’identifiant « io.github.digysky.latelier » (pour un fork).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

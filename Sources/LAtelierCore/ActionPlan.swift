@@ -224,7 +224,7 @@ public struct PlanExecutor: Sendable {
                 let start = Date()
                 do {
                     try safety.checkEditable(edit.file)
-                    try Self.write(edit)
+                    try Self.write(edit, safety: safety)
                     completed += 1
                     let output = (edit.removed.map { "− \($0)" } + edit.added.map { "+ \($0)" }).joined(separator: "\n")
                     onEvent(index, .stdout(output))
@@ -332,8 +332,15 @@ public struct PlanExecutor: Sendable {
 
     /// Réécrit le fichier s'il n'a pas changé depuis l'aperçu, en gardant ses droits
     /// (600 pour ~/.ssh/config). Avec `backup`, l'ancienne version part à la corbeille.
-    static func write(_ edit: FileEdit) throws {
+    static func write(_ edit: FileEdit, safety: SafetyGuard = .standard) throws {
         let fm = FileManager.default
+        // Un lien (dotfiles) : on écrit dans le fichier pointé, sans remplacer le lien par une copie.
+        var edit = edit
+        if (try? fm.destinationOfSymbolicLink(atPath: edit.file.path)) != nil {
+            let target = edit.file.resolvingSymlinksInPath()
+            guard target.path.hasPrefix(safety.root.path + "/") else { throw SafetyGuard.Refusal.outsideAllowedRoot(target.path) }
+            edit.file = target
+        }
         let exists = fm.fileExists(atPath: edit.file.path)
         let current = exists ? try String(contentsOf: edit.file, encoding: .utf8) : ""
         guard current == edit.before else { throw EditConflict(file: edit.file.lastPathComponent) }

@@ -71,7 +71,7 @@ TARGET_DIR="/Applications"
 mkdir -p "$TARGET_DIR"
 TARGET="$TARGET_DIR/$APP_NAME"
 if [[ -e "$TARGET" ]]; then
-    osascript -e 'tell application id "local.latelier" to quit' >/dev/null 2>&1 || true
+    osascript -e 'tell application id "io.github.digysky.latelier" to quit' >/dev/null 2>&1 || true
     sleep 1
     TRASHED="$HOME/.Trash/L’Atelier $(date +%Y-%m-%d\ %H.%M.%S).app"
     mv "$TARGET" "$TRASHED"
