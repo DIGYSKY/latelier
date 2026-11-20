@@ -5,16 +5,17 @@ import SwiftUI
 /// Projets › Commandes : scripts, cibles make, recettes just… lancés dans le dossier du projet.
 struct CommandsPage: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.projectScope) private var scope
     @ViewState private var project: URL?
 
     var body: some View {
         let center = model.commandCenter!
-        let current = project ?? defaultProject
+        let current = scope ?? project ?? defaultProject
         let set = current.map { center.commands(for: $0) }
         PageScaffold(page: .commandes, subtitle: subtitle(set)) {
             if let current { OpenInMenu(project: current) }
         } content: {
-            projectBar(current)
+            if scope == nil { projectBar(current) }
             if let current, let set {
                 if set.commands.isEmpty {
                     Card {
@@ -35,7 +36,7 @@ struct CommandsPage: View {
             } else if model.repos.scanning {
                 ScanningCard(label: "Recherche des projets…")
             } else {
-                Card { EmptyState(symbol: "folder", title: "Aucun projet", message: "Ajoutez un dossier de projets dans Projets › Dépôts.") }
+                Card { EmptyState(symbol: "folder", title: "Aucun projet", message: "Ajoutez un dossier de projets dans Réglages › Projets.") }
             }
         }
         .onAppear { model.ensureRepos() }

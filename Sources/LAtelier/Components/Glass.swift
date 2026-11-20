@@ -68,16 +68,38 @@ struct Backdrop: View {
 }
 
 /// Mise en page commune : en-tête, défilement, marges de la maquette.
+/// Projet auquel un écran est limité quand il est affiché dans la page d'un dépôt.
+private struct ProjectScopeKey: EnvironmentKey {
+    static let defaultValue: URL? = nil
+}
+
+extension EnvironmentValues {
+    var projectScope: URL? {
+        get { self[ProjectScopeKey.self] }
+        set { self[ProjectScopeKey.self] = newValue }
+    }
+}
+
 struct PageScaffold<Actions: View, Content: View>: View {
     let title: String
     var subtitle: String?
     @ViewBuilder var actions: Actions
     @ViewBuilder var content: Content
+    @Environment(\.projectScope) private var scope
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                PageHeader(title: title, subtitle: subtitle) { actions }
+                if scope == nil {
+                    PageHeader(title: title, subtitle: subtitle) { actions }
+                } else {
+                    // Dans la page d'un dépôt : pas de grand titre, les actions restent.
+                    HStack(spacing: 10) {
+                        if let subtitle { Text(subtitle).font(.system(size: 13)).foregroundStyle(Theme.muted).lineLimit(2) }
+                        Spacer()
+                        actions
+                    }
+                }
                 content
             }
             .padding(.leading, 22)

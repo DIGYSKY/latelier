@@ -362,3 +362,28 @@ extension AppModel {
         news.updateInventory(manifests: inventory.manifests, packages: inventory.packages)
     }
 }
+
+extension AppModel {
+    /// Va là où l'on corrige ce qu'une news signale : le projet (onglet Sécurité) ou le paquet installé.
+    func fix(_ match: NewsMatch) {
+        if let project = match.project {
+            securityFocus = match.package
+            if analysis.stale && !analysis.loading { scanAnalysis() }
+            openRepository(project, tab: .security)
+        } else {
+            packageFocus = match.package.split(separator: "@").first.map(String.init) ?? match.package
+            switch match.source {
+            case .runtimes: selection = .runtimes
+            default:
+                let outdated = packages.updates.contains { $0.identifier == match.package || $0.name == match.package }
+                selection = outdated ? .majs : .inventaire
+            }
+        }
+    }
+
+    /// Libellé du bouton « Corriger » selon l'endroit visé.
+    static func fixLabel(_ match: NewsMatch) -> String {
+        if let project = match.project { return "Corriger dans \(project.lastPathComponent) →" }
+        return match.source == .runtimes ? "Voir dans Runtimes →" : "Voir dans Paquets →"
+    }
+}

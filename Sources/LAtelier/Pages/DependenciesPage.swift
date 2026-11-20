@@ -4,6 +4,7 @@ import SwiftUI
 /// Projets › Dépendances : chaque bibliothèque directe, dans quels projets, en quelle version.
 struct DependenciesPage: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.projectScope) private var scope
     @ViewState private var ecosystem: Ecosystem?
     @ViewState private var onlyOutdated = false
     @ViewState private var query = ""
@@ -31,7 +32,14 @@ struct DependenciesPage: View {
 
     @ViewBuilder
     private func content(_ analysis: ProjectAnalysis) -> some View {
-        let libraries = analysis.libraries
+        // Dans la page d'un dépôt : seulement ses bibliothèques.
+        let libraries = scope.map { project in
+            analysis.libraries.compactMap { library -> Library? in
+                var library = library
+                library.uses = library.uses.filter { $0.project.standardizedFileURL == project.standardizedFileURL }
+                return library.uses.isEmpty ? nil : library
+            }
+        } ?? analysis.libraries
         let names = analysis.projectNames
         let ecosystems = Ecosystem.allCases.filter { e in libraries.contains { $0.ecosystem == e } }
         let q = query.lowercased()
@@ -48,7 +56,9 @@ struct DependenciesPage: View {
         }
 
         if libraries.isEmpty {
-            Card { EmptyState(symbol: "shippingbox", title: "Aucune dépendance trouvée", message: "Aucun package.json, Cargo.toml, pyproject.toml, go.mod… dans les projets détectés.") }
+            Card { EmptyState(symbol: "shippingbox", title: "Aucune dépendance trouvée",
+                              message: scope == nil ? "Aucun package.json, Cargo.toml, pyproject.toml, go.mod… dans les projets détectés."
+                                                    : "Ce projet ne déclare aucune dépendance externe (ou son manifeste n’est pas reconnu).") }
         } else {
             LazyVStack(spacing: 0) {
                 if visible.isEmpty {

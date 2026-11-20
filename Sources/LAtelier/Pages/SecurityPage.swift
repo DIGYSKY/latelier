@@ -5,6 +5,7 @@ import SwiftUI
 /// Projets › Sécurité : failles connues (OSV) par gravité, secrets commités, runtimes en fin de vie, hygiène.
 struct SecurityPage: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.projectScope) private var scope
     @ViewState private var severity: Severity?
     @ViewState private var directOnly = false
     @ViewState private var project: URL?
@@ -20,16 +21,18 @@ struct SecurityPage: View {
                 .disabled(store.loading)
         } content: {
             if let analysis = store.value {
-                content(analysis)
+                content(scope.map { Self.limited(analysis, to: $0) } ?? analysis)
             } else {
                 ScanningCard(label: "Lecture des dépendances de chaque projet et interrogation d’OSV.dev…")
             }
         }
         .onAppear {
+            focus()
             if store.stale && !store.loading { model.scanAnalysis() }
             if model.packages.stale && !model.packages.scanning { model.scanPackages() }
         }
         .onChange(of: store.stale) { _, stale in if stale && !store.loading { model.scanAnalysis() } }
+        .onChange(of: store.finishedAt) { focus() }
         .onChange(of: severity) { limit = 25 }
         .onChange(of: directOnly) { limit = 25 }
         .onChange(of: project) { limit = 25 }
@@ -42,13 +45,48 @@ struct SecurityPage: View {
         return "\(analysis.projectCount) projets analysés via OSV.dev · \(ago) · seuls noms et versions de paquets sont envoyés"
     }
 
+    /// Arrivée depuis une news : la faille de cette dépendance est dépliée.
+    private func focus() {
+        guard let name = model.securityFocus, let analysis = model.analysis.value else { return }
+        let packages = analysis.vulnerablePackages.filter { scope == nil || $0.project?.standardizedFileURL == scope?.standardizedFileURL }
+        if let package = packages.first(where: { $0.dependency.name == name }) {
+            open = package.id
+            severity = nil
+            directOnly = false
+            model.securityFocus = nil
+        }
+    }
+
+    /// La même analyse, limitée à un projet (page d'un dépôt).
+    static func limited(_ analysis: ProjectAnalysis, to project: URL) -> ProjectAnalysis {
+        var copy = analysis
+        let path = project.standardizedFileURL
+        let name = project.lastPathComponent
+        copy.manifests = analysis.manifests.filter { $0.project.standardizedFileURL == path }
+        copy.vulnerabilities = analysis.vulnerabilities.filter { $0.project?.standardizedFileURL == path }
+        copy.secrets = analysis.secrets.filter { $0.project.standardizedFileURL == path }
+        copy.endOfLife = analysis.endOfLife.compactMap { pin in
+            var pin = pin
+            pin.uses = pin.uses.filter { $0.project == name }
+            return pin.uses.isEmpty ? nil : pin
+        }
+        var hygiene = analysis.hygiene
+        hygiene.withoutRemote = hygiene.withoutRemote.filter { $0 == name }
+        hygiene.withoutLockfile = hygiene.withoutLockfile.filter { $0.project == name }
+        hygiene.duplicateLockfiles = hygiene.duplicateLockfiles.filter { $0.project == name }
+        hygiene.trackedEnvFiles = hygiene.trackedEnvFiles.filter { $0.project.standardizedFileURL == path }
+        copy.hygiene = hygiene
+        copy.projectCount = 1
+        return copy
+    }
+
     @ViewBuilder
     private func content(_ analysis: ProjectAnalysis) -> some View {
         let names = analysis.projectNames
         let all = analysis.vulnerablePackages
         let scoped = all
             .filter { !directOnly || $0.dependency.direct }
-            .filter { project == nil || $0.project == project }
+            .filter { scope != nil || project == nil || $0.project == project }
         let visible = scoped.filter { severity == nil || $0.severity == severity }
 
         severityTiles(scoped)
@@ -59,7 +97,7 @@ struct SecurityPage: View {
                 Text("\(scoped.reduce(0) { $0 + $1.findings.count }) failles dans \(scoped.count) paquets")
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
                 Spacer()
-                projectMenu(analysis, names: names)
+                if scope == nil { projectMenu(analysis, names: names) }
                 Toggle("Directes seulement", isOn: $directOnly)
                     .toggleStyle(.checkbox)
                     .font(.system(size: 12))
@@ -95,7 +133,7 @@ struct SecurityPage: View {
             }
         }
 
-        installedPackages
+        if scope == nil { installedPackages }
 
         HStack(alignment: .top, spacing: 14) {
             secretsCard(analysis, names: names)

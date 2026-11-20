@@ -123,7 +123,8 @@ struct ProcessDetailSheet: View {
             monitor.attach()
             arguments = ProcessTree.arguments(of: pid)
             children = ProcessTree.descendants(of: pid)
-            if let path = monitor.process(pid)?.path { signer = Signer.of(path: path) }
+            // La signature d'une app se lit sur le paquet .app, pas sur l'exécutable.
+            if let process = monitor.process(pid), let path = process.appBundle ?? process.path { signer = Signer.of(path: path) }
         }
         .onDisappear { monitor.detach() }
         .onChange(of: monitor.process(pid)) { _, new in if let new { last = new } }
@@ -237,7 +238,7 @@ struct ProcessDetailSheet: View {
                     row("Projet", model.projectName(project), mono: false)
                 }
                 let start = Date(timeIntervalSince1970: TimeInterval(process.started))
-                row("Démarré", start.formatted(date: .abbreviated, time: .standard) + " · depuis " + Format.duration(Date().timeIntervalSince(start)), mono: false)
+                row("Démarré", start.formatted(date: .abbreviated, time: .standard) + " · depuis " + Self.uptime(Date().timeIntervalSince(start)), mono: false)
                 row("Utilisateur", process.userLabel, mono: false)
                 if let signer {
                     row("Signature", signer.apple ? "Apple" : (signer.name ?? "signé") + (signer.teamID.map { " (\($0))" } ?? ""), mono: false)
@@ -261,6 +262,15 @@ struct ProcessDetailSheet: View {
                 }
             }
         }
+    }
+
+    /// « 2 j 2 h », « 3 h 12 min », « 45 s ».
+    static func uptime(_ seconds: TimeInterval) -> String {
+        let s = Int(seconds)
+        if s < 60 { return "\(s) s" }
+        if s < 3600 { return "\(s / 60) min" }
+        if s < 86_400 { return "\(s / 3600) h \(s % 3600 / 60) min" }
+        return "\(s / 86_400) j \(s % 86_400 / 3600) h"
     }
 
     private func row(_ label: String, _ value: String, mono: Bool) -> some View {

@@ -184,7 +184,7 @@ private struct AlertBanner: View {
         let match = matches.first { $0.confirmed } ?? matches.first
         Button {
             model.news.markRead(item)
-            model.selection = match?.project != nil ? .securite : .inventaire
+            if let match { model.fix(match) }
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "exclamationmark.shield.fill")
@@ -197,7 +197,7 @@ private struct AlertBanner: View {
                         .font(.system(size: 13)).lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                Text(match?.project != nil ? "Voir dans Sécurité →" : "Voir le paquet →")
+                Text(match.map(AppModel.fixLabel) ?? "Voir →")
                     .font(.system(size: 13, weight: .semibold))
             }
             .foregroundStyle(Tag.red.0)
@@ -252,6 +252,18 @@ private struct ArticleRow: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityValue(expanded ? "déplié" : "replié")
+                if !expanded, let first = matches.first(where: \.confirmed) ?? matches.first {
+                    HStack(spacing: 8) {
+                        Text("\(first.package) \(first.version ?? "")" + (first.project.map { " · \(model.projectName($0))" } ?? " · \(first.place)")
+                             + (matches.count > 1 ? " et \(matches.count - 1) autre\(matches.count > 2 ? "s" : "")" : ""))
+                            .font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1)
+                        Button(AppModel.fixLabel(first)) {
+                            model.news.markRead(item)
+                            model.fix(first)
+                        }
+                        .buttonStyle(PillButtonStyle(kind: first.confirmed ? .smallFilled : .small))
+                    }
+                }
                 if expanded { details(matches: matches) }
             }
             Button { news.toggleStar(item) } label: {
@@ -367,14 +379,9 @@ private struct MatchRow: View {
                 Text("corrigé en \(fixed)").font(.system(size: 12)).foregroundStyle(Tag.green.0)
             }
             Spacer(minLength: 4)
-            if let project = match.project {
-                Button("Sécurité") { model.selection = .securite }
-                    .buttonStyle(PillButtonStyle(kind: .small))
-                OpenInMenu(project: project)
-            } else {
-                Button("Paquets") { model.selection = match.source == .runtimes ? .runtimes : .inventaire }
-                    .buttonStyle(PillButtonStyle(kind: .small))
-            }
+            Button(AppModel.fixLabel(match)) { model.fix(match) }
+                .buttonStyle(PillButtonStyle(kind: match.confirmed ? .smallFilled : .small))
+            if let project = match.project { OpenInMenu(project: project) }
         }
     }
 

@@ -73,7 +73,7 @@ private struct DetectedCard: View {
             .padding(.vertical, 12)
             if preferences.recorderPolicy == .off {
                 Rectangle().fill(Theme.hairline).frame(height: 1)
-                Text("Détection désactivée. « Exécuter et enregistrer » reste possible depuis Projets › Commandes.")
+                Text("Détection désactivée. « Exécuter et enregistrer » reste possible depuis la page d’un projet, onglet Commandes.")
                     .font(.system(size: 13)).foregroundStyle(Theme.muted).padding(18)
             } else if recorder.detected.isEmpty {
                 Rectangle().fill(Theme.hairline).frame(height: 1)

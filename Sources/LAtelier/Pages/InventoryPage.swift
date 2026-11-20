@@ -28,7 +28,14 @@ struct InventoryPage: View {
                 }
             }
         }
-        .onAppear { if store.stale && !store.scanning { model.scanPackages() } }
+        .onAppear {
+            if store.stale && !store.scanning { model.scanPackages() }
+            // Arrivée depuis une news : le paquet concerné est filtré.
+            if let focus = model.packageFocus {
+                query = focus
+                model.packageFocus = nil
+            }
+        }
         .onChange(of: store.stale) { _, stale in if stale && !store.scanning { model.scanPackages() } }
     }
 

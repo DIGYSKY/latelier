@@ -13,6 +13,9 @@ struct SidebarView: View {
                 PageRow(page: .accueil, level: 1)
 
                 ForEach(SidebarGroup.allCases) { group in
+                    if !group.showsChildren {
+                        PageRow(page: group.firstPage, level: 1, badge: badge(group))
+                    } else {
                     GroupRow(group: group, open: open == group, inside: model.selection.group == group, badge: badge(group)) {
                         withAnimation(.snappy(duration: 0.25)) { open = open == group ? nil : group }
                     }
@@ -28,6 +31,7 @@ struct SidebarView: View {
                         }
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     }
+                    }
                 }
 
                 Rectangle().fill(Theme.hairline).frame(height: 1).padding(.horizontal, 12).padding(.vertical, 8)
@@ -40,7 +44,7 @@ struct SidebarView: View {
         .scrollIndicators(.never)
         .onAppear { open = model.selection.group }
         .onChange(of: model.selection) { _, page in
-            if let group = page.group, group != open {
+            if let group = page.group, group != open, group.showsChildren {
                 withAnimation(.snappy(duration: 0.25)) { open = group }
             }
         }
@@ -107,8 +111,10 @@ private struct PageRow: View {
     @ViewState private var hovering = false
 
     var body: some View {
-        let active = model.selection == page
+        let active = model.selection == page || (page == .depots && model.selection.group == .projets)
         Button {
+            // Projets : un clic revient à la liste des dépôts.
+            if page == .depots { model.openRepo = nil }
             model.selection = page
         } label: {
             HStack(spacing: 10) {

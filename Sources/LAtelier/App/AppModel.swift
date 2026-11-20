@@ -56,6 +56,12 @@ final class AppModel {
     @ObservationIgnored private(set) var news: NewsStore!
     /// Demande « Ouvrir dans Claude » en attente (feuille).
     var pendingClaude: ClaudeRequest?
+    /// Dépôt ouvert dans Projets (sinon la liste), et son onglet.
+    var openRepo: String?
+    var repoTab: RepoTab = .git
+    /// Paquet à filtrer à l'arrivée dans Paquets, dépendance à ouvrir dans Sécurité (depuis une news).
+    var packageFocus: String?
+    var securityFocus: String?
     /// Fiche d'un processus (Performance).
     var processDetail: ProcessDetailRequest?
     /// Action refusée avant l'aperçu, avec la raison (paquet requis par un autre…).
@@ -70,8 +76,19 @@ final class AppModel {
         let saved = UserDefaults.standard.stringArray(forKey: Self.rootsKey)
         projectRoots = saved.map { $0.map { URL(fileURLWithPath: $0) } } ?? DevArtifactScanner.defaultRoots()
         // Ouvre directement un écran (captures, développement) : LATELIER_PAGE=sonar
-        if let raw = ProcessInfo.processInfo.environment["LATELIER_PAGE"], let page = Page(rawValue: raw) {
+        let environment = ProcessInfo.processInfo.environment
+        if let raw = environment["LATELIER_PAGE"], let page = Page(rawValue: raw) {
             selection = page
+        }
+        // Captures : LATELIER_REPO=/chemin/du/depot[#security], LATELIER_PROCESS=<pid>
+        if let raw = environment["LATELIER_REPO"] {
+            let parts = raw.split(separator: "#")
+            openRepo = String(parts[0])
+            repoTab = parts.count > 1 ? RepoTab(rawValue: String(parts[1])) ?? .git : .git
+            selection = .depots
+        }
+        if let raw = environment["LATELIER_PROCESS"], let pid = Int32(raw) {
+            processDetail = ProcessDetailRequest(pid: pid)
         }
         commandCenter = CommandCenter(runner: runner) { [weak self] entry in await self?.record(entry) }
         recorder = RecorderService(preferences: preferences) { [weak self] in self?.knownProjects ?? [] }

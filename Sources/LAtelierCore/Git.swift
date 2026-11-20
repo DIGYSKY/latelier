@@ -56,10 +56,16 @@ public struct RepoStatus: Sendable, Hashable, Identifiable {
     public var operationInProgress: String?
     public var error: String?
     public var scannedAt = Date()
+    /// Dernière modification d'un fichier non commité.
+    public var lastModified: Date?
 
     public var id: String { url.path }
     public var name: String { url.lastPathComponent }
     public var lastCommit: GitCommitSummary? { recentCommits.first }
+    /// Dernière activité : fichier modifié ou dernier commit, le plus récent des deux.
+    public var lastActivity: Date? {
+        [lastModified, lastCommit?.date].compactMap { $0 }.max()
+    }
     public var hasRemote: Bool { !remotes.isEmpty }
     public var remoteURL: String? { remotes["origin"] ?? remotes.values.sorted().first }
 
@@ -144,7 +150,15 @@ public struct GitClient: Sendable {
         status.recentCommits = Self.parseLog(await log ?? [])
         status.branches = Self.parseBranches(await refs ?? [], merged: Set(await merged ?? []))
         status.remotes = Self.parseRemotes(await remotes ?? [])
+        status.lastModified = Self.lastModified(of: status.changes, in: repo)
         return status
+    }
+
+    /// Date de modification la plus récente parmi les fichiers modifiés (200 au plus).
+    static func lastModified(of changes: [GitFileChange], in repo: URL) -> Date? {
+        changes.prefix(200).compactMap { change in
+            (try? FileManager.default.attributesOfItem(atPath: repo.appending(path: change.path).path))?[.modificationDate] as? Date
+        }.max()
     }
 
     // MARK: Lecture des sorties

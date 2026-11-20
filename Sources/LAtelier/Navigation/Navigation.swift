@@ -74,6 +74,9 @@ enum SidebarGroup: String, CaseIterable, Identifiable {
     }
 
     var firstPage: Page { pages[0] }
+
+    /// Projets n'a pas de sous-menu : une seule entrée, puis une page par dépôt.
+    var showsChildren: Bool { self != .projets }
 }
 
 enum SidebarEntry: Hashable {
@@ -115,7 +118,7 @@ enum Page: String, CaseIterable, Identifiable {
         case .caches: "Caches"
         case .explorateur: "Explorateur"
         case .sonar: "Sonar"
-        case .depots: "Dépôts"
+        case .depots: "Projets"
         case .modifications: "Modifications"
         case .commandes: "Commandes"
         case .dependances: "Dépendances"
@@ -145,6 +148,7 @@ enum Page: String, CaseIterable, Identifiable {
     var headerTitle: String {
         switch self {
         case .appsNettoyage, .desinstalleur: "Applications · \(title)"
+        case .modifications, .commandes, .dependances, .securite, .couverture: "Tous les projets · \(title)"
         case .stockageVue, .perfVue: "\(group!.title) · \(title)"
         case .pourVous: "News · pour vous"
         default: title
@@ -163,7 +167,7 @@ enum Page: String, CaseIterable, Identifiable {
         case .caches: "archivebox"
         case .explorateur: "folder"
         case .sonar: "dot.radiowaves.left.and.right"
-        case .depots: "arrow.triangle.branch"
+        case .depots: "folder.badge.gearshape"
         case .modifications: "plus.forwardslash.minus"
         case .commandes: "terminal"
         case .dependances: "point.3.connected.trianglepath.dotted"

@@ -2,67 +2,94 @@ import AppKit
 import LAtelierCore
 import SwiftUI
 
-/// Projets › Dépôts : liste des dépôts à gauche, détail git à droite (maquette « Projets »).
+/// Projets : la liste des dépôts (du plus récemment modifié au plus ancien), puis une page par dépôt
+/// qui rassemble tout : git, commandes, dépendances, sécurité, couverture.
 struct ReposPage: View {
     @Environment(AppModel.self) private var model
-    @ViewState private var filter: RepoFilter = .all
 
     var body: some View {
         let store = model.repos
-        VStack(alignment: .leading, spacing: 14) {
-            PageHeader(title: "Projets", subtitle: subtitle) {
-                Button(store.fetching ? "Fetch en cours…" : "Fetch de tous les dépôts", systemImage: "arrow.clockwise") {
-                    model.fetchAll()
-                }
-                .buttonStyle(.secondary)
-                .disabled(store.fetching || store.scanning || store.repos.isEmpty)
+        Group {
+            if let id = model.openRepo, let repo = store.repos.first(where: { $0.id == id }) {
+                RepoPage(repo: repo)
+            } else {
+                RepoListPage()
             }
-            .padding(.top, 6)
+        }
+        .onAppear { if store.stale && !store.scanning { model.scanRepos() } }
+        .onChange(of: store.stale) { _, stale in if stale && !store.scanning { model.scanRepos() } }
+    }
+}
 
+/// Onglets de la page d'un dépôt.
+enum RepoTab: String, CaseIterable {
+    case git, commands, dependencies, security, coverage
+
+    var label: String {
+        switch self {
+        case .git: "Git"
+        case .commands: "Commandes"
+        case .dependencies: "Dépendances"
+        case .security: "Sécurité"
+        case .coverage: "Couverture"
+        }
+    }
+}
+
+private struct RepoListPage: View {
+    @Environment(AppModel.self) private var model
+    @ViewState private var filter: RepoFilter = .all
+    @ViewState private var query = ""
+    @ViewState private var byName = false
+
+    var body: some View {
+        let store = model.repos
+        PageScaffold(title: "Projets", subtitle: subtitle) {
+            SearchField(prompt: "Rechercher un projet", text: $query)
+            Button(store.fetching ? "Fetch en cours…" : "Fetch de tous les dépôts", systemImage: "arrow.clockwise") {
+                model.fetchAll()
+            }
+            .buttonStyle(.secondary)
+            .fixedSize()
+            .disabled(store.fetching || store.scanning || store.repos.isEmpty)
+        } content: {
             if model.projectRoots.isEmpty {
                 Card {
                     EmptyState(symbol: "folder.badge.plus", title: "Aucun dossier de projets",
-                               message: "Ajoutez vos dossiers depuis Stockage › Développement › Dossiers.")
+                               message: "Ajoutez vos dossiers dans Réglages › Projets.")
                 }
-                Spacer()
             } else if store.scanning && store.repos.isEmpty {
                 ScanningCard(label: "Recherche des dépôts git dans \(model.projectRoots.map { $0.abbreviatingHome() }.joined(separator: ", "))…")
-                Spacer()
             } else if store.repos.isEmpty {
                 Card { EmptyState(symbol: "arrow.triangle.branch", title: "Aucun dépôt git trouvé") }
-                Spacer()
             } else {
-                FilterChips(selection: $filter, counts: counts)
-                HStack(alignment: .top, spacing: 14) {
-                    ScrollView {
-                        VStack(spacing: 6) {
-                            ForEach(visible) { repo in
-                                RepoCard(repo: repo, selected: repo.id == store.selected?.id, showParent: duplicateNames.contains(repo.name)) {
-                                    store.selectedID = repo.id
-                                }
-                            }
-                        }
-                        .padding(.bottom, 20)
+                HStack(spacing: 12) {
+                    FilterChips(selection: $filter, counts: counts)
+                    Spacer()
+                    GlassSegments(selection: $byName, items: [(false, "Récents"), (true, "Nom")], compact: true)
+                }
+                globalViews
+                LazyVStack(spacing: 6) {
+                    ForEach(visible) { repo in
+                        RepoRow(repo: repo, showParent: duplicateNames.contains(repo.name)) { model.openRepository(repo.url) }
                     }
-                    .scrollIndicators(.never)
-                    .frame(width: 300)
-
-                    if let repo = store.selected {
-                        ScrollView {
-                            RepoDetail(repo: repo).id(repo.id)
-                                .padding(.bottom, 20)
-                        }
-                        .scrollIndicators(.automatic)
-                    }
+                }
+                if visible.isEmpty {
+                    Card { EmptyState(symbol: "magnifyingglass", title: "Aucun projet ne correspond") }
                 }
             }
         }
-        .padding(.leading, 22)
-        .padding(.trailing, 30)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background { Backdrop() }
-        .onAppear { if store.stale && !store.scanning { model.scanRepos() } }
-        .onChange(of: store.stale) { _, stale in if stale && !store.scanning { model.scanRepos() } }
+    }
+
+    /// Vues de tous les projets à la fois (anciennes sous-pages).
+    private var globalViews: some View {
+        HStack(spacing: 8) {
+            Text("Tous les projets :").font(.system(size: 12)).foregroundStyle(Theme.muted)
+            ForEach([Page.modifications, .commandes, .dependances, .securite, .couverture], id: \.self) { page in
+                Button { model.selection = page } label: { Label(page.title, systemImage: page.symbol) }
+                    .buttonStyle(PillButtonStyle(kind: .small))
+            }
+        }
     }
 
     private var subtitle: String {
@@ -70,18 +97,136 @@ struct ReposPage: View {
         if let message = store.message { return message }
         if store.scanning { return "Analyse des dépôts…" }
         let roots = model.projectRoots.map { $0.abbreviatingHome() }.joined(separator: " et ")
-        return "\(store.repos.count) dépôt\(store.repos.count > 1 ? "s" : "") git dans \(roots)"
+        return "\(store.repos.count) dépôt\(store.repos.count > 1 ? "s" : "") git dans \(roots) · du plus récemment modifié au plus ancien"
     }
 
-    private var visible: [RepoStatus] { model.repos.repos.filter(filter.matches) }
+    private var visible: [RepoStatus] {
+        let q = query.lowercased()
+        let list = model.repos.repos.filter(filter.matches).filter { q.isEmpty || $0.name.lowercased().contains(q) || $0.url.path.lowercased().contains(q) }
+        if byName { return list.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending } }
+        return list.sorted { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
+    }
 
-    /// Noms portés par plusieurs dépôts : on affiche le dossier parent pour les distinguer.
     private var duplicateNames: Set<String> {
         Set(Dictionary(grouping: model.repos.repos, by: \.name).filter { $0.value.count > 1 }.keys)
     }
 
     private var counts: [RepoFilter: Int] {
         Dictionary(uniqueKeysWithValues: RepoFilter.allCases.map { f in (f, model.repos.repos.filter(f.matches).count) })
+    }
+}
+
+/// Une ligne de la liste : nom, chemin, branche, état, dernière activité, failles et couverture si connues.
+private struct RepoRow: View {
+    @Environment(AppModel.self) private var model
+    let repo: RepoStatus
+    var showParent = false
+    let open: () -> Void
+
+    var body: some View {
+        Button(action: open) {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(repo.name).font(.system(size: 14, weight: .semibold)).lineLimit(1)
+                        if showParent {
+                            Text(repo.url.deletingLastPathComponent().lastPathComponent).font(.system(size: 12)).foregroundStyle(Theme.muted)
+                        }
+                        ForEach(repo.languages.prefix(3), id: \.self) { language in
+                            Text(language).font(.system(size: 11)).foregroundStyle(Theme.muted)
+                                .padding(.horizontal, 6).padding(.vertical, 1)
+                                .background(Theme.hairline, in: .capsule)
+                        }
+                    }
+                    Text(repo.url.abbreviatingHome()).font(.system(size: 11).monospaced()).foregroundStyle(Theme.muted)
+                        .lineLimit(1).truncationMode(.middle)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Text("⎇ \(repo.branch ?? "détaché")").font(.system(size: 12).monospaced()).lineLimit(1).frame(width: 150, alignment: .leading)
+                StateLabel(repo: repo).frame(width: 140, alignment: .leading)
+                badges.frame(width: 120, alignment: .leading)
+                Text(repo.lastActivity.map { RelativeDate.french($0) } ?? "—").font(.system(size: 12)).foregroundStyle(Theme.muted)
+                    .frame(width: 110, alignment: .trailing)
+                Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.muted)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 11)
+            .background(Color.white.opacity(0.5), in: .rect(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.cardBorder))
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var badges: some View {
+        HStack(spacing: 6) {
+            if let analysis = model.analysis.value {
+                let vulns = analysis.vulnerablePackages.filter { $0.project?.standardizedFileURL == repo.url.standardizedFileURL }
+                if !vulns.isEmpty {
+                    let worst = vulns.map(\.severity).max() ?? .unknown
+                    Tag(text: "\(vulns.count) faille\(vulns.count > 1 ? "s" : "")", foreground: worst >= .high ? Tag.red.0 : Tag.orange.0,
+                        background: worst >= .high ? Tag.red.1 : Tag.orange.1)
+                }
+            }
+            if let coverage = model.coverage.value?.first(where: { $0.project.standardizedFileURL == repo.url.standardizedFileURL })?.report?.lines {
+                Text("\(Int(coverage.rounded())) %").font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(coverageColor(coverage, threshold: model.preferences.coverageThreshold))
+                    .help("Couverture de tests")
+            }
+        }
+    }
+}
+
+/// Page d'un dépôt : en-tête, onglets, et chaque écran limité à ce projet.
+private struct RepoPage: View {
+    @Environment(AppModel.self) private var model
+    let repo: RepoStatus
+
+    var body: some View {
+        @Bindable var model = model
+        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Button { model.openRepo = nil } label: { Label("Projets", systemImage: "chevron.left") }
+                    .buttonStyle(PillButtonStyle(kind: .small))
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Text(repo.name).font(.system(size: 24, weight: .bold))
+                        StateLabel(repo: repo)
+                    }
+                    Text("\(repo.url.abbreviatingHome()) · ⎇ \(repo.branch ?? "détaché")" + (repo.lastActivity.map { " · modifié \(RelativeDate.french($0))" } ?? ""))
+                        .font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.middle)
+                }
+                Spacer()
+                OpenInMenu(project: repo.url)
+            }
+            GlassSegments(selection: $model.repoTab, items: RepoTab.allCases.map { ($0, $0.label) })
+                .fixedSize()
+        }
+        .padding(.leading, 22)
+        .padding(.trailing, 30)
+        .padding(.top, 6)
+        Group {
+            switch model.repoTab {
+            case .git:
+                ScrollView {
+                    RepoDetail(repo: repo).id(repo.id)
+                        .padding(.leading, 22).padding(.trailing, 30).padding(.bottom, 20).padding(.top, 6)
+                }
+            case .commands: CommandsPage()
+            case .dependencies: DependenciesPage()
+            case .security: SecurityPage()
+            case .coverage: CoveragePage()
+            }
+        }
+        .environment(\.projectScope, repo.url)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
+        .onAppear {
+            if model.analysis.stale && !model.analysis.loading { model.scanAnalysis() }
+            if model.coverage.stale && !model.coverage.loading { model.scanCoverage() }
+        }
     }
 }
 
@@ -141,48 +286,6 @@ private struct FilterChips: View {
         .padding(4)
         .background(Color.white.opacity(0.5), in: .capsule)
         .overlay(Capsule().strokeBorder(Theme.cardBorder))
-    }
-}
-
-private struct RepoCard: View {
-    let repo: RepoStatus
-    let selected: Bool
-    var showParent = false
-    let select: () -> Void
-
-    var body: some View {
-        Button(action: select) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    Text(repo.name).font(.system(size: 14, weight: .semibold)).lineLimit(1)
-                    if showParent {
-                        Text(repo.url.deletingLastPathComponent().lastPathComponent)
-                            .font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1)
-                    }
-                    Spacer()
-                    if let date = repo.lastCommit?.date {
-                        Text(RelativeDate.french(date)).font(.system(size: 11)).foregroundStyle(Theme.muted)
-                            .lineLimit(1).fixedSize()
-                    }
-                }
-                HStack(spacing: 10) {
-                    Text("⎇ \(repo.branch ?? "détaché")").font(.system(size: 12).monospaced()).lineLimit(1)
-                    if let language = repo.languages.first { Text(language).font(.system(size: 12)) }
-                    Spacer(minLength: 0)
-                    StateLabel(repo: repo)
-                }
-                .foregroundStyle(Color.primary.opacity(0.8))
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(selected ? Theme.raised : Color.white.opacity(0.5), in: .rect(cornerRadius: 18, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(selected ? Theme.accent.opacity(0.4) : Theme.cardBorder))
-            .shadow(color: selected ? Theme.shadow.opacity(0.12) : .clear, radius: 7, y: 4)
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

@@ -4,6 +4,7 @@ import SwiftUI
 /// Projets › Couverture : rapports existants (lcov, Cobertura, JaCoCo, llvm-cov, go) ou tests lancés avec couverture.
 struct CoveragePage: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.projectScope) private var scope
     @ViewState private var selected: URL?
 
     var body: some View {
@@ -16,8 +17,14 @@ struct CoveragePage: View {
             }
             .fixedSize()
         } content: {
-            if let entries = store.value {
-                if entries.isEmpty {
+            if let all = store.value {
+                let entries = scope.map { project in all.filter { $0.project.standardizedFileURL == project.standardizedFileURL } } ?? all
+                if scope != nil, let entry = entries.first {
+                    CoverageDetail(entry: entry, threshold: preferences.coverageThreshold)
+                } else if scope != nil {
+                    Card { EmptyState(symbol: "checkmark.seal", title: "Pas de couverture pour ce projet",
+                                      message: "Aucun outil de test reconnu (Vitest, Jest, pytest, cargo, go, JaCoCo, swift test).") }
+                } else if entries.isEmpty {
                     Card { EmptyState(symbol: "checkmark.seal", title: "Aucun projet testable", message: "Aucun outil de test reconnu dans les projets détectés.") }
                 } else {
                     let current = entries.first { $0.project == selected } ?? entries[0]

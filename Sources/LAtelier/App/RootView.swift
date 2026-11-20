@@ -64,19 +64,19 @@ struct PageContainer: View {
         case .systeme: SystemPage()
         case .dev: DevPage()
         case .depots: ReposPage()
-        case .modifications: ModificationsPage()
+        case .modifications: BackToProjects { ModificationsPage() }
         case .majs: UpdatesPage()
         case .inventaire: InventoryPage()
         case .runtimes: RuntimesPage()
         case .services: ServicesPage()
-        case .dependances: DependenciesPage()
-        case .securite: SecurityPage()
+        case .dependances: BackToProjects { DependenciesPage() }
+        case .securite: BackToProjects { SecurityPage() }
         case .perfVue: PerformancePage()
         case .processus: ProcessesPage()
         case .reseau: NetworkPage()
         case .demarrage: StartupPage()
-        case .commandes: CommandsPage()
-        case .couverture: CoveragePage()
+        case .commandes: BackToProjects { CommandsPage() }
+        case .couverture: BackToProjects { CoveragePage() }
         case .enregistreur: RecorderPage()
         case .moniteur: MonitorPage()
         case .pourVous, .cyber, .langages, .favoris: NewsPage(page: page)
@@ -88,6 +88,25 @@ struct PageContainer: View {
         case .caches: CachesPage()
         case .explorateur: ExplorerPage()
         case .sonar: SonarPage()
+        }
+    }
+}
+
+/// Vues « tous les projets » : un retour vers la liste des dépôts.
+struct BackToProjects<Content: View>: View {
+    @Environment(AppModel.self) private var model
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                model.openRepo = nil
+                model.selection = .depots
+            } label: { Label("Projets", systemImage: "chevron.left") }
+                .buttonStyle(PillButtonStyle(kind: .small))
+                .padding(.leading, 22)
+                .padding(.top, 4)
+            content
         }
     }
 }

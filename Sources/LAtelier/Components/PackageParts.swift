@@ -236,8 +236,14 @@ extension ProjectAnalysis {
 
 extension AppModel {
     /// Ouvre un projet dans Projets › Dépôts.
-    func showRepository(_ url: URL) {
-        repos.selectedID = url.standardizedFileURL.path
+    func showRepository(_ url: URL) { openRepository(url) }
+
+    /// Ouvre la page d'un dépôt, éventuellement sur un onglet.
+    func openRepository(_ url: URL, tab: RepoTab = .git) {
+        let path = url.standardizedFileURL.path
+        repos.selectedID = path
+        openRepo = repos.repos.first { $0.url.standardizedFileURL.path == path }?.id ?? path
+        repoTab = tab
         selection = .depots
     }
 }
