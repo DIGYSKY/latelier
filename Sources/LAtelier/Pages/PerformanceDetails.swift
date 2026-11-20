@@ -219,13 +219,13 @@ struct ProcessDetailSheet: View {
         return section("Performances (2 dernières minutes)") {
             HStack(spacing: 10) {
                 StatTile(label: "Processeur", value: Format.percent(process.cpu))
-                StatTile(label: "Mémoire", value: Format.bytes(process.memory))
+                StatTile(label: "Mémoire", value: Format.ram(process.memory))
                 StatTile(label: "Threads", value: process.threads.map(String.init) ?? "—")
                 StatTile(label: "Réveils / s", value: Format.decimal(process.wakeups, decimals: 0))
             }
             HStack(spacing: 14) {
                 chart("Processeur (%)", values: history.map(\.cpu), color: Theme.accent) { Format.percent($0) }
-                chart("Mémoire", values: history.map { Double($0.memory) }, color: Color(hex: 0x6E4BD8)) { Format.bytes(Int64($0)) }
+                chart("Mémoire", values: history.map { Double($0.memory) }, color: Color(hex: 0x6E4BD8)) { Format.ram(Int64($0)) }
             }
             .frame(height: 150)
             HStack(spacing: 10) {
@@ -334,7 +334,7 @@ struct ProcessDetailSheet: View {
             if kids.isEmpty {
                 Text("Aucun processus enfant.").font(.system(size: 12)).foregroundStyle(Theme.muted)
             } else {
-                Text("\(kids.count) processus enfant\(kids.count > 1 ? "s" : "") · \(Format.percent(kids.reduce(0) { $0 + $1.cpu })) CPU · \(Format.bytes(kids.reduce(0) { $0 + $1.memory }))")
+                Text("\(kids.count) processus enfant\(kids.count > 1 ? "s" : "") · \(Format.percent(kids.reduce(0) { $0 + $1.cpu })) CPU · \(Format.ram(kids.reduce(0) { $0 + $1.memory }))")
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
                 ForEach(kids.prefix(12)) { child in
                     HStack {
@@ -342,7 +342,7 @@ struct ProcessDetailSheet: View {
                         Text("PID \(child.pid)").font(.system(size: 11)).foregroundStyle(Theme.muted)
                         Spacer()
                         Text(Format.percent(child.cpu)).monospacedDigit().frame(width: 60, alignment: .trailing)
-                        Text(Format.bytes(child.memory)).monospacedDigit().frame(width: 80, alignment: .trailing)
+                        Text(Format.ram(child.memory)).monospacedDigit().frame(width: 80, alignment: .trailing)
                     }
                     .font(.system(size: 12))
                 }
@@ -392,9 +392,9 @@ struct MonitorPage: View {
                     BigChart(title: "Processeur", value: Format.percent(sample.cpu),
                              detail: "Performance \(Format.percent(sample.performanceLoad)) · Efficacité \(Format.percent(sample.efficiencyLoad))",
                              series: [("Total", monitor.cpuHistory, Theme.accent)], format: { Format.percent($0) }, maximum: 100)
-                    BigChart(title: "Mémoire", value: Format.bytes(sample.memory.used),
-                             detail: "sur \(Format.bytes(sample.memory.total)) · pression \(sample.memory.pressure.label) · swap \(Format.bytes(sample.memory.swapUsed))",
-                             series: [("Utilisée", monitor.memoryHistory, Color(hex: 0x6E4BD8))], format: { Format.bytes(Int64($0)) },
+                    BigChart(title: "Mémoire", value: Format.ram(sample.memory.used),
+                             detail: "sur \(Format.ram(sample.memory.total)) · pression \(sample.memory.pressure.label) · swap \(Format.ram(sample.memory.swapUsed))",
+                             series: [("Utilisée", monitor.memoryHistory, Color(hex: 0x6E4BD8))], format: { Format.ram(Int64($0)) },
                              maximum: Double(sample.memory.total))
                     BigChart(title: "Disque", value: "\(Format.rate(sample.diskRead)) ↓  \(Format.rate(sample.diskWrite)) ↑",
                              detail: sample.diskFree.map { "\(Format.bytes($0)) libres" } ?? "lecture et écriture",
@@ -470,7 +470,7 @@ struct MonitorPage: View {
                     HStack(spacing: 5) {
                         Circle().fill(part.2).frame(width: 9, height: 9)
                         Text(part.0).font(.system(size: 12))
-                        Text(Format.bytes(part.1)).font(.system(size: 12, weight: .semibold))
+                        Text(Format.ram(part.1)).font(.system(size: 12, weight: .semibold))
                     }
                 }
             }

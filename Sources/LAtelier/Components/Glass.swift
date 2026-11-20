@@ -337,6 +337,11 @@ enum Format {
         value == 0 ? "0 octet" : ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
     }
 
+    /// Mémoire vive : en base 1024, comme macOS (16 Go de RAM, et non 17,18 Go).
+    static func ram(_ value: Int64) -> String {
+        value == 0 ? "0 octet" : ByteCountFormatter.string(fromByteCount: value, countStyle: .memory)
+    }
+
     static func duration(_ seconds: TimeInterval) -> String {
         seconds < 1 ? "\(Int(seconds * 1000)) ms" : seconds.formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "fr_FR"))) + " s"
     }

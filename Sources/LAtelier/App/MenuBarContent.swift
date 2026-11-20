@@ -16,7 +16,7 @@ struct MenuBarContent: View {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                     tile("Processeur", Format.percent(sample.cpu), "perf. \(Format.percent(sample.performanceLoad)) · eff. \(Format.percent(sample.efficiencyLoad))",
                          monitor.cpuHistory, max: 100, color: Theme.accent)
-                    tile("Mémoire", Format.bytes(sample.memory.used), "sur \(Format.bytes(sample.memory.total)) · \(sample.memory.pressure.label)",
+                    tile("Mémoire", Format.ram(sample.memory.used), "sur \(Format.ram(sample.memory.total)) · \(sample.memory.pressure.label)",
                          monitor.memoryHistory, max: Double(sample.memory.total), color: Color(hex: 0x6E4BD8))
                     tile("Disque", freeSpace.map { "\(Format.bytes($0.0)) libres" } ?? "—",
                          "\(Format.rate(sample.diskRead)) ↓ · \(Format.rate(sample.diskWrite)) ↑", monitor.diskHistory, color: Color(hex: 0x00879E))
@@ -96,7 +96,7 @@ struct MenuBarContent: View {
                         Spacer(minLength: 4)
                         Text(Format.percent(process.cpu)).font(.system(size: 12, weight: .semibold)).monospacedDigit()
                             .foregroundStyle(process.cpu > 50 ? Theme.red : .primary)
-                        Text(Format.bytes(process.memory)).font(.system(size: 11)).monospacedDigit().foregroundStyle(Theme.muted)
+                        Text(Format.ram(process.memory)).font(.system(size: 11)).monospacedDigit().foregroundStyle(Theme.muted)
                             .frame(width: 64, alignment: .trailing)
                     }
                     .contentShape(.rect)

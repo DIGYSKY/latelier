@@ -92,7 +92,7 @@ private struct ServiceRow: View {
                 Text(service.running && !service.ports.isEmpty ? service.ports.map { ":\($0)" }.joined(separator: " ") : "—")
                     .font(.system(size: 12).monospaced())
                     .frame(width: 80, alignment: .leading)
-                Text(service.memory.map(Format.bytes) ?? "")
+                Text(service.memory.map(Format.ram) ?? "")
                     .font(.system(size: 12).monospacedDigit())
                     .foregroundStyle(Theme.muted)
                     .frame(width: 64, alignment: .trailing)
