@@ -142,10 +142,13 @@ extension AppModel {
 }
 
 extension AppModel {
-    func scanStartup() {
+    /// `includeLoginItems` : seulement à la demande (macOS demande le mot de passe administrateur).
+    func scanStartup(includeLoginItems: Bool? = nil) {
+        if let includeLoginItems { startupLoginItems = includeLoginItems }
         let runner = runner
         let paths = Set(performance.processes.compactMap(\.path))
-        startup.run { await StartupScanner(runner: runner).scan(runningPaths: paths) }
+        let withLoginItems = startupLoginItems
+        startup.run { await StartupScanner(runner: runner).scan(runningPaths: paths, includeLoginItems: withLoginItems) }
     }
 
     /// Les projets connus servent à relier un processus à son dépôt.

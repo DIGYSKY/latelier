@@ -15,6 +15,22 @@ struct StartupPage: View {
                 .help(String(localized: "Réglages Système › Général › Ouverture : là où macOS gère les éléments de connexion"))
         } content: {
             if let result = store.value {
+                if result.loginItemsSkipped {
+                    Card {
+                        HStack(spacing: 12) {
+                            Image(systemName: "lock.shield").font(.system(size: 20)).foregroundStyle(Theme.accent)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(String(localized: "Éléments de connexion non lus")).font(.system(size: 14, weight: .semibold))
+                                Text(String(localized: "Les apps ouvertes à la connexion (Réglages Système › Général › Ouverture) ne se lisent qu’avec le mot de passe administrateur. L’Atelier ne le demande que si vous le choisissez."))
+                                    .font(.system(size: 12)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer()
+                            Button(String(localized: "Lire les éléments de connexion…")) { model.scanStartup(includeLoginItems: true) }
+                                .buttonStyle(PillButtonStyle(kind: .smallFilled))
+                                .fixedSize()
+                        }
+                    }
+                }
                 ForEach(StartupItem.Kind.allCases, id: \.self) { kind in
                     let items = result.items.filter { $0.kind == kind }.sorted(by: order)
                     if !items.isEmpty { GroupCard(kind: kind, items: items) }

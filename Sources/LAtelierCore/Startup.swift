@@ -231,12 +231,19 @@ public struct StartupScanner: Sendable {
     public struct Result: Sendable {
         public var items: [StartupItem]
         public var problems: [String]
+        /// Éléments de connexion (Réglages Système › Ouverture) non lus : macOS demande le mot de passe administrateur.
+        public var loginItemsSkipped = false
     }
 
     /// `runningPaths` : chemins des exécutables en cours (liste des processus).
-    public func scan(runningPaths: Set<String>) async -> Result {
+    /// `includeLoginItems` : lire aussi les éléments de connexion avec `sfltool dumpbtm`, que macOS
+    /// protège par le mot de passe administrateur. Jamais automatiquement : seulement à la demande.
+    public func scan(runningPaths: Set<String>, includeLoginItems: Bool = false) async -> Result {
         let uid = getuid()
-        async let btm = runner.run(CommandSpec("/usr/bin/sfltool", ["dumpbtm"]), timeout: .seconds(20))
+        let runner = runner
+        async let btm: CommandResult? = includeLoginItems
+            ? try? await runner.run(CommandSpec("/usr/bin/sfltool", ["dumpbtm"]), timeout: .seconds(60))
+            : nil
         async let disabled = runner.run(CommandSpec("/bin/launchctl", ["print-disabled", "gui/\(uid)"]), timeout: .seconds(5))
         async let loaded = runner.run(CommandSpec("/bin/launchctl", ["list"]), timeout: .seconds(5))
 
@@ -244,11 +251,13 @@ public struct StartupScanner: Sendable {
         let disabledLabels = Self.parseDisabled((try? await disabled)?.stdout ?? [])
         let loadedList = Self.parseList((try? await loaded)?.stdout ?? [])
         let records: [BTMRecord]
-        if let output = try? await btm, output.exitStatus == 0 {
+        if !includeLoginItems {
+            records = []
+        } else if let output = await btm, output.exitStatus == 0 {
             records = BTMRecord.parse(output.stdout, uid: uid)
         } else {
             records = []
-            problems.append(String(localized: "Éléments de connexion illisibles (sfltool)."))
+            problems.append(String(localized: "Éléments de connexion illisibles (sfltool) : l’autorisation administrateur a été refusée ou a échoué."))
         }
 
         var items: [StartupItem] = []
@@ -300,7 +309,7 @@ public struct StartupScanner: Sendable {
                 ))
             }
         }
-        return Result(items: items, problems: problems)
+        return Result(items: items, problems: problems, loginItemsSkipped: !includeLoginItems)
     }
 
     /// Apps ouvertes à la connexion, assistants (`SMAppService`) et agents déclarés par des apps.

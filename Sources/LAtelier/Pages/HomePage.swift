@@ -10,7 +10,20 @@ struct HomePage: View {
 
     var body: some View {
         PageScaffold(title: greeting, subtitle: Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)).capitalizedFirst) {
-            if let release = model.updates.available {
+            if let version = model.updates.installedVersion {
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.seal.fill").font(.system(size: 16, weight: .semibold)).foregroundStyle(Theme.green)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(localized: "L’Atelier \(version) est installé")).font(.system(size: 14, weight: .semibold))
+                        Text(String(localized: "Redémarrez pour utiliser la nouvelle version.")).font(.system(size: 12)).foregroundStyle(Theme.muted)
+                    }
+                    Spacer()
+                    Button(String(localized: "Redémarrer maintenant")) { model.relaunch() }.buttonStyle(PillButtonStyle(kind: .smallFilled))
+                }
+                .padding(.horizontal, 16).padding(.vertical, 12)
+                .background(Theme.green.opacity(0.12), in: .rect(cornerRadius: 18, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.green.opacity(0.3)))
+            } else if let release = model.updates.available {
                 HStack(spacing: 12) {
                     Image(systemName: "sparkles").font(.system(size: 16, weight: .semibold)).foregroundStyle(Theme.accent)
                     VStack(alignment: .leading, spacing: 2) {

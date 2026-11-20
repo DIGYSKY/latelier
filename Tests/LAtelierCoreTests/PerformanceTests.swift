@@ -318,3 +318,13 @@ import Testing
         }
     }
 }
+
+@Suite("Démarrage : pas de mot de passe administrateur sans le demander")
+struct StartupLoginItemsTests {
+    @Test func defaultScanDoesNotReadLoginItems() async {
+        let home = FileManager.default.temporaryDirectory.appendingPathComponent("latelier-startup-\(UUID().uuidString.prefix(6))")
+        let result = await StartupScanner(home: home).scan(runningPaths: [])
+        #expect(result.loginItemsSkipped)
+        #expect(!result.problems.contains { $0.contains("sfltool") })
+    }
+}

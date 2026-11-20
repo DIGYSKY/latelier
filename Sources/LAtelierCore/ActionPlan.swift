@@ -66,6 +66,13 @@ public struct ActionPlan: Sendable, Identifiable {
     public var stopOnFailure: Bool
     /// Faux : seule la corbeille est proposée (Sonar).
     public var allowsPermanent = true
+    /// Ce que fait le plan, pour adapter l'aperçu (une mise à jour de L’Atelier n'est pas un nettoyage).
+    public var purpose: Purpose = .standard
+
+    public enum Purpose: Sendable, Equatable {
+        case standard
+        case appUpdate(version: String)
+    }
 
     public init(
         id: UUID = UUID(), title: String, summary: String, kind: HistoryEntry.Kind, risk: Risk,

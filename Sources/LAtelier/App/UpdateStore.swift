@@ -12,6 +12,8 @@ final class UpdateStore {
     }
 
     private(set) var state: State = .idle
+    /// Version installée sur le disque pendant cette session : il reste à redémarrer pour l'utiliser.
+    private(set) var installedVersion: String?
     private(set) var lastCheck: Date?
     @ObservationIgnored private var preview: (ActionPlan) -> Void = { _ in }
     @ObservationIgnored private var preferences: ToolPreferences?
@@ -102,7 +104,7 @@ final class UpdateStore {
                     + (requirement != nil ? String(localized: ", vérifie la signature") : "")
                     + String(localized: ", puis échange les deux versions. En cas d’échec, l’actuelle reste en place ; sinon elle va à la corbeille et L’Atelier redémarre."),
                 kind: .paquet, risk: .caution, reversible: true, steps: steps
-            ))
+            ), version: release.version)
             return
         }
         // Signée ad hoc, l'app ne peut pas vérifier que la nouvelle version vient du même auteur :
@@ -131,29 +133,27 @@ final class UpdateStore {
                     title: "\(Self.planPrefix) \(release.version)",
                     summary: String(localized: "Télécharge \(dmg.lastPathComponent), vérifie son empreinte SHA-256 et que l’app est signée par le même certificat que celle-ci, puis échange les deux versions. En cas d’échec, l’actuelle reste en place ; sinon elle va à la corbeille et L’Atelier redémarre."),
                     kind: .paquet, risk: .caution, reversible: true, steps: steps
-                ))
+                ), version: release.version)
             } catch {
                 state = .failed(String(localized: "Téléchargement de l’empreinte impossible : \(error.localizedDescription)"))
             }
         }
     }
 
-    private func present(_ plan: ActionPlan) {
+    private func present(_ plan: ActionPlan, version: String) {
         var plan = plan
+        plan.purpose = .appUpdate(version: version)
         plan.allowsPermanent = false
         plan.stopOnFailure = true
         preview(plan)
     }
 
-    /// Après la mise à jour réussie : relance la nouvelle version.
+    /// Après la mise à jour réussie : la nouvelle version est sur le disque. L'aperçu propose de
+    /// redémarrer ; si vous choisissez « Plus tard », un bandeau le rappelle sur l'Accueil.
     func didRecord(_ entry: HistoryEntry) {
-        guard entry.title.hasPrefix(Self.planPrefix), entry.outcome == .success else { return }
-        let path = Bundle.main.bundleURL.path
-        let relaunch = Process()
-        relaunch.executableURL = URL(fileURLWithPath: "/bin/sh")
-        relaunch.arguments = ["-c", "sleep 1.5; /usr/bin/open \(ShellQuote.quote(path))"]
-        try? relaunch.run()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { NSApp.terminate(nil) }
+        guard entry.title.hasPrefix(Self.planPrefix), entry.outcome == .success, let release = available else { return }
+        installedVersion = release.version
+        state = .upToDate
     }
 
     /// Exigence de signature de l'app en cours (certificat stable) ; nil si signée ad hoc.

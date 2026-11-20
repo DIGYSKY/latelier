@@ -72,6 +72,8 @@ final class AppModel {
     var actionNotice: String?
     /// Erreur d'ouverture d'un terminal ou d'un éditeur.
     var launchError: String?
+    /// Éléments de connexion lus pendant cette session (l'utilisateur a accepté la demande de mot de passe).
+    var startupLoginItems = false
     /// Accueil du premier lancement (et « Revoir l’accueil » dans Réglages › À propos).
     var showOnboarding = !UserDefaults.standard.bool(forKey: "onboardingDone")
         || ProcessInfo.processInfo.environment["LATELIER_ONBOARDING"] == "1"

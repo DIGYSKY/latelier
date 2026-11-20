@@ -35,11 +35,16 @@ struct PlanSheet: View {
             }
 
             HStack(spacing: 10) {
-                if let bytes = plan.estimatedBytes, bytes > 0 {
+                if let version = updateVersion {
+                    stat(String(localized: "Nouvelle version"), version, color: Theme.accent, big: true)
+                    stat(String(localized: "Version actuelle"), Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")
+                } else if let bytes = plan.estimatedBytes, bytes > 0 {
                     stat(String(localized: "Espace libéré"), Format.bytes(bytes), color: Theme.accent, big: true)
                 }
+                if updateVersion == nil {
                 stat(String(localized: "Éléments"), plan.removesFiles ? (plan.removals.count > 1 ? String(localized: "\(plan.removals.count) éléments") : String(localized: "\(plan.removals.count) élément")) : "\(plan.steps.count) commande\(plan.steps.count > 1 ? "s" : "")")
                 stat(String(localized: "Risque"), plan.risk == .safe ? String(localized: "Tout sans risque") : plan.risk.label, color: RiskBadge(risk: plan.risk).color)
+                }
             }
 
             stepList
@@ -53,7 +58,7 @@ struct PlanSheet: View {
                 }
             }
 
-            if plan.removesFiles { methodPicker }
+            if plan.removesFiles && updateVersion == nil { methodPicker }
 
             if !plan.reversible {
                 Text(plan.removesPermanently
@@ -79,14 +84,26 @@ struct PlanSheet: View {
         }
     }
 
+    /// Version installée par une mise à jour de L’Atelier (aperçu et fin adaptés).
+    private var updateVersion: String? {
+        if case .appUpdate(let version) = plan.purpose { return version }
+        return nil
+    }
+
     private var ctaLabel: String {
+        if updateVersion != nil { return String(localized: "Installer la mise à jour") }
         if plan.removesFiles { return plan.removesPermanently ? String(localized: "Supprimer définitivement") : String(localized: "Mettre à la corbeille") }
         return plan.reversible ? String(localized: "Exécuter") : String(localized: "Exécuter quand même")
     }
 
     /// Les chemins les plus lourds, ou les commandes.
     private var stepList: some View {
-        let rows: [(String, String?)] = plan.removesFiles
+        let rows: [(String, String?)] = updateVersion != nil
+            ? plan.steps.map { step in
+                if case .remove(let url, _, _) = step { return (String(localized: "\(url.lastPathComponent) → corbeille"), nil) }
+                return (step.displayString, nil)
+            }
+            : plan.removesFiles
             ? plan.removals.sorted { $0.bytes > $1.bytes }.map { ($0.url.abbreviatingHome(), Format.bytes($0.bytes)) }
             : plan.steps.filter(\.isCommandLike).map { ($0.displayString, nil) }
         let extraCommands = plan.removesFiles ? plan.steps.filter(\.isCommandLike).map { ($0.displayString, String?.none) } : []
@@ -156,7 +173,8 @@ struct PlanSheet: View {
 
     private var running: some View {
         VStack(spacing: 16) {
-            Text(plan.removesFiles ? String(localized: "Nettoyage en cours…") : String(localized: "Exécution en cours…")).font(.system(size: 21, weight: .bold))
+            Text(updateVersion != nil ? String(localized: "Installation de la mise à jour…")
+                 : plan.removesFiles ? String(localized: "Nettoyage en cours…") : String(localized: "Exécution en cours…")).font(.system(size: 21, weight: .bold))
             Text(run.current ?? " ")
                 .font(.system(size: 12).monospaced())
                 .foregroundStyle(Theme.muted)
@@ -219,14 +237,23 @@ struct PlanSheet: View {
                     .frame(maxWidth: 480)
             }
             HStack(spacing: 10) {
-                Button(String(localized: "Voir l’historique")) {
-                    model.selection = .historique
-                    dismiss()
+                if success, updateVersion != nil {
+                    // La nouvelle version est sur le disque : elle s'utilise au prochain lancement.
+                    Button(String(localized: "Plus tard")) { dismiss() }
+                        .buttonStyle(.secondary)
+                    Button(String(localized: "Redémarrer maintenant")) { model.relaunch() }
+                        .buttonStyle(.primary)
+                        .keyboardShortcut(.defaultAction)
+                } else {
+                    Button(String(localized: "Voir l’historique")) {
+                        model.selection = .historique
+                        dismiss()
+                    }
+                    .buttonStyle(.secondary)
+                    Button(String(localized: "Fermer")) { dismiss() }
+                        .buttonStyle(.primary)
+                        .keyboardShortcut(.defaultAction)
                 }
-                .buttonStyle(.secondary)
-                Button(String(localized: "Fermer")) { dismiss() }
-                    .buttonStyle(.primary)
-                    .keyboardShortcut(.defaultAction)
             }
             .padding(.top, 6)
         }
@@ -237,9 +264,12 @@ struct PlanSheet: View {
     }
 
     private func doneTitle(_ entry: HistoryEntry) -> String {
-        switch entry.outcome {
-        case .success: entry.bytesFreed.map { "\(Format.bytes($0)) libérés" } ?? "Terminé"
-        case .partial: entry.bytesFreed.map { "\(Format.bytes($0)) libérés, en partie" } ?? "Fait en partie"
+        if entry.outcome == .success, let version = updateVersion {
+            return String(localized: "L’Atelier \(version) est installé")
+        }
+        return switch entry.outcome {
+        case .success: entry.bytesFreed.map { String(localized: "\(Format.bytes($0)) libérés") } ?? String(localized: "Terminé")
+        case .partial: entry.bytesFreed.map { String(localized: "\(Format.bytes($0)) libérés, en partie") } ?? String(localized: "Fait en partie")
         case .failure: String(localized: "Échec")
         case .cancelled: String(localized: "Annulé")
         }
@@ -248,6 +278,9 @@ struct PlanSheet: View {
     private func doneText(_ entry: HistoryEntry) -> String {
         switch entry.outcome {
         case .success:
+            if updateVersion != nil {
+                return String(localized: "Redémarrez L’Atelier pour utiliser la nouvelle version. L’ancienne est dans la corbeille ; vos réglages et votre historique sont conservés.")
+            }
             if plan.removesFiles {
                 return plan.removesPermanently
                     ? String(localized: "\(plan.removals.count) élément(s) supprimé(s) définitivement.")
