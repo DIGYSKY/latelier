@@ -214,6 +214,10 @@ struct PlanSheet: View {
                 .foregroundStyle(Theme.muted)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 440)
+            if let hint = FailureAdvisor.hint(for: entry) {
+                FailureHintCard(hint: hint) { dismiss() }
+                    .frame(maxWidth: 480)
+            }
             HStack(spacing: 10) {
                 Button("Voir l’historique") {
                     model.selection = .historique
@@ -370,5 +374,45 @@ final class PlanRun {
     private func append(_ text: String, isError: Bool) {
         lines.append(Line(id: (lines.last?.id ?? -1) + 1, text: text, isError: isError))
         if lines.count > Self.maxLines { lines.removeFirst(lines.count - Self.maxLines) }
+    }
+}
+
+/// Explication d'un échec connu et sa correction (fenêtre de fin et Historique).
+struct FailureHintCard: View {
+    @Environment(AppModel.self) private var model
+    let hint: FailureHint
+    /// Appelé avant d'ouvrir la correction (fermer la feuille).
+    var leave: () -> Void = {}
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(hint.title, systemImage: "lightbulb").font(.system(size: 14, weight: .semibold))
+            Text(hint.explanation).font(.system(size: 13)).fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 8) {
+                if let fix = hint.fix, let label = hint.fixLabel {
+                    Button(label) {
+                        leave()
+                        let plan = ActionPlan(title: label.replacingOccurrences(of: "…", with: ""), summary: hint.explanation,
+                                              kind: .paquet, risk: .safe, reversible: true, commands: [fix])
+                        // La feuille actuelle se ferme d'abord.
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(350))
+                            model.preview(plan)
+                        }
+                    }
+                    .buttonStyle(PillButtonStyle(kind: .smallFilled))
+                }
+                if let raw = hint.page, let page = Page(rawValue: raw) {
+                    Button("Ouvrir \(page.title)") {
+                        leave()
+                        model.selection = page
+                    }
+                    .buttonStyle(PillButtonStyle(kind: .small))
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(hex: 0xFF9500).opacity(0.12), in: .rect(cornerRadius: 14, style: .continuous))
     }
 }

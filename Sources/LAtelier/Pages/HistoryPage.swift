@@ -143,6 +143,7 @@ struct HistoryRow: View {
                 } else if case .failure(let message) = entry.outcome {
                     Label(message, systemImage: "xmark.octagon").font(.callout).foregroundStyle(.red)
                 }
+                if let hint = FailureAdvisor.hint(for: entry) { FailureHintCard(hint: hint) }
                 ForEach(Array(entry.commands.enumerated()), id: \.offset) { _, log in
                     CommandLogView(log: log)
                 }

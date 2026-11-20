@@ -172,9 +172,6 @@ struct SonarPage: View {
                         .font(.system(size: 12)).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
                     if sonar.files.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Dossiers parcourus :").font(.system(size: 11, weight: .semibold))
-                            Text(sonar.scannedRoots.map { $0.abbreviatingHome() }.joined(separator: ", "))
-                                .font(.system(size: 11).monospaced()).foregroundStyle(Theme.muted)
                             if !model.preferences.allowPersonalFolders {
                                 Text("Vos gros fichiers sont souvent dans Téléchargements ou Documents, que macOS protège.")
                                     .font(.system(size: 11)).padding(.top, 4)
@@ -299,6 +296,8 @@ private struct RadarView: View {
             let size = min(geometry.size.width, geometry.size.height)
             let radius = size / 2
             let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+            // Placement calculé une fois (pas à chaque image de l'animation).
+            let blips = placed(radius: radius)
             TimelineView(.periodic(from: .now, by: 1.0 / 20)) { context in
                 let sweep = (context.date.timeIntervalSinceReferenceDate * (scanning ? 180 : 60)).truncatingRemainder(dividingBy: 360)
                 ZStack {
@@ -319,7 +318,7 @@ private struct RadarView: View {
                                           center: .center, startAngle: .degrees(-40), endAngle: .degrees(0)))
                     .frame(width: size, height: size)
                     .rotationEffect(.degrees(sweep - 90))
-                    ForEach(Array(placed(radius: radius).enumerated()), id: \.element.file.id) { _, blip in
+                    ForEach(blips, id: \.file.id) { blip in
                         let diff = ((sweep - blip.angle).truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
                         let ping = diff < 40
                         let isSelected = blip.file.id == selected
@@ -352,15 +351,53 @@ private struct RadarView: View {
         var diameter: Double
     }
 
+    /// Positions sans chevauchement : chaque point (du plus gros au plus petit) prend la place libre
+    /// la plus proche de sa position idéale, dans le secteur de son type et près de son anneau d'ancienneté.
     private func placed(radius: Double) -> [Blip] {
         var slots: [SonarFile.Kind: Int] = [:]
-        // Les 120 plus gros, pour rester lisible.
-        return files.sorted { $0.bytes > $1.bytes }.prefix(120).map { file in
+        var result: [Blip] = []
+        var taken: [(x: Double, y: Double, r: Double)] = []
+        let sector = 360.0 / Double(SonarFile.Kind.allCases.count)
+        for file in files.sorted(by: { $0.bytes > $1.bytes }).prefix(120) {
             let slot = slots[file.kind, default: 0]
             slots[file.kind] = slot + 1
             let gb = Double(file.bytes) / 1_000_000_000
-            return Blip(file: file, angle: SonarRadar.angle(kind: file.kind, slot: slot),
-                        distance: SonarRadar.radius(ageDays: file.ageDays()), diameter: min(46, 12 + sqrt(gb) * 10))
+            let diameter = min(46, 12 + sqrt(gb) * 10)
+            let idealAngle = SonarRadar.angle(kind: file.kind, slot: slot)
+            let idealDistance = SonarRadar.radius(ageDays: file.ageDays())
+            let start = Double(SonarFile.Kind.allCases.firstIndex(of: file.kind) ?? 0) * sector
+            func point(_ angle: Double, _ distance: Double) -> (Double, Double) {
+                let rad = (angle - 90) * .pi / 180
+                return (cos(rad) * distance * radius, sin(rad) * distance * radius)
+            }
+            func free(_ angle: Double, _ distance: Double) -> Bool {
+                let (x, y) = point(angle, distance)
+                return !taken.contains { hypot($0.x - x, $0.y - y) < $0.r + diameter / 2 + 2 }
+            }
+            var best = (angle: idealAngle, distance: idealDistance)
+            if !free(idealAngle, idealDistance) {
+                var found = false
+                // Cercles de recherche autour de la position idéale : d'abord l'angle, puis un peu la distance.
+                search: for step in 1...60 {
+                    for (dAngle, dDistance) in [(Double(step) * 1.5, 0.0), (-Double(step) * 1.5, 0.0),
+                                                (Double(step), 0.015 * Double(step)), (-Double(step), -0.015 * Double(step)),
+                                                (0.0, 0.02 * Double(step)), (0.0, -0.02 * Double(step))] {
+                        let angle = idealAngle + dAngle
+                        let distance = idealDistance + dDistance
+                        guard angle >= start + 2, angle <= start + sector - 2, distance >= 0.1, distance <= 0.97 else { continue }
+                        if free(angle, distance) {
+                            best = (angle, distance)
+                            found = true
+                            break search
+                        }
+                    }
+                }
+                if !found { best = (idealAngle, idealDistance) }
+            }
+            let (x, y) = point(best.angle, best.distance)
+            taken.append((x, y, diameter / 2))
+            result.append(Blip(file: file, angle: best.angle, distance: best.distance, diameter: diameter))
         }
+        return result
     }
 }

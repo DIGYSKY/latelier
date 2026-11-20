@@ -345,3 +345,29 @@ private func write(_ home: URL, _ relative: String, bytes: Int = 2_000_000) thro
         #expect(setup.missing?.install.arguments == ["add", "--dev", "pytest-cov"])
     }
 }
+
+@Suite struct FailureAdvisorTests {
+    @Test func nodeEngine() throws {
+        let output = """
+        npm error code EBADENGINE
+        npm error engine Unsupported engine
+        npm error engine Not compatible with your version of node/npm: @nuxt/cli@4.0.1
+        npm error notsup Required: {"node":"^22.21.0 || ^24.11.0 || >=26.0.0"}
+        npm error notsup Actual:   {"node":"v22.20.0","npm":"11.16.0"}
+        """
+        let hint = try #require(FailureAdvisor.hint(for: output, nvmRoot: URL(fileURLWithPath: "/tmp/nvm")))
+        #expect(hint.title == "Version de Node trop ancienne")
+        #expect(hint.explanation.contains("@nuxt/cli@4.0.1"))
+        #expect(hint.explanation.contains("^22.21.0"))
+        #expect(hint.explanation.contains("22.20.0"))
+        #expect(hint.fixLabel == "Installer la dernière Node 22…")
+        #expect(hint.fix?.arguments.suffix(2) == ["install", "22"])
+    }
+
+    @Test func others() {
+        #expect(FailureAdvisor.hint(for: "Error: Refusing to uninstall /opt/homebrew/Cellar/python@3.13/3.13.15\nbecause it is required by autojump, which is currently installed.")?.title == "Requis par autojump")
+        #expect(FailureAdvisor.hint(for: " MISSING DEPENDENCY  Cannot find dependency '@vitest/coverage-v8'")?.title == "Dépendance manquante : @vitest/coverage-v8")
+        #expect(FailureAdvisor.hint(for: "error: Your local changes would be overwritten by merge")?.title == "Modifications locales en cours")
+        #expect(FailureAdvisor.hint(for: "tout va bien") == nil)
+    }
+}
