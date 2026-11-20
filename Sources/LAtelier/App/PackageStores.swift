@@ -136,3 +136,18 @@ extension AppModel {
         }
     }
 }
+
+extension AppModel {
+    func scanStartup() {
+        let runner = runner
+        let paths = Set(performance.processes.compactMap(\.path))
+        startup.run { await StartupScanner(runner: runner).scan(runningPaths: paths) }
+    }
+
+    /// Les projets connus servent à relier un processus à son dépôt.
+    var knownProjects: [URL] { repos.repos.map(\.url) }
+
+    func ensureRepos() {
+        if repos.stale && !repos.scanning { scanRepos() }
+    }
+}

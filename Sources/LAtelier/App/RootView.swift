@@ -41,6 +41,10 @@ struct PageContainer: View {
         case .services: ServicesPage()
         case .dependances: DependenciesPage()
         case .securite: SecurityPage()
+        case .perfVue: PerformancePage()
+        case .processus: ProcessesPage()
+        case .reseau: NetworkPage()
+        case .demarrage: StartupPage()
         default: PlaceholderPage(page: page)
         }
     }

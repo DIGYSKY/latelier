@@ -25,13 +25,18 @@ final class AppModel {
     let analysis = Loadable<ProjectAnalysis>()
     /// Services pour lesquels une commande est en cours.
     var serviceBusy: Set<String> = []
+    /// Éléments de connexion, agents et démons.
+    let startup = Loadable<StartupScanner.Result>()
 
     let runner = CommandRunner()
     let historyStore: HistoryStore
+    /// Gestionnaire des tâches (échantillonnage seulement quand un écran Performance est affiché).
+    let performance: PerformanceMonitor
     private static let rootsKey = "projectRoots"
 
     init(historyStore: HistoryStore = HistoryStore()) {
         self.historyStore = historyStore
+        performance = PerformanceMonitor(runner: runner)
         let saved = UserDefaults.standard.stringArray(forKey: Self.rootsKey)
         projectRoots = saved.map { $0.map { URL(fileURLWithPath: $0) } } ?? DevArtifactScanner.defaultRoots()
         // Ouvre directement un écran (captures, développement) : LATELIER_PAGE=sonar
@@ -160,7 +165,11 @@ final class AppModel {
             runtimes.invalidate()
             analysis.invalidate()
         }
-        if entry.kind == .systeme { services.invalidate() }
+        if entry.kind == .systeme {
+            services.invalidate()
+            startup.invalidate()
+        }
+        if entry.kind == .processus { performance.refreshNow() }
         await reloadHistory()
     }
 

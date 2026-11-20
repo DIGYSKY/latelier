@@ -400,5 +400,8 @@ Swift Package (pas de projet Xcode à maintenir) ; Xcode peut ouvrir `Package.sw
 - Sans Xcode, la macro `@State` n’est pas disponible : on écrit `@ViewState` (alias du property wrapper).
 - `LATELIER_AUTOPREVIEW=1` (avec `LATELIER_PAGE=dev`) ouvre l’aperçu dès la fin de l’analyse, sans rien exécuter : pratique pour les captures.
 - Projets « en cours d’utilisation » : dossiers de travail des processus via `lsof -d cwd` (les shells sont ignorés). L’Enregistreur (étape 7) passera à `proc_pidinfo`.
+- Performance : l’échantillonnage (1 s, `nettop` toutes les 5 s) ne tourne que si un écran Performance est affiché et la fenêtre visible ;
+  `LATELIER_ALWAYS_SAMPLE=1` le force (captures avec la fenêtre sur un autre bureau). Hors binaires Apple, le noyau ne donne
+  que les 32 bits bas des compteurs réseau : débits calculés modulo 2³², totaux lus avec `netstat -ib`.
 - Garde-fou de suppression (`SafetyGuard`) : uniquement dans le dossier personnel, jamais `~/Library`, `~/Documents`, `~/.ssh`, trousseaux…
 - Signature Developer ID : `SIGN_IDENTITY="Developer ID Application: …" make app`.

@@ -225,6 +225,7 @@ extension HistoryEntry.Kind {
         case .paquet: "cube.box"
         case .commande: "terminal"
         case .systeme: "gearshape.2"
+        case .processus: "xmark.octagon"
         }
     }
 
@@ -235,6 +236,7 @@ extension HistoryEntry.Kind {
         case .paquet: .purple
         case .commande: .teal
         case .systeme: .gray
+        case .processus: .red
         }
     }
 }

@@ -24,12 +24,18 @@ public enum ActionStep: Sendable, Hashable {
     case remove(URL, bytes: Int64, permanently: Bool)
     /// Ajoute une ligne à un fichier texte s'il ne la contient pas déjà (`.gitignore`).
     case appendLine(String, to: URL)
+    /// Quitte un processus (`force` : SIGKILL). Vérifie avant que c'est toujours le même (PID réutilisé).
+    case signal(ProcessTarget, force: Bool)
 
     public var displayString: String {
         switch self {
         case .command(let spec): spec.displayString
         case .remove(let url, _, _): url.path
         case .appendLine(let line, let file): "echo \(ShellQuote.quote(line)) >> \(ShellQuote.quote(file.path))"
+        case .signal(let target, let force):
+            target.isApp && !force
+                ? "quitter « \(target.name) » (PID \(target.pid))"
+                : "kill -\(force ? "KILL" : "TERM") \(target.pid)   # \(target.name)"
         }
     }
 
@@ -206,6 +212,28 @@ public struct PlanExecutor: Sendable {
                     outcome = completed == 0 ? .failure(message) : .partial("\(message) \(completed) étape(s) sur \(total) avaient été faites.")
                     break stepLoop
                 }
+
+            case .signal(let target, let force):
+                if let log = removal.flush() { logs.append(log) }
+                let start = Date()
+                do {
+                    let output = try await ProcessTerminator.terminate(target, force: force)
+                    completed += 1
+                    onEvent(index, .stdout(output))
+                    onEvent(index, .exited(status: 0, uncaughtSignal: false))
+                    logs.append(CommandLog(command: step.displayString, exitStatus: 0, output: output, duration: Date().timeIntervalSince(start)))
+                } catch {
+                    let reason = Self.describe(error)
+                    onEvent(index, .stderr(reason))
+                    onEvent(index, .exited(status: 1, uncaughtSignal: false))
+                    logs.append(CommandLog(command: step.displayString, exitStatus: 1, output: reason, duration: Date().timeIntervalSince(start)))
+                    if !plan.stopOnFailure {
+                        commandFailures.append(reason)
+                        continue
+                    }
+                    outcome = completed == 0 ? .failure(reason) : .partial("\(reason) \(completed) étape(s) sur \(total) avaient été faites.")
+                    break stepLoop
+                }
             }
         }
         let removalFailures = removal.failures
@@ -274,6 +302,7 @@ public struct PlanExecutor: Sendable {
 
     static func describe(_ error: Error) -> String {
         if let refusal = error as? SafetyGuard.Refusal { return refusal.localizedDescription }
+        if let failure = error as? ProcessTerminator.Failure { return failure.localizedDescription }
         let ns = error as NSError
         if let underlying = ns.userInfo[NSUnderlyingErrorKey] as? NSError,
            underlying.domain == NSPOSIXErrorDomain {
